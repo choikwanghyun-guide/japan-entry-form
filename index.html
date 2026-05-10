@@ -56,6 +56,7 @@
   .count-badge { background:var(--accent); color:white; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:auto; }
   @page { size:A4 portrait; margin:0; }
   @media print {
+    .no-print { display:none !important; }
     * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
     body { background:white !important; padding:0 !important; margin:0 !important; }
     .header,.main { display:none !important; }
@@ -1023,7 +1024,7 @@ function showAlert(id, type, msg) {
 }
 </script>
 
-<div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;">
+<div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
   Created by Choi KwangHyun &nbsp;·&nbsp; © 2026
 </div>
 
