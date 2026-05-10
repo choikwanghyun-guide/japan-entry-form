@@ -131,7 +131,7 @@
     <div id="formAlert"></div>
   </div>
 
-  <div class="card" id="previewCard" style="display:none">
+  <div class="card" id="previewCard">
     <div class="card-title">
       <div class="step-badge">3</div>
       승객 목록
@@ -192,6 +192,37 @@
       <button class="btn-print" id="btnEdCard" onclick="generateEdCard()" style="margin-top:0; flex:1; background:linear-gradient(135deg,#3ecf8e,#2eb87a);">
         📥 고객 요약정보 내려받기
       </button>
+    </div>
+
+    <!-- 세관신고서 위치 조정 슬라이더 -->
+    <div id="customsAdjust" style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">🖨️ 세관신고서 위치 미세조정 <span style="font-size:11px; color:var(--text3); font-weight:400;">(프린터마다 다를 수 있어요)</span></div>
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+        <span style="font-size:12px; color:var(--text2); width:60px;">위 ▲ 아래</span>
+        <span style="font-size:12px; color:var(--text3);">-10</span>
+        <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0"
+          style="flex:1; accent-color:#f7b84f;"
+          oninput="document.getElementById('offsetYVal').textContent = this.value">
+        <span style="font-size:12px; color:var(--text3);">+10</span>
+        <span id="offsetYVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+        <span style="font-size:11px; color:var(--text3);">mm</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:12px; color:var(--text2); width:60px;">좌 ◀ 우</span>
+        <span style="font-size:12px; color:var(--text3);">-10</span>
+        <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0"
+          style="flex:1; accent-color:#f7b84f;"
+          oninput="document.getElementById('offsetXVal').textContent = this.value">
+        <span style="font-size:12px; color:var(--text3);">+10</span>
+        <span id="offsetXVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+        <span style="font-size:11px; color:var(--text3);">mm</span>
+      </div>
+      <div style="margin-top:10px; text-align:right;">
+        <button onclick="document.getElementById('customsOffsetY').value=0; document.getElementById('customsOffsetX').value=0; document.getElementById('offsetYVal').textContent='0'; document.getElementById('offsetXVal').textContent='0';"
+          style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+          초기화
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -820,8 +851,6 @@ function setMode(mode) {
     if (btn) btn.style.opacity = m === mode ? '1' : '0.65';
   });
 
-  if (passengers.length === 0) { alert('먼저 명부 파일을 업로드해주세요!'); return; }
-
   const info = {
     hotelName:    document.getElementById('hotelName').value.trim(),
     flightNo:     document.getElementById('flightNo').value.trim(),
@@ -831,10 +860,21 @@ function setMode(mode) {
     arrivalDate:  document.getElementById('arrivalDate') ? document.getElementById('arrivalDate').value.trim() : '',
   };
 
+  // 승객이 없으면 공통정보만 채운 빈 양식 1장 출력
+  const emptyPassenger = {
+    lastName:'', firstName:'', fullName:'', korName:'',
+    birthYear:'', birthMonth:'', birthDay:'',
+    passport:'', gender:'', nationality:'',
+    no:'', expiryWarning: false
+  };
+  const list = passengers.length > 0 ? passengers : [emptyPassenger];
+
   if (mode === 'customs') {
-    document.getElementById('printArea').innerHTML = passengers.map(p => buildCustomsCard(p, info)).join('');
+    const offsetY = parseFloat(document.getElementById('customsOffsetY').value) || 0;
+    const offsetX = parseFloat(document.getElementById('customsOffsetX').value) || 0;
+    document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY)).join('');
   } else {
-    document.getElementById('printArea').innerHTML = passengers.map(p => buildCard(p, info)).join('');
+    document.getElementById('printArea').innerHTML = list.map(p => buildCard(p, info)).join('');
   }
   window.print();
 }
@@ -877,7 +917,6 @@ function renderPreview() {
   tbody.innerHTML = '';
   if (passengers.length === 0) {
     showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요.');
-    document.getElementById('previewCard').style.display = 'none';
     return;
   }
   document.getElementById('previewCard').style.display = 'block';
@@ -952,9 +991,9 @@ function renderPreview() {
 }
 
 // ── 세관신고서 생성 ──
-function buildCustomsCard(p, info) {
+function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
   const field = (left, top, size, val) =>
-    `<div style="position:absolute; left:${left}mm; top:${top}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+    `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
   return `<div class="print-page">
