@@ -445,7 +445,7 @@ function parseTxtFile(file) {
     // \r\n, \r, \n 모두 처리 / 탭만 있는 줄도 제거
     const lines = text.split(/\r\n|\r|\n/).filter(l => l.replace(/\t/g,'').trim().length > 0);
     if (lines.length < 2) {
-      showAlert('❌ 파일에 데이터가 없습니다.', 'error');
+      showAlert('uploadAlert', 'error', '❌ 파일에 데이터가 없습니다.');
       return;
     }
 
@@ -462,7 +462,7 @@ function parseTxtFile(file) {
     const iKoName    = colIdx('tustKoNm');   // 한글이름
 
     if (iLastName === -1 || iPassport === -1) {
-      showAlert('❌ 지원하지 않는 txt 형식입니다.\n(tustEnln, tustPpn 컬럼이 필요합니다)', 'error');
+      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 txt 형식입니다.\n(tustEnln, tustPpn 컬럼이 필요합니다)');
       return;
     }
 
@@ -497,7 +497,7 @@ function parseTxtFile(file) {
     }
 
     if (parsed.length === 0) {
-      showAlert('❌ 승객 정보를 찾을 수 없습니다.', 'error');
+      showAlert('uploadAlert', 'error', '❌ 승객 정보를 찾을 수 없습니다.');
       return;
     }
 
