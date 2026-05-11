@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_05</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_13</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1482,12 +1482,15 @@ function minsToHHMM(minutes) {
 
 // ── 구글맵으로 열기 ──
 // ── DOM에서 직접 ID로 값 읽기 ──
+// 내용칸 우선, 없으면 장소칸 사용
 function getPlaceVal(di, ii) {
   const placeEl = document.getElementById(`place-${di}-${ii}`);
   const descEl  = document.getElementById(`desc-${di}-${ii}`);
-  const place = placeEl ? placeEl.value.trim() : (parsedData.days[di].items[ii].place || '');
-  const desc  = descEl  ? descEl.value.trim()  : (parsedData.days[di].items[ii].desc  || '');
-  return (place || desc).replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const place = (placeEl ? placeEl.value.trim() : (parsedData.days[di].items[ii].place || ''));
+  const desc  = (descEl  ? descEl.value.trim()  : (parsedData.days[di].items[ii].desc  || ''));
+  // 내용칸이 있으면 내용칸 우선, 없으면 장소칸
+  const val = desc || place;
+  return val.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
 }
 
 function openGoogleMap(di, ii) {
