@@ -481,18 +481,21 @@ function parseTxtFile(file) {
       if (!lastName && !passport) continue;
 
       const birth = parseBirth(birthdRaw);
+      const genderNorm = normalizeGender(gender);
       parsed.push({
-        no: i,
-        lastName,
-        firstName,
-        fullName: lastName + ' ' + firstName,
-        korName: koName,
-        passport,
-        gender,
+        no: parsed.length + 1,
+        korName:    koName,
+        lastName:   lastName.toUpperCase(),
+        firstName:  firstName.toUpperCase(),
         birthYear:  birth.year,
         birthMonth: birth.month,
         birthDay:   birth.day,
-        expiryWarning: false
+        gender:     genderNorm,
+        passport:   passport.toUpperCase(),
+        birthRaw:   birthdRaw,
+        expiryRaw:  '',
+        expiryWarning: false,
+        ok: birth.year && birth.month && birth.day && passport
       });
     }
 
@@ -502,8 +505,7 @@ function parseTxtFile(file) {
     }
 
     passengers = parsed;
-    renderPassengers();
-    showAlert(`✅ ${parsed.length}명 명부 로드 완료 (txt)`, 'success');
+    renderPreview();
   };
   reader.readAsArrayBuffer(file);
 }
