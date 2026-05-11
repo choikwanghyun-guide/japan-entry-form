@@ -211,7 +211,7 @@
     background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; font-weight: 700;
     padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap;
   }
-  .sched-table td { padding: 7px 4px; border-bottom: 1px solid rgba(48,54,61,0.7); vertical-align: middle; }
+  .sched-table td { padding: 7px 4px; border-bottom: 1px solid rgba(48,54,61,0.7); vertical-align: top; }
   .sched-table tr:last-child td { border-bottom: none; }
   .sched-table tr:hover td { background: rgba(255,255,255,0.02); }
   .sched-table tr.hotel-row td { background: rgba(247,184,79,0.06); }
@@ -229,7 +229,7 @@
   .sched-input.dur-input  { text-align: center; color: var(--text2); width: 60px; }
   .sched-input.trans-input { color: var(--accent2); font-weight: 600; width: 70px; }
   .sched-input.place-input { color: var(--accent); font-weight: 600; }
-  .sched-input.note-input  { color: var(--text2); font-size: 13px; }
+  .sched-input.note-input  { color: var(--text2); font-size: 13px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 6px; }
 
   /* 행 조작 버튼 */
   .row-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_21_24</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_21_55</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1305,7 +1305,7 @@ function renderPreview() {
             <th style="width:60px">교통편<span class="col-resizer"></span></th>
             <th style="width:65px">장소<span class="col-resizer"></span></th>
             <th>내용<span class="col-resizer"></span></th>
-            <th style="width:70px">비고<span class="col-resizer"></span></th>
+            <th style="width:500px; text-align:center;">비고<span class="col-resizer"></span></th>
             <th style="width:36px">조작</th>
           </tr>
         </thead>
@@ -1356,8 +1356,10 @@ function renderRow(di, ii, item) {
       onchange="updateItem(${di},${ii},'place',this.value)"></td>
     <td><input class="sched-input" id="desc-${di}-${ii}" value="${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}" placeholder="내용"
       onchange="updateItem(${di},${ii},'desc',this.value)"></td>
-    <td><input class="sched-input note-input" value="${item.meal||item.note||''}" placeholder="비고"
-      onchange="updateItem(${di},${ii},'note',this.value)"></td>
+    <td style="min-width:500px"><textarea class="sched-input note-input" placeholder="비고" rows="1"
+      onchange="updateItem(${di},${ii},'note',this.value)"
+      oninput="this.rows=Math.max(1,this.value.split('\n').length)"
+      style="resize:none; overflow:hidden; width:100%;">${item.meal||item.note||''}</textarea></td>
     <td>
       <div class="row-btns">
         <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
@@ -1693,31 +1695,28 @@ function downloadExcel() {
 
     day.items.forEach((item, itemIdx) => {
       const rowNo = wsData.length + 1;
-      let arriveFormula = '';
-      let departFormula = '';
 
-      if (itemIdx === 0) {
-        // 첫 행: 시간 직접 입력
-        arriveFormula = item.time ? timeToExcelFraction(item.time) : null;
-        departFormula = item.time ? timeToExcelFraction(item.time) : null;
-      } else {
-        arriveFormula = { f: `C${rowNo-1}+D${rowNo}` };
-        departFormula = { f: `B${rowNo}+E${rowNo}` };
-      }
+      // 도착/출발 시간 - 직접 입력값 우선 사용
+      const arriveVal = item.arrive || item.time || '';
+      const departVal = item.depart || item.time || '';
+      const arriveNum = timeToExcelFraction(arriveVal);
+      const departNum = timeToExcelFraction(departVal);
+      const moveNum   = timeToExcelFraction(item.moveDur || '');
+      const stayNum   = timeToExcelFraction(item.stayDur || '');
 
-      // 이동시간/체류시간 추정
-      const moveDuration = item.type === 'move' ? '01:00:00' : null;
-      const stayDuration = item.type === 'tour' ? '01:00:00' : item.type === 'meal' ? '00:45:00' : null;
+      // 엑셀 셀 객체 (시간 서식 + 가운데 정렬)
+      const timeCell = (val) => val !== null ? { v: val, t: 'n', z: 'hh:mm', s: { alignment: { horizontal: 'center' } } } : null;
+      const durCell  = (val) => val !== null ? { v: val, t: 'n', z: 'hh:mm', s: { alignment: { horizontal: 'center' } } } : null;
 
       wsData.push([
         null,
-        arriveFormula,
-        departFormula,
-        moveDuration,
-        stayDuration,
-        item.desc.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
-        item.transport || item.meal || '',
-        ''
+        timeCell(arriveNum),
+        timeCell(departNum),
+        durCell(moveNum),
+        durCell(stayNum),
+        (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
+        item.transport || item.note || item.meal || '',
+        item.note || item.meal || ''
       ]);
     });
 
