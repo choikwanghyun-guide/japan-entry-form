@@ -27,6 +27,7 @@
     font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     min-height: 100vh;
     padding: 20px 16px 60px;
+    font-size: 15px;
   }
 
   /* 헤더 */
@@ -35,14 +36,14 @@
     margin-bottom: 28px;
   }
   .header h1 {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 800;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 6px;
   }
-  .header p { font-size: 13px; color: var(--text2); }
+  .header p { font-size: 15px; color: var(--text2); }
 
   /* 카드 */
   .card {
@@ -53,7 +54,7 @@
     margin-bottom: 16px;
   }
   .card-title {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 700;
     margin-bottom: 16px;
     display: flex;
@@ -94,13 +95,13 @@
     width: 100%; height: 100%;
   }
   .upload-icon { font-size: 36px; flex-shrink: 0; }
-  .upload-text { flex: 1; color: var(--text2); font-size: 13px; line-height: 1.6; }
-  .upload-text strong { color: var(--accent); display: block; font-size: 14px; margin-bottom: 3px; }
+  .upload-text { flex: 1; color: var(--text2); font-size: 15px; line-height: 1.6; }
+  .upload-text strong { color: var(--accent); display: block; font-size: 16px; margin-bottom: 3px; }
   .upload-btn {
     flex-shrink: 0;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: white; border-radius: 8px;
-    padding: 8px 18px; font-size: 13px; font-weight: 600;
+    padding: 10px 20px; font-size: 15px; font-weight: 600;
     pointer-events: none;
   }
 
@@ -113,9 +114,9 @@
     background: var(--bg3);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px 14px;
+    padding: 11px 14px;
     color: var(--text);
-    font-size: 13px;
+    font-size: 15px;
     font-family: inherit;
     outline: none;
     transition: border-color 0.2s;
@@ -125,15 +126,15 @@
   .url-btn {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: white; border: none; border-radius: 8px;
-    padding: 10px 18px; font-size: 13px; font-weight: 600;
+    padding: 11px 20px; font-size: 15px; font-weight: 600;
     cursor: pointer; font-family: inherit; white-space: nowrap;
   }
 
   /* 알림 */
   .alert {
     border-radius: 8px;
-    padding: 12px 14px;
-    font-size: 13px;
+    padding: 13px 16px;
+    font-size: 15px;
     margin-bottom: 12px;
     display: flex;
     align-items: flex-start;
@@ -169,7 +170,7 @@
   }
   .info-field label {
     display: block;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text2);
     margin-bottom: 4px;
     font-weight: 600;
@@ -179,9 +180,9 @@
     background: var(--bg3);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 9px 12px;
+    padding: 11px 12px;
     color: var(--text);
-    font-size: 13px;
+    font-size: 15px;
     font-family: inherit;
     outline: none;
     transition: border-color 0.2s;
@@ -194,22 +195,22 @@
   .day-block { margin-bottom: 20px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .day-header {
     background: linear-gradient(135deg, rgba(79,142,247,0.2), rgba(62,207,142,0.1));
-    padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--accent);
+    padding: 12px 14px; font-size: 15px; font-weight: 700; color: var(--accent);
     display: flex; align-items: center; gap: 8px;
   }
   .day-header .day-ai-btn {
     margin-left: auto; background: rgba(79,142,247,0.2); border: 1px solid rgba(79,142,247,0.4);
-    color: var(--accent); border-radius: 6px; padding: 3px 10px; font-size: 11px;
+    color: var(--accent); border-radius: 6px; padding: 4px 12px; font-size: 13px;
     font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap;
   }
 
   /* 일정 테이블 */
-  .sched-table { width: 100%; border-collapse: collapse; background: var(--bg3); font-size: 12px; }
+  .sched-table { width: 100%; border-collapse: collapse; background: var(--bg3); font-size: 14px; }
   .sched-table th {
-    background: rgba(255,255,255,0.04); color: var(--text2); font-size: 10px; font-weight: 700;
-    padding: 6px 5px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap;
+    background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; font-weight: 700;
+    padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap;
   }
-  .sched-table td { padding: 5px 4px; border-bottom: 1px solid rgba(48,54,61,0.7); vertical-align: middle; }
+  .sched-table td { padding: 7px 4px; border-bottom: 1px solid rgba(48,54,61,0.7); vertical-align: middle; }
   .sched-table tr:last-child td { border-bottom: none; }
   .sched-table tr:hover td { background: rgba(255,255,255,0.02); }
   .sched-table tr.hotel-row td { background: rgba(247,184,79,0.06); }
@@ -219,20 +220,20 @@
   /* 편집 인풋 */
   .sched-input {
     width: 100%; background: transparent; border: none; border-radius: 4px;
-    color: var(--text); font-size: 12px; font-family: inherit; outline: none;
+    color: var(--text); font-size: 14px; font-family: inherit; outline: none;
     padding: 2px 4px; transition: background 0.15s;
   }
   .sched-input:focus { background: rgba(79,142,247,0.12); }
-  .sched-input.time-input { text-align: center; color: var(--accent3); font-weight: 600; width: 52px; }
-  .sched-input.dur-input  { text-align: center; color: var(--text2); width: 52px; }
-  .sched-input.trans-input { color: var(--accent2); font-weight: 600; width: 60px; }
+  .sched-input.time-input { text-align: center; color: var(--accent3); font-weight: 600; width: 60px; }
+  .sched-input.dur-input  { text-align: center; color: var(--text2); width: 60px; }
+  .sched-input.trans-input { color: var(--accent2); font-weight: 600; width: 70px; }
   .sched-input.place-input { color: var(--accent); font-weight: 600; }
-  .sched-input.note-input  { color: var(--text2); font-size: 11px; }
+  .sched-input.note-input  { color: var(--text2); font-size: 13px; }
 
   /* 행 조작 버튼 */
   .row-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
   .row-btn {
-    background: none; border: none; color: var(--text3); font-size: 13px;
+    background: none; border: none; color: var(--text3); font-size: 15px;
     cursor: pointer; padding: 1px 4px; border-radius: 3px; line-height: 1;
     transition: all 0.15s;
   }
@@ -242,13 +243,24 @@
   /* 행 추가 버튼 */
   .add-row-btn {
     width: 100%; background: rgba(79,142,247,0.07); border: none; border-top: 1px dashed var(--border);
-    color: var(--text3); font-size: 12px; padding: 8px; cursor: pointer; font-family: inherit;
+    color: var(--text3); font-size: 14px; padding: 10px; cursor: pointer; font-family: inherit;
     transition: all 0.15s; text-align: center;
   }
   .add-row-btn:hover { background: rgba(79,142,247,0.13); color: var(--accent); }
 
   /* AI 추정 뱃지 */
   .ai-badge { font-size: 9px; color: var(--accent2); opacity: 0.7; }
+
+  /* 컬럼 리사이즈 */
+  .sched-table th { position: relative; }
+  .col-resizer {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 6px; cursor: col-resize;
+    background: transparent;
+    transition: background 0.15s;
+    z-index: 1;
+  }
+  .col-resizer:hover, .col-resizer.dragging { background: var(--accent); opacity: 0.6; border-radius: 2px; }
 
   /* 버튼 그룹 */
   .btn-group {
@@ -262,7 +274,7 @@
     padding: 14px;
     border: none;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     cursor: pointer;
     font-family: inherit;
@@ -1274,14 +1286,14 @@ function renderPreview() {
       <table class="sched-table">
         <thead>
           <tr>
-            <th style="width:52px">도착</th>
-            <th style="width:52px">출발</th>
-            <th style="width:52px">이동</th>
-            <th style="width:52px">체류</th>
-            <th style="width:60px">교통편</th>
-            <th style="width:65px">장소</th>
-            <th>내용</th>
-            <th style="width:70px">비고</th>
+            <th style="width:52px">도착<span class="col-resizer"></span></th>
+            <th style="width:52px">출발<span class="col-resizer"></span></th>
+            <th style="width:52px">이동<span class="col-resizer"></span></th>
+            <th style="width:52px">체류<span class="col-resizer"></span></th>
+            <th style="width:60px">교통편<span class="col-resizer"></span></th>
+            <th style="width:65px">장소<span class="col-resizer"></span></th>
+            <th>내용<span class="col-resizer"></span></th>
+            <th style="width:70px">비고<span class="col-resizer"></span></th>
             <th style="width:36px">조작</th>
           </tr>
         </thead>
@@ -1297,6 +1309,7 @@ function renderPreview() {
   });
 
   container.innerHTML = html;
+  initColResize();
 }
 
 function renderRow(di, ii, item) {
@@ -1364,6 +1377,7 @@ function reRenderDay(di) {
   const tbody = document.getElementById(`tbody-${di}`);
   if (!tbody) return;
   tbody.innerHTML = parsedData.days[di].items.map((item, ii) => renderRow(di, ii, item)).join('');
+  initColResize();
 }
 
 // ── AI 이동시간 추정 ──
@@ -1643,6 +1657,60 @@ function guessItemType(desc, transport) {
   if (/중식|석식|조식|식사|점심|저녁|아침|런치|디너|뷔페|레스토랑/.test(d)) return 'meal';
   if (/관광|견학|탑승|산책|전망|쇼핑|면세|공원|성|신사|절|박물관/.test(d)) return 'tour';
   return 'other';
+}
+
+// ── 컬럼 리사이즈 ──
+function initColResize() {
+  document.querySelectorAll('.col-resizer').forEach(resizer => {
+    let startX, startW, th;
+
+    resizer.addEventListener('mousedown', e => {
+      th = resizer.parentElement;
+      startX = e.pageX;
+      startW = th.offsetWidth;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const onMove = e => {
+        const newW = Math.max(30, startW + (e.pageX - startX));
+        th.style.width = newW + 'px';
+        th.style.minWidth = newW + 'px';
+      };
+      const onUp = () => {
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      e.preventDefault();
+    });
+
+    // 터치 지원 (모바일)
+    resizer.addEventListener('touchstart', e => {
+      th = resizer.parentElement;
+      startX = e.touches[0].pageX;
+      startW = th.offsetWidth;
+      resizer.classList.add('dragging');
+
+      const onMove = e => {
+        const newW = Math.max(30, startW + (e.touches[0].pageX - startX));
+        th.style.width = newW + 'px';
+        th.style.minWidth = newW + 'px';
+      };
+      const onEnd = () => {
+        resizer.classList.remove('dragging');
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+      };
+      document.addEventListener('touchmove', onMove, { passive: true });
+      document.addEventListener('touchend', onEnd);
+      e.stopPropagation();
+    });
+  });
 }
 
 // ── 세키와리 태그 관리 ──
