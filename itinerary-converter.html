@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_00</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_05</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1493,6 +1493,12 @@ function getPlaceVal(di, ii) {
 function openGoogleMap(di, ii) {
   const from = getPlaceVal(di, ii - 1);
   const to   = getPlaceVal(di, ii);
+
+  console.log('di='+di+' ii='+ii);
+  console.log('from='+from);
+  console.log('to='+to);
+  console.log('place-'+(di)+'-'+(ii-1), document.getElementById('place-'+di+'-'+(ii-1)));
+  console.log('place-'+di+'-'+ii, document.getElementById('place-'+di+'-'+ii));
 
   if (!from || !to) {
     alert('출발지 또는 도착지\n장소칸을 먼저 입력해주세요.\n예: 히타카즈항 → 만제키바시');
