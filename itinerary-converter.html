@@ -1341,8 +1341,7 @@ function renderRow(di, ii, item) {
       ${item.aiMove ? 'title="AI 추정값"' : ''}></td>
     <td>
       ${ii > 0 ? `<div class="move-btns">
-        <button class="move-btn map-btn" onclick="openGoogleMap(${di},${ii})" title="구글맵으로 열기">🗺️지도</button>
-        <button class="move-btn ai-btn2" id="aibtn-${di}-${ii}" onclick="aiGetDriveTime(${di},${ii})" title="AI로 이동시간 추정">🤖AI</button>
+        <button class="move-btn map-btn" onclick="toggleSearchRow(${di},${ii})" title="이동시간 검색">🔍</button>
       </div>` : ''}
     </td>
     <td><input class="sched-input dur-input" value="${item.stayDur||''}" placeholder="00:00"
@@ -1481,35 +1480,47 @@ function minsToHHMM(minutes) {
 }
 
 // ── 구글맵으로 열기 ──
-function openGoogleMap(di, ii) {
-  const items = parsedData.days[di].items;
-  const fromItem = items[ii - 1];
-  const toItem   = items[ii];
+// ── DOM에서 현재 입력값 읽기 ──
+function getLiveVal(di, ii, field) {
+  // 각 input은 onchange로 parsedData에 반영되지만
+  // 포커스가 안 떠났을 수도 있으므로 DOM에서 직접 읽음
+  const row = document.getElementById(`row-${di}-${ii}`);
+  if (!row) return parsedData.days[di].items[ii][field] || '';
+  const inputs = row.querySelectorAll('input');
+  // 컬럼 순서: arrive(0) depart(1) moveDur(2) stayDur(3) transport(4) place(5) desc(6) note(7)
+  const colMap = { arrive:0, depart:1, moveDur:2, stayDur:3, transport:4, place:5, desc:6, note:7 };
+  const idx = colMap[field];
+  if (idx !== undefined && inputs[idx]) return inputs[idx].value.trim();
+  return parsedData.days[di].items[ii][field] || '';
+}
 
-  const from = (fromItem.place || fromItem.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
-  const to   = (toItem.place   || toItem.desc   || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+function openGoogleMap(di, ii) {
+  // DOM에서 직접 현재 입력값 읽기
+  const fromPlace = getLiveVal(di, ii-1, 'place') || getLiveVal(di, ii-1, 'desc');
+  const toPlace   = getLiveVal(di, ii,   'place') || getLiveVal(di, ii,   'desc');
+
+  const from = fromPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const to   = toPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
 
   if (!from || !to) {
-    alert('출발지 또는 도착지 장소명이 비어있어요.\n장소 칸을 먼저 입력해주세요.');
+    alert('출발지 또는 도착지\n장소칸(또는 내용칸)을 입력해주세요.\n예: 히타카즈항 → 만제키바시');
     return;
   }
 
-  // 일본 여행이므로 일본어/한국어 혼용 OK
-  const url = `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`;
+  const url = `https://www.google.com/maps/dir/${encodeURIComponent(from + ' 일본')}/${encodeURIComponent(to + ' 일본')}`;
   window.open(url, '_blank');
 }
 
 // ── AI 이동시간 추정 (단일 구간) ──
 async function aiGetDriveTime(di, ii) {
-  const items = parsedData.days[di].items;
-  const fromItem = items[ii - 1];
-  const toItem   = items[ii];
+  const fromPlace = getLiveVal(di, ii-1, 'place') || getLiveVal(di, ii-1, 'desc');
+  const toPlace   = getLiveVal(di, ii,   'place') || getLiveVal(di, ii,   'desc');
 
-  const from = (fromItem.place || fromItem.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
-  const to   = (toItem.place   || toItem.desc   || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const from = fromPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const to   = toPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
 
   if (!from || !to) {
-    alert('출발지 또는 도착지 장소명이 비어있어요.');
+    alert('출발지 또는 도착지\n장소칸(또는 내용칸)을 입력해주세요.');
     return;
   }
 
