@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_17</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_21_24</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1300,8 +1300,7 @@ function renderPreview() {
           <tr>
             <th style="width:52px">도착<span class="col-resizer"></span></th>
             <th style="width:52px">출발<span class="col-resizer"></span></th>
-            <th style="width:52px">이동<span class="col-resizer"></span></th>
-            <th style="width:52px">측정</th>
+            <th style="width:62px">이동<span class="col-resizer"></span></th>
             <th style="width:52px">체류<span class="col-resizer"></span></th>
             <th style="width:60px">교통편<span class="col-resizer"></span></th>
             <th style="width:65px">장소<span class="col-resizer"></span></th>
@@ -1335,14 +1334,18 @@ function renderRow(di, ii, item) {
     <td><input class="sched-input time-input" value="${item.depart||item.time||''}" placeholder="HH:MM"
       onchange="updateItem(${di},${ii},'depart',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'depart',this.value);this.blur();}"></td>
-    <td><input class="sched-input dur-input" id="moveDur-${di}-${ii}" value="${item.moveDur||''}" placeholder="00:00"
-      onchange="updateItem(${di},${ii},'moveDur',this.value)"
-      onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'moveDur',this.value);this.blur();}"
-      ${item.aiMove ? 'title="AI 추정값"' : ''}></td>
     <td>
-      ${ii > 0 ? `<div class="move-btns">
-        <button class="move-btn map-btn" onclick="openGoogleMap(${di},${ii})" title="구글맵으로 열기">🗺️지도</button>
-      </div>` : ''}
+      <input class="sched-input dur-input" id="moveDur-${di}-${ii}" value="${item.moveDur||''}" placeholder="00:00"
+        onchange="updateItem(${di},${ii},'moveDur',this.value)"
+        onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'moveDur',this.value);this.blur();}">
+      ${ii > 0 ? `<button onclick="openGoogleMap(${di},${ii})" style="
+        display:block; width:100%; margin-top:3px;
+        background:rgba(62,207,142,0.15); border:1px solid rgba(62,207,142,0.35);
+        color:var(--accent2); border-radius:4px; font-size:10px; font-weight:600;
+        padding:2px 0; cursor:pointer; font-family:inherit; line-height:1.4;
+        transition:all 0.15s;
+      " onmouseover="this.style.background='rgba(62,207,142,0.3)'"
+         onmouseout="this.style.background='rgba(62,207,142,0.15)'">🗺️지도</button>` : ''}
     </td>
     <td><input class="sched-input dur-input" value="${item.stayDur||''}" placeholder="00:00"
       onchange="updateItem(${di},${ii},'stayDur',this.value)"
