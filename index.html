@@ -790,16 +790,20 @@ function normalizeGender(raw) {
 // ── 테이블 렌더링 ──
 function renderPassengers() {
   const tbody = document.getElementById('passengersBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
+  const resultCard = document.getElementById('resultCard');
+  const passengerCount = document.getElementById('passengerCount');
+
   if (passengers.length === 0) {
-    document.getElementById('resultCard').style.display = 'none';
+    if (resultCard) resultCard.style.display = 'none';
     showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요. 파일을 확인해주세요.');
     return;
   }
 
-  document.getElementById('resultCard').style.display = 'block';
-  document.getElementById('passengerCount').textContent = passengers.length + '명';
+  if (resultCard) resultCard.style.display = 'block';
+  if (passengerCount) passengerCount.textContent = passengers.length + '명';
 
   const warns = [];
 
