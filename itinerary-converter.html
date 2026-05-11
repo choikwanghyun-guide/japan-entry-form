@@ -205,7 +205,8 @@
   }
 
   /* 일정 테이블 */
-  .sched-table { width: 100%; border-collapse: collapse; background: var(--bg3); font-size: 14px; }
+  .sched-table { width: 100%; border-collapse: collapse; background: var(--bg3); font-size: 14px; table-layout: fixed; }
+  .sched-table th, .sched-table td { overflow: hidden; }
   .sched-table th {
     background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; font-weight: 700;
     padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap;
