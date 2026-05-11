@@ -209,7 +209,7 @@
   .sched-table th, .sched-table td { overflow: hidden; }
   .sched-table th {
     background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; font-weight: 700;
-    padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap;
+    padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center !important; white-space: nowrap;
   }
   .sched-table td { padding: 7px 4px; border-bottom: 1px solid rgba(48,54,61,0.7); vertical-align: top; }
   .sched-table tr:last-child td { border-bottom: none; }
@@ -221,8 +221,8 @@
   /* 편집 인풋 */
   .sched-input {
     width: 100%; background: transparent; border: none; border-radius: 4px;
-    color: var(--text); font-size: 14px; font-family: inherit; outline: none;
-    padding: 2px 4px; transition: background 0.15s;
+    color: var(--text); font-size: 14px; font-family: inherit; font-weight: normal;
+    outline: none; padding: 2px 4px; transition: background 0.15s;
   }
   .sched-input:focus { background: rgba(79,142,247,0.12); }
   .sched-input.time-input { text-align: center; color: var(--accent3); font-weight: 600; width: 60px; }
@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_21_55</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_22_08</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1305,7 +1305,7 @@ function renderPreview() {
             <th style="width:60px">교통편<span class="col-resizer"></span></th>
             <th style="width:65px">장소<span class="col-resizer"></span></th>
             <th>내용<span class="col-resizer"></span></th>
-            <th style="width:500px; text-align:center;">비고<span class="col-resizer"></span></th>
+            <th style="width:500px; text-align:center !important;">비고<span class="col-resizer"></span></th>
             <th style="width:36px">조작</th>
           </tr>
         </thead>
@@ -1354,12 +1354,12 @@ function renderRow(di, ii, item) {
       onchange="updateItem(${di},${ii},'transport',this.value)"></td>
     <td><input class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}" placeholder="장소"
       onchange="updateItem(${di},${ii},'place',this.value)"></td>
-    <td><input class="sched-input" id="desc-${di}-${ii}" value="${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}" placeholder="내용"
-      onchange="updateItem(${di},${ii},'desc',this.value)"></td>
-    <td style="min-width:500px"><textarea class="sched-input note-input" placeholder="비고" rows="1"
-      onchange="updateItem(${di},${ii},'note',this.value)"
-      oninput="this.rows=Math.max(1,this.value.split('\n').length)"
-      style="resize:none; overflow:hidden; width:100%;">${item.meal||item.note||''}</textarea></td>
+    <td><textarea class="sched-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
+      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'desc',this.value);"
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
+    <td style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
+      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.meal||item.note||''}</textarea></td>
     <td>
       <div class="row-btns">
         <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
