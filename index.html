@@ -79,12 +79,12 @@
   <div class="card">
     <div class="card-title"><div class="step-badge">1</div> 명부 파일 업로드</div>
     <div class="upload-zone" id="uploadZone">
-      <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this)">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.txt" onchange="handleFile(this)">
       <div class="upload-icon">📋</div>
       <div class="upload-text">
         <strong>여행사 명부 파일</strong>
         클릭하거나 파일을 여기에 드래그하세요<br>
-        <small style="color:var(--text3)">xlsx, xls 형식 지원</small>
+        <small style="color:var(--text3)">xlsx, xls, txt 형식 지원</small>
       </div>
       <div class="upload-btn">파일 선택</div>
     </div>
@@ -416,7 +416,96 @@ function handleFile(input) {
   document.getElementById('fileName').textContent = file.name;
   document.getElementById('fileSize').textContent = formatSize(file.size);
   document.getElementById('fileInfo').style.display = 'block';
-  readExcel(file, wb => { travelData = wb; parsePassengers(wb); });
+
+  if (file.name.toLowerCase().endsWith('.txt')) {
+    parseTxtFile(file);
+  } else {
+    readExcel(file, wb => { travelData = wb; parsePassengers(wb); });
+  }
+}
+
+// ── TSV 명부 파싱 (EUC-KR 인코딩 지원) ──
+function parseTxtFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    // EUC-KR로 디코딩 시도
+    let text = '';
+    try {
+      const decoder = new TextDecoder('euc-kr');
+      text = decoder.decode(new Uint8Array(e.target.result));
+    } catch(err) {
+      try {
+        const decoder2 = new TextDecoder('cp949');
+        text = decoder2.decode(new Uint8Array(e.target.result));
+      } catch(err2) {
+        text = new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+      }
+    }
+
+    // \r\n, \r, \n 모두 처리 / 탭만 있는 줄도 제거
+    const lines = text.split(/\r\n|\r|\n/).filter(l => l.replace(/\t/g,'').trim().length > 0);
+    if (lines.length < 2) {
+      showAlert('❌ 파일에 데이터가 없습니다.', 'error');
+      return;
+    }
+
+    // 헤더: \r, \0, 공백 모두 제거
+    const headers = lines[0].split('\t').map(h => h.replace(/[\r\n\x00]/g,'').trim());
+    const colIdx = name => headers.indexOf(name);
+
+    // 컬럼 매핑 (하나투어 TSV 형식)
+    const iLastName  = colIdx('tustEnln');   // 성
+    const iFirstName = colIdx('tustEnNm');   // 이름
+    const iPassport  = colIdx('tustPpn');    // 여권번호
+    const iBirthd    = colIdx('tustBthd');   // 생년월일 (YYYYMMDD)
+    const iGender    = colIdx('tustGndrCd'); // 성별
+    const iKoName    = colIdx('tustKoNm');   // 한글이름
+
+    if (iLastName === -1 || iPassport === -1) {
+      showAlert('❌ 지원하지 않는 txt 형식입니다.\n(tustEnln, tustPpn 컬럼이 필요합니다)', 'error');
+      return;
+    }
+
+    const parsed = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split('\t');
+      if (cols.length < 3) continue;
+
+      const lastName  = iLastName  >= 0 ? (cols[iLastName]  || '').trim() : '';
+      const firstName = iFirstName >= 0 ? (cols[iFirstName] || '').trim() : '';
+      const passport  = iPassport  >= 0 ? (cols[iPassport]  || '').trim() : '';
+      const birthdRaw = iBirthd    >= 0 ? (cols[iBirthd]    || '').trim() : '';
+      const gender    = iGender    >= 0 ? (cols[iGender]    || '').trim() : '';
+      const koName    = iKoName    >= 0 ? (cols[iKoName]    || '').trim() : '';
+
+      if (!lastName && !passport) continue;
+
+      const birth = parseBirth(birthdRaw);
+      parsed.push({
+        no: i,
+        lastName,
+        firstName,
+        fullName: lastName + ' ' + firstName,
+        korName: koName,
+        passport,
+        gender,
+        birthYear:  birth.year,
+        birthMonth: birth.month,
+        birthDay:   birth.day,
+        expiryWarning: false
+      });
+    }
+
+    if (parsed.length === 0) {
+      showAlert('❌ 승객 정보를 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    passengers = parsed;
+    renderPassengers();
+    showAlert(`✅ ${parsed.length}명 명부 로드 완료 (txt)`, 'success');
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 
