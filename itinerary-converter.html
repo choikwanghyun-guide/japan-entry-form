@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_13</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_17</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1293,7 +1293,7 @@ function renderPreview() {
     html += `<div class="day-block" id="day-${di}">
       <div class="day-header">
         📅 ${day.dayNo}일차 ${dateStr}
-        <button class="day-ai-btn" onclick="aiEstimateTimes(${di})">🤖 이동시간 AI 추정</button>
+
       </div>
       <table class="sched-table">
         <thead>
@@ -1342,7 +1342,6 @@ function renderRow(di, ii, item) {
     <td>
       ${ii > 0 ? `<div class="move-btns">
         <button class="move-btn map-btn" onclick="openGoogleMap(${di},${ii})" title="구글맵으로 열기">🗺️지도</button>
-        <button class="move-btn ai-btn2" id="aibtn-${di}-${ii}" onclick="aiGetDriveTime(${di},${ii})" title="AI 이동시간 추정">🤖AI</button>
       </div>` : ''}
     </td>
     <td><input class="sched-input dur-input" value="${item.stayDur||''}" placeholder="00:00"
