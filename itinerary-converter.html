@@ -521,7 +521,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_14_52</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_05_11_15_00</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1350,9 +1350,9 @@ function renderRow(di, ii, item) {
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'stayDur',this.value);this.blur();}"></td>
     <td><input class="sched-input trans-input" value="${item.transport||''}" placeholder="교통편"
       onchange="updateItem(${di},${ii},'transport',this.value)"></td>
-    <td><input class="sched-input place-input" value="${item.place||''}" placeholder="장소"
+    <td><input class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}" placeholder="장소"
       onchange="updateItem(${di},${ii},'place',this.value)"></td>
-    <td><input class="sched-input" value="${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}" placeholder="내용"
+    <td><input class="sched-input" id="desc-${di}-${ii}" value="${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}" placeholder="내용"
       onchange="updateItem(${di},${ii},'desc',this.value)"></td>
     <td><input class="sched-input note-input" value="${item.meal||item.note||''}" placeholder="비고"
       onchange="updateItem(${di},${ii},'note',this.value)"></td>
@@ -1481,30 +1481,21 @@ function minsToHHMM(minutes) {
 }
 
 // ── 구글맵으로 열기 ──
-// ── DOM에서 현재 입력값 읽기 ──
-function getLiveVal(di, ii, field) {
-  // 각 input은 onchange로 parsedData에 반영되지만
-  // 포커스가 안 떠났을 수도 있으므로 DOM에서 직접 읽음
-  const row = document.getElementById(`row-${di}-${ii}`);
-  if (!row) return parsedData.days[di].items[ii][field] || '';
-  const inputs = row.querySelectorAll('input');
-  // 컬럼 순서: arrive(0) depart(1) moveDur(2) stayDur(3) transport(4) place(5) desc(6) note(7)
-  const colMap = { arrive:0, depart:1, moveDur:2, stayDur:3, transport:4, place:5, desc:6, note:7 };
-  const idx = colMap[field];
-  if (idx !== undefined && inputs[idx]) return inputs[idx].value.trim();
-  return parsedData.days[di].items[ii][field] || '';
+// ── DOM에서 직접 ID로 값 읽기 ──
+function getPlaceVal(di, ii) {
+  const placeEl = document.getElementById(`place-${di}-${ii}`);
+  const descEl  = document.getElementById(`desc-${di}-${ii}`);
+  const place = placeEl ? placeEl.value.trim() : (parsedData.days[di].items[ii].place || '');
+  const desc  = descEl  ? descEl.value.trim()  : (parsedData.days[di].items[ii].desc  || '');
+  return (place || desc).replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
 }
 
 function openGoogleMap(di, ii) {
-  // DOM에서 직접 현재 입력값 읽기
-  const fromPlace = getLiveVal(di, ii-1, 'place') || getLiveVal(di, ii-1, 'desc');
-  const toPlace   = getLiveVal(di, ii,   'place') || getLiveVal(di, ii,   'desc');
-
-  const from = fromPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
-  const to   = toPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const from = getPlaceVal(di, ii - 1);
+  const to   = getPlaceVal(di, ii);
 
   if (!from || !to) {
-    alert('출발지 또는 도착지\n장소칸(또는 내용칸)을 입력해주세요.\n예: 히타카즈항 → 만제키바시');
+    alert('출발지 또는 도착지\n장소칸을 먼저 입력해주세요.\n예: 히타카즈항 → 만제키바시');
     return;
   }
 
@@ -1514,14 +1505,11 @@ function openGoogleMap(di, ii) {
 
 // ── AI 이동시간 추정 (단일 구간) ──
 async function aiGetDriveTime(di, ii) {
-  const fromPlace = getLiveVal(di, ii-1, 'place') || getLiveVal(di, ii-1, 'desc');
-  const toPlace   = getLiveVal(di, ii,   'place') || getLiveVal(di, ii,   'desc');
-
-  const from = fromPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
-  const to   = toPlace.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const from = getPlaceVal(di, ii - 1);
+  const to   = getPlaceVal(di, ii);
 
   if (!from || !to) {
-    alert('출발지 또는 도착지\n장소칸(또는 내용칸)을 입력해주세요.');
+    alert('출발지 또는 도착지\n장소칸을 먼저 입력해주세요.');
     return;
   }
 
