@@ -241,6 +241,17 @@
   .row-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
   .row-btn.del-btn:hover { color: var(--red); }
 
+  /* 이동시간 버튼 */
+  .move-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+  .move-btn {
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    font-size: 10px; cursor: pointer; padding: 2px 4px; line-height: 1.3;
+    white-space: nowrap; transition: all 0.15s; color: var(--text2);
+  }
+  .move-btn.map-btn:hover  { background: rgba(62,207,142,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .move-btn.ai-btn2:hover  { background: rgba(79,142,247,0.15); border-color: var(--accent); color: var(--accent); }
+  .move-btn.loading { opacity: 0.6; pointer-events: none; }
+
   /* 행 추가 버튼 */
   .add-row-btn {
     width: 100%; background: rgba(79,142,247,0.07); border: none; border-top: 1px dashed var(--border);
@@ -1290,6 +1301,7 @@ function renderPreview() {
             <th style="width:52px">도착<span class="col-resizer"></span></th>
             <th style="width:52px">출발<span class="col-resizer"></span></th>
             <th style="width:52px">이동<span class="col-resizer"></span></th>
+            <th style="width:52px">측정</th>
             <th style="width:52px">체류<span class="col-resizer"></span></th>
             <th style="width:60px">교통편<span class="col-resizer"></span></th>
             <th style="width:65px">장소<span class="col-resizer"></span></th>
@@ -1318,14 +1330,24 @@ function renderRow(di, ii, item) {
   const typeIcon = { flight:'✈️', move:'🚌', tour:'🗺️', hotel:'🏨', meal:'🍽️', other:'•' }[item.type] || '•';
   return `<tr class="${rowCls}" id="row-${di}-${ii}">
     <td><input class="sched-input time-input" value="${item.arrive||''}" placeholder="HH:MM"
-      onchange="updateItem(${di},${ii},'arrive',this.value)"></td>
+      onchange="updateItem(${di},${ii},'arrive',this.value)"
+      onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'arrive',this.value);this.blur();}"></td>
     <td><input class="sched-input time-input" value="${item.depart||item.time||''}" placeholder="HH:MM"
-      onchange="updateItem(${di},${ii},'depart',this.value)"></td>
-    <td><input class="sched-input dur-input" value="${item.moveDur||''}" placeholder="00:00"
+      onchange="updateItem(${di},${ii},'depart',this.value)"
+      onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'depart',this.value);this.blur();}"></td>
+    <td><input class="sched-input dur-input" id="moveDur-${di}-${ii}" value="${item.moveDur||''}" placeholder="00:00"
       onchange="updateItem(${di},${ii},'moveDur',this.value)"
-      ${item.aiMove ? `title="AI 추정값"` : ''}></td>
+      onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'moveDur',this.value);this.blur();}"
+      ${item.aiMove ? 'title="AI 추정값"' : ''}></td>
+    <td>
+      ${ii > 0 ? `<div class="move-btns">
+        <button class="move-btn map-btn" onclick="openGoogleMap(${di},${ii})" title="구글맵으로 열기">🗺️지도</button>
+        <button class="move-btn ai-btn2" id="aibtn-${di}-${ii}" onclick="aiGetDriveTime(${di},${ii})" title="AI로 이동시간 추정">🤖AI</button>
+      </div>` : ''}
+    </td>
     <td><input class="sched-input dur-input" value="${item.stayDur||''}" placeholder="00:00"
-      onchange="updateItem(${di},${ii},'stayDur',this.value)"></td>
+      onchange="updateItem(${di},${ii},'stayDur',this.value)"
+      onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'stayDur',this.value);this.blur();}"></td>
     <td><input class="sched-input trans-input" value="${item.transport||''}" placeholder="교통편"
       onchange="updateItem(${di},${ii},'transport',this.value)"></td>
     <td><input class="sched-input place-input" value="${item.place||''}" placeholder="장소"
@@ -1344,9 +1366,193 @@ function renderRow(di, ii, item) {
   </tr>`;
 }
 
+// ── 시간 계산 유틸 ──
+function timeToMin(t) {
+  if (!t || t === 'HH:MM' || t === '(예정)') return null;
+  t = String(t).trim();
+  // HH:MM 또는 H:MM
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) return parseInt(m[1]) * 60 + parseInt(m[2]);
+  return null;
+}
+
+function minToTime(min) {
+  if (min === null || min === undefined || isNaN(min)) return '';
+  // 24시 초과 허용 (야간 이동)
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function addTime(t, dur) {
+  const tMin = timeToMin(t);
+  const dMin = timeToMin(dur);
+  if (tMin === null || dMin === null) return '';
+  return minToTime(tMin + dMin);
+}
+
+// ── 시간 연쇄 재계산 ──
+// 특정 행부터 아래로 도착/출발 시간을 재계산
+function recalcTimes(di, fromIdx) {
+  const items = parsedData.days[di].items;
+
+  for (let i = fromIdx; i < items.length; i++) {
+    const item = items[i];
+
+    // 도착 시간: 이전 행 출발 + 현재 행 이동시간
+    if (i > 0) {
+      const prevDepart = items[i-1].depart;
+      const moveDur = item.moveDur;
+      if (prevDepart && moveDur && timeToMin(prevDepart) !== null && timeToMin(moveDur) !== null) {
+        item.arrive = addTime(prevDepart, moveDur);
+      } else if (prevDepart && (!moveDur || timeToMin(moveDur) === null)) {
+        // 이동시간 없으면 도착 = 이전 출발
+        if (!item.arrive) item.arrive = prevDepart;
+      }
+    }
+
+    // 출발 시간: 도착 + 체류시간
+    const stayDur = item.stayDur;
+    if (item.arrive && stayDur && timeToMin(item.arrive) !== null && timeToMin(stayDur) !== null) {
+      item.depart = addTime(item.arrive, stayDur);
+    } else if (item.arrive && (!stayDur || timeToMin(stayDur) === null)) {
+      // 체류시간 없으면 출발 = 도착
+      if (!item.depart) item.depart = item.arrive;
+    }
+  }
+
+  reRenderDay(di);
+}
+
 // ── 행 데이터 업데이트 ──
 function updateItem(di, ii, key, val) {
   parsedData.days[di].items[ii][key] = val;
+
+  const item = parsedData.days[di].items[ii];
+
+  // 시간 관련 필드 변경 시 자동 재계산
+  if (key === 'arrive') {
+    // 도착 직접 입력 → 출발 재계산 (이 행부터)
+    if (item.stayDur && timeToMin(val) !== null && timeToMin(item.stayDur) !== null) {
+      item.depart = addTime(val, item.stayDur);
+    }
+    // 다음 행들도 연쇄 재계산
+    recalcTimes(di, ii + 1);
+    reRenderDay(di);
+
+  } else if (key === 'depart') {
+    // 출발 직접 입력 → 다음 행 도착 연쇄 재계산
+    recalcTimes(di, ii + 1);
+    reRenderDay(di);
+
+  } else if (key === 'moveDur') {
+    // 이동시간 변경 → 이 행 도착 재계산
+    if (ii > 0) {
+      const prevDepart = parsedData.days[di].items[ii-1].depart;
+      if (prevDepart && val && timeToMin(prevDepart) !== null && timeToMin(val) !== null) {
+        item.arrive = addTime(prevDepart, val);
+        if (item.stayDur && timeToMin(item.stayDur) !== null) {
+          item.depart = addTime(item.arrive, item.stayDur);
+        }
+      }
+    }
+    recalcTimes(di, ii + 1);
+    reRenderDay(di);
+
+  } else if (key === 'stayDur') {
+    // 체류시간 변경 → 이 행 출발 재계산
+    if (item.arrive && val && timeToMin(item.arrive) !== null && timeToMin(val) !== null) {
+      item.depart = addTime(item.arrive, val);
+    }
+    recalcTimes(di, ii + 1);
+    reRenderDay(di);
+  }
+}
+
+// ── 30분 단위 올림 ──
+function roundUpTo30(minutes) {
+  return Math.ceil(minutes / 30) * 30;
+}
+
+function minsToHHMM(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+
+// ── 구글맵으로 열기 ──
+function openGoogleMap(di, ii) {
+  const items = parsedData.days[di].items;
+  const fromItem = items[ii - 1];
+  const toItem   = items[ii];
+
+  const from = (fromItem.place || fromItem.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const to   = (toItem.place   || toItem.desc   || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+
+  if (!from || !to) {
+    alert('출발지 또는 도착지 장소명이 비어있어요.
+장소 칸을 먼저 입력해주세요.');
+    return;
+  }
+
+  // 일본 여행이므로 일본어/한국어 혼용 OK
+  const url = `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`;
+  window.open(url, '_blank');
+}
+
+// ── AI 이동시간 추정 (단일 구간) ──
+async function aiGetDriveTime(di, ii) {
+  const items = parsedData.days[di].items;
+  const fromItem = items[ii - 1];
+  const toItem   = items[ii];
+
+  const from = (fromItem.place || fromItem.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+  const to   = (toItem.place   || toItem.desc   || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+
+  if (!from || !to) {
+    alert('출발지 또는 도착지 장소명이 비어있어요.');
+    return;
+  }
+
+  const btn = document.getElementById(`aibtn-${di}-${ii}`);
+  if (btn) { btn.textContent = '⏳'; btn.classList.add('loading'); }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{
+          role: 'user',
+          content: `일본 여행에서 "${from}"에서 "${to}"까지 관광버스(대형버스)로 이동할 때 걸리는 시간을 분(숫자)으로만 답해주세요.
+구글맵 기준으로 추정하세요.
+숫자만 답하세요. 예: 45`
+        }]
+      })
+    });
+
+    const result = await response.json();
+    const text = (result.content || []).map(c => c.text || '').join('').trim();
+    const minutes = parseInt(text.match(/\d+/)?.[0]);
+
+    if (!isNaN(minutes) && minutes > 0) {
+      const rounded = roundUpTo30(minutes);
+      const timeStr = minsToHHMM(rounded);
+
+      // 이동시간 적용
+      updateItem(di, ii, 'moveDur', timeStr);
+      if (btn) { btn.textContent = '✅'; btn.classList.remove('loading'); setTimeout(() => { btn.textContent = '🤖AI'; }, 1500); }
+    } else {
+      if (btn) { btn.textContent = '❌'; btn.classList.remove('loading'); setTimeout(() => { btn.textContent = '🤖AI'; }, 1500); }
+    }
+
+  } catch(err) {
+    if (btn) { btn.textContent = '❌'; btn.classList.remove('loading'); setTimeout(() => { btn.textContent = '🤖AI'; }, 1500); }
+    console.error(err);
+  }
 }
 
 // ── 행 삭제 ──
