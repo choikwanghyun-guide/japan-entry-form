@@ -443,7 +443,16 @@
   <div class="info-grid">
     <div class="info-field">
       <label>🗓 출발일</label>
-      <input type="date" id="infoStartDate">
+      <div style="position:relative;">
+        <input type="text" id="infoStartDate" placeholder="20250506 또는 2025-05-06" maxlength="10"
+          oninput="formatStartDate(this)" onblur="normalizeStartDate(this)"
+          style="padding-right:38px;">
+        <input type="date" id="infoStartDatePicker"
+          onchange="document.getElementById('infoStartDate').value=this.value; renderPreview();"
+          style="position:absolute; right:8px; top:50%; transform:translateY(-50%);
+                 width:24px; height:24px; padding:0; border:none; background:transparent;
+                 color-scheme:dark; cursor:pointer; opacity:0.7;">
+      </div>
     </div>
     <div class="info-field">
       <label>🔢 박수</label>
@@ -464,6 +473,10 @@
     <div class="info-field">
       <label>👥 인원</label>
       <input type="text" id="infoPax" placeholder="예: 15명 + 1TG">
+    </div>
+    <div class="info-field full">
+      <label>🏢 단체명</label>
+      <input type="text" id="infoGroupName" placeholder="예: 부산 산악회 / 김일수 이사님">
     </div>
     <div class="info-field full">
       <label>🏨 여행 지역 / 상품명</label>
@@ -521,7 +534,7 @@
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0512_0715</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0513_0840</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1287,7 +1300,27 @@ function renderPreview() {
     day.date = calcDate(startDate, idx);
   });
 
+  const groupName = document.getElementById('infoGroupName').value || '';
+
   let html = '';
+  if (groupName) {
+    html += `<div style="
+      background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(62,207,142,0.1));
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    ">
+      <span style="font-size:18px;">🏢</span>
+      <span>${groupName}</span>
+    </div>`;
+  }
   parsedData.days.forEach((day, di) => {
     const dateStr = day.date ? formatDateKo(day.date) : '';
     html += `<div class="day-block" id="day-${di}">
@@ -1298,12 +1331,10 @@ function renderPreview() {
       <table class="sched-table">
         <thead>
           <tr>
-            <th style="width:52px">도착<span class="col-resizer"></span></th>
-            <th style="width:52px">출발<span class="col-resizer"></span></th>
-            <th style="width:62px">이동<span class="col-resizer"></span></th>
-            <th style="width:52px">체류<span class="col-resizer"></span></th>
-            <th style="width:60px">교통편<span class="col-resizer"></span></th>
-            <th style="width:65px">장소<span class="col-resizer"></span></th>
+            <th style="width:64px">도착<span class="col-resizer"></span></th>
+            <th style="width:64px">출발<span class="col-resizer"></span></th>
+            <th style="width:74px">이동<span class="col-resizer"></span></th>
+            <th style="width:64px">체류<span class="col-resizer"></span></th>
             <th>내용<span class="col-resizer"></span></th>
             <th style="width:500px; text-align:center !important;">비고<span class="col-resizer"></span></th>
             <th style="width:36px">조작</th>
@@ -1350,10 +1381,8 @@ function renderRow(di, ii, item) {
     <td><input class="sched-input dur-input" value="${item.stayDur||''}" placeholder="00:00"
       onchange="updateItem(${di},${ii},'stayDur',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'stayDur',this.value);this.blur();}"></td>
-    <td><input class="sched-input trans-input" value="${item.transport||''}" placeholder="교통편"
-      onchange="updateItem(${di},${ii},'transport',this.value)"></td>
-    <td><input class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}" placeholder="장소"
-      onchange="updateItem(${di},${ii},'place',this.value)"></td>
+    <input type="hidden" class="sched-input trans-input" value="${item.transport||''}">
+    <input type="hidden" class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}">
     <td><textarea class="sched-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'desc',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
@@ -1675,11 +1704,29 @@ function downloadExcel() {
   // 각 일자를 하나의 시트에 모두 담기
   const title = document.getElementById('infoTitle').value || parsedData.title || '일정표';
   const startDate = document.getElementById('infoStartDate').value || parsedData.startDate || '';
+  const groupName = document.getElementById('infoGroupName').value || '';
+  const flight1 = document.getElementById('infoDepartureFlight').value || '';
+  const flight2 = document.getElementById('infoReturnFlight').value || '';
+  const transport = document.getElementById('infoTransport').value || '';
+  const pax = document.getElementById('infoPax').value || '';
+  const sekiwari = getSekiwariText();
 
   const wsData = [];
 
   // 시트 제목
   wsData.push([null, null, title]);
+  wsData.push([]);
+
+  // 공통 정보 한 줄로 합치기: "단체명 : XXX / 여행지역 : YYY / ..."
+  const infoParts = [];
+  if (groupName)          infoParts.push(`단체명 : ${groupName}`);
+  if (title)              infoParts.push(`여행지역 : ${title}`);
+  if (flight1 || flight2) infoParts.push(`출·도착 항공편 : ${[flight1, flight2].filter(Boolean).join(' → ')}`);
+  if (pax)                infoParts.push(`인원 : ${pax}`);
+  if (sekiwari)           infoParts.push(`세키와리 : ${sekiwari}`);
+  if (infoParts.length) {
+    wsData.push([null, infoParts.join(' / ')]);
+  }
   wsData.push([]);
   wsData.push([]);
 
@@ -1758,6 +1805,7 @@ function printItinerary() {
   if (!parsedData) return;
 
   const title = document.getElementById('infoTitle').value || parsedData.title || '가이드 일정표';
+  const groupName = document.getElementById('infoGroupName').value || '';
   const startDate = document.getElementById('infoStartDate').value || '';
   const flight1 = document.getElementById('infoDepartureFlight').value || '';
   const flight2 = document.getElementById('infoReturnFlight').value || '';
@@ -1769,27 +1817,38 @@ function printItinerary() {
 <style>
   body { font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:11px; margin:10px; color:#000; }
   h1 { font-size:16px; text-align:center; margin-bottom:4px; }
-  .meta { text-align:center; font-size:10px; color:#555; margin-bottom:10px; }
+  .info-box { border:1px solid #ccc; border-radius:4px; padding:6px 10px; margin-bottom:10px; font-size:10px; }
+  .info-box table { width:100%; border-collapse:collapse; }
+  .info-box td { padding:2px 6px; border:none; vertical-align:top; }
+  .info-box td.label { color:#666; font-weight:700; width:75px; white-space:nowrap; }
+  .info-box td.value { color:#000; }
   .day-block { margin-bottom:12px; page-break-inside:avoid; }
   .day-title { background:#1a1a2e; color:white; padding:4px 8px; font-size:12px; font-weight:700; border-radius:4px; margin-bottom:4px; }
   table { width:100%; border-collapse:collapse; font-size:10px; }
   th { background:#f0f0f0; padding:3px 5px; border:1px solid #ccc; font-weight:700; text-align:center; }
   td { padding:3px 5px; border:1px solid #ddd; vertical-align:top; }
-  .time-col { width:45px; text-align:center; color:#333; white-space:nowrap; }
-  .trans-col { width:55px; color:#0055aa; font-size:9px; }
-  .place-col { width:55px; color:#007744; font-weight:600; }
+  .time-col { width:42px; text-align:center; color:#333; white-space:nowrap; font-weight:600; }
+  .dur-col  { width:42px; text-align:center; color:#666; white-space:nowrap; font-size:9px; }
   .desc-col { color:#000; }
-  .meal-col { width:45px; color:#aa5500; font-size:9px; text-align:center; }
+  .note-col { width:200px; color:#555; font-size:9px; }
   .hotel-row td { background:#fffbe6; }
   .flight-row td { background:#e8f0fe; }
+  .meal-row td  { background:#eafaf1; }
   @media print { body { margin:5px; } @page { margin:8mm; size:A4; } }
 </style>
 </head><body>
+${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weight:600;margin-bottom:2px;">${groupName}</div>` : ''}
 <h1>✈️ ${title}</h1>
-<div class="meta">
-  ${startDate ? '출발: ' + startDate : ''} ${flight1 ? '| ' + flight1 : ''} ${flight2 ? '→ ' + flight2 : ''}
-  ${pax ? '| 인원: ' + pax : ''} ${transport ? '| ' + transport : ''}
-  ${getSekiwariText() ? '<br>🪑 세키와리: ' + getSekiwariText() : ''}
+<div class="info-box">
+<table>
+  ${groupName ? `<tr><td class="label">단체명</td><td class="value">${groupName}</td></tr>` : ''}
+  ${title ? `<tr><td class="label">여행지역</td><td class="value">${title}</td></tr>` : ''}
+  ${startDate ? `<tr><td class="label">출발일</td><td class="value">${startDate}${formatDateKo(startDate) ? ' (' + formatDateKo(startDate) + ')' : ''}</td></tr>` : ''}
+  ${(flight1 || flight2) ? `<tr><td class="label">출/도착 항공편</td><td class="value">${[flight1, flight2].filter(Boolean).join(' → ')}</td></tr>` : ''}
+  ${transport ? `<tr><td class="label">차량</td><td class="value">${transport}</td></tr>` : ''}
+  ${pax ? `<tr><td class="label">인원</td><td class="value">${pax}</td></tr>` : ''}
+  ${getSekiwariText() ? `<tr><td class="label">세키와리</td><td class="value">${getSekiwariText()}</td></tr>` : ''}
+</table>
 </div>`;
 
   parsedData.days.forEach(day => {
@@ -1797,16 +1856,19 @@ function printItinerary() {
     html += `<div class="day-block">
 <div class="day-title">[ ${day.dayNo}일차 ${dateStr} ]</div>
 <table>
-<tr><th>시간</th><th>교통편</th><th>장소</th><th>일 정</th><th>식사</th></tr>`;
+<tr><th>도착</th><th>출발</th><th>이동</th><th>체류</th><th>내용</th><th>비고</th></tr>`;
 
     day.items.forEach(item => {
-      const cls = item.type === 'hotel' ? ' class="hotel-row"' : item.type === 'flight' ? ' class="flight-row"' : '';
+      const cls = item.type === 'hotel' ? ' class="hotel-row"' : item.type === 'flight' ? ' class="flight-row"' : item.type === 'meal' ? ' class="meal-row"' : '';
+      const descText = (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'');
+      const noteText = item.meal || item.note || '';
       html += `<tr${cls}>
-<td class="time-col">${item.time||''}</td>
-<td class="trans-col">${item.transport||''}</td>
-<td class="place-col">${item.place||''}</td>
-<td class="desc-col">${item.desc.replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</td>
-<td class="meal-col">${item.meal||''}</td>
+<td class="time-col">${item.arrive||''}</td>
+<td class="time-col">${item.depart||item.time||''}</td>
+<td class="dur-col">${item.moveDur||''}</td>
+<td class="dur-col">${item.stayDur||''}</td>
+<td class="desc-col">${descText}</td>
+<td class="note-col">${noteText}</td>
 </tr>`;
     });
 
@@ -1838,6 +1900,36 @@ function formatDateKo(dateStr) {
   const day = d.getDate();
   const dow = days[d.getDay()];
   return `${m}/${day} (${dow})`;
+}
+
+// 출발일 입력 중 자동 포맷팅 (20250506 → 2025-05-06)
+function formatStartDate(input) {
+  let val = input.value.replace(/[^0-9]/g, '');
+  if (val.length > 8) val = val.slice(0, 8);
+  let formatted = val;
+  if (val.length >= 5) formatted = val.slice(0,4) + '-' + val.slice(4,6) + (val.length > 6 ? '-' + val.slice(6) : '');
+  else if (val.length >= 4) formatted = val.slice(0,4) + (val.length > 4 ? '-' + val.slice(4) : '');
+  input.value = formatted;
+}
+
+// blur 시 유효성 검증 + picker 동기화
+function normalizeStartDate(input) {
+  const val = input.value.trim();
+  if (!val) return;
+  // YYYY-MM-DD 형식 검증
+  const m = val.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) {
+    // 8자리 숫자 마지막 시도
+    const digits = val.replace(/[^0-9]/g, '');
+    if (digits.length === 8) {
+      input.value = digits.slice(0,4) + '-' + digits.slice(4,6) + '-' + digits.slice(6,8);
+    }
+    return;
+  }
+  // picker도 같이 갱신
+  const picker = document.getElementById('infoStartDatePicker');
+  if (picker) picker.value = input.value;
+  if (typeof renderPreview === 'function') renderPreview();
 }
 
 function formatTime(raw) {
@@ -2006,6 +2098,7 @@ uploadZone.addEventListener('drop', e => {
 
 // 공통정보 변경시 미리보기 업데이트
 document.getElementById('infoStartDate').addEventListener('change', renderPreview);
+document.getElementById('infoGroupName').addEventListener('input', renderPreview);
 </script>
 </body>
 </html>
