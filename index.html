@@ -383,8 +383,20 @@ function readExcel(file, callback) {
   const reader = new FileReader();
   reader.onload = e => {
     const data = new Uint8Array(e.target.result);
-    // cellNF:true 추가 → 날짜 서식 오류 셀의 원본 숫자값(v)을 보존
-    const wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true, cellNF: true });
+    // 손상된 파일도 최대한 읽기 위해 여러 옵션 시도
+    let wb;
+    try {
+      wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true, cellNF: true });
+    } catch (e1) {
+      console.warn('1차 파싱 실패, 복구 모드 시도:', e1);
+      try {
+        wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true, WTF: false, bookVBA: false });
+      } catch (e2) {
+        console.error('파싱 완전 실패:', e2);
+        alert('파일을 읽을 수 없습니다. 엑셀에서 새 파일로 저장(다른 이름)한 후 다시 업로드해주세요.');
+        return;
+      }
+    }
     callback(wb);
   };
   reader.readAsArrayBuffer(file);
@@ -518,7 +530,28 @@ function parsePassengers(wb) {
 
   for (const sheetName of wb.SheetNames) {
     const sheet = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+    if (!sheet) {
+      console.warn(`시트 "${sheetName}"의 내용이 비어있음 (파일 손상 가능)`);
+      continue;
+    }
+    let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+
+    // 폴백: sheet_to_json이 빈 배열을 반환할 때 시트 객체에서 직접 셀 스캔
+    if (rows.length === 0 && sheet['!ref']) {
+      const range = XLSX.utils.decode_range(sheet['!ref']);
+      rows = [];
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        const row = [];
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = sheet[addr];
+          if (!cell) { row.push(''); continue; }
+          if (cell.t === 'e') row.push('');
+          else row.push(cell.v !== undefined ? cell.v : (cell.w || ''));
+        }
+        rows.push(row);
+      }
+    }
 
     let headerRow = -1;
     let colMap = {};
@@ -533,7 +566,8 @@ function parsePassengers(wb) {
         /passport/i.test(rowStr) ||
         /BIRTH/i.test(rowStr) ||
         (/여권/.test(rowStr) && (/영문|성명|이름/.test(rowStr))) ||
-        (/영문/.test(rowStr) && (/생년|주민|여권/.test(rowStr)))
+        (/영문/.test(rowStr) && (/생년|주민|여권/.test(rowStr))) ||
+        (/한글명/.test(rowStr) && /영문명/.test(rowStr))  // 한글명 + 영문명 명부 패턴
       );
       if (isHeader) {
         headerRow = i;
@@ -619,7 +653,7 @@ function parsePassengers(wb) {
       }
 
       if (fullName && (!lastName || !firstName)) {
-        const parsed = parseFullName(fullName);
+        const parsed = parseFullName(fullName, korName);
         lastName = parsed.last;
         firstName = parsed.first;
       }
@@ -663,7 +697,8 @@ function parsePassengers(wb) {
 }
 
 // ── 이름 파싱 ──
-function parseFullName(raw) {
+// 영문 풀네임을 성/이름으로 분리. 공백 없이 붙은 경우(JEONSOYOUNG) 한글명을 힌트로 사용
+function parseFullName(raw, korNameHint) {
   if (!raw) return { last: '', first: '' };
   raw = raw.trim().toUpperCase();
   if (raw.includes('/')) {
@@ -672,7 +707,57 @@ function parseFullName(raw) {
   }
   const parts = raw.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return { last: parts[0], first: parts.slice(1).join(' ') };
+
+  // 공백 없는 한 단어 (예: "JEONSOYOUNG") → 한글명 힌트로 분리 시도
+  if (korNameHint) {
+    const kor = String(korNameHint).trim().replace(/\s+/g, '');
+    const korChars = kor.match(/[가-힣]/g);
+    if (korChars && korChars.length >= 2) {
+      const splitIdx = guessRomanLastNameEnd(raw, korChars[0]);
+      if (splitIdx > 0 && splitIdx < raw.length) {
+        return { last: raw.slice(0, splitIdx), first: raw.slice(splitIdx) };
+      }
+    }
+  }
+
   return { last: raw, first: '' };
+}
+
+// 한글 성에 해당하는 로마자가 영문명 어디까지인지 추정
+function guessRomanLastNameEnd(roman, korLastChar) {
+  const map = {
+    '김': ['KIM'], '이': ['LEE','YI','RHEE','LI'], '박': ['PARK','BAK','PAK'],
+    '최': ['CHOI','CHOE'], '정': ['JUNG','JEONG','CHUNG','JOUNG'],
+    '강': ['KANG','GANG'], '조': ['CHO','JO','JOE'], '윤': ['YOON','YUN'],
+    '장': ['JANG','CHANG'], '임': ['LIM','IM','YIM','LEEM'], '한': ['HAN'],
+    '오': ['OH','O'], '서': ['SEO','SUH','SHEO'], '신': ['SHIN','SIN'],
+    '권': ['KWON','GWON'], '황': ['HWANG'], '안': ['AHN','AN'], '송': ['SONG'],
+    '전': ['JEON','JUN','CHUN','CHON'], '홍': ['HONG'],
+    '유': ['YOO','YU','RYU','RYOO'], '고': ['KO','GO','KOH'],
+    '문': ['MOON','MUN'], '양': ['YANG'], '손': ['SON','SOHN'],
+    '배': ['BAE','BAI','PAE'], '백': ['BAEK','BAIK','PAEK','PAIK'],
+    '허': ['HUH','HEO','HUR'], '남': ['NAM'], '심': ['SIM','SHIM'],
+    '노': ['NOH','NO','ROH'], '하': ['HA'], '곽': ['KWAK','GWAK'],
+    '성': ['SUNG','SEONG'], '차': ['CHA'], '주': ['JOO','JU','CHU'],
+    '우': ['WOO','U'], '구': ['KOO','GU','KU'], '나': ['NA','RA'],
+    '민': ['MIN'], '진': ['JIN','CHIN'], '지': ['JI','CHI'],
+    '엄': ['EOM','UHM','UM'], '원': ['WON'], '천': ['CHEON','CHUN'],
+    '방': ['BANG','PANG'], '공': ['GONG','KONG'], '현': ['HYUN','HYEON'],
+    '함': ['HAM'], '변': ['BYUN','BYEON','PYON'], '염': ['YOM','YEOM'],
+    '추': ['CHU','CHOO'], '도': ['DO','DOH'], '소': ['SO','SOH'],
+    '석': ['SEOK','SUK','SOK'], '선': ['SUN','SEON'], '설': ['SEOL','SUL'],
+    '마': ['MA'], '길': ['GIL','KIL'], '연': ['YEON','YON'],
+    '위': ['WI','WEE'], '표': ['PYO'], '명': ['MYUNG','MYEONG'],
+    '기': ['KI','GI'], '반': ['BAN','PAN'], '왕': ['WANG'],
+    '금': ['KEUM','GEUM','KUM'], '옥': ['OK','OAK'], '육': ['YOOK','YUK'],
+    '인': ['IN'], '맹': ['MAENG'], '제': ['JE','JEH'], '모': ['MO'],
+    '탁': ['TAK'], '국': ['KOOK','KUK','GUK'], '여': ['YEO','YO','YEU']
+  };
+  const candidates = map[korLastChar] || [];
+  for (const c of candidates) {
+    if (roman.startsWith(c)) return c.length;
+  }
+  return -1;
 }
 
 // ── 여권 만료 6개월 이내 체크 ──
@@ -800,7 +885,7 @@ function renderPassengers() {
 
   if (passengers.length === 0) {
     if (resultCard) resultCard.style.display = 'none';
-    showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요. 파일을 확인해주세요.');
+    showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요.\n\n📝 파일이 손상됐을 수 있어요. 다음을 시도해보세요:\n1) 엑셀에서 파일을 열고 → "다른 이름으로 저장" → .xlsx로 새로 저장\n2) 새로 저장한 파일을 업로드');
     return;
   }
 
@@ -1011,7 +1096,7 @@ function renderPreview() {
   const tbody = document.getElementById('passengersBody');
   tbody.innerHTML = '';
   if (passengers.length === 0) {
-    showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요.');
+    showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요.\n\n📝 파일이 손상됐을 수 있어요. 엑셀에서 "다른 이름으로 저장"으로 새 파일 만든 후 업로드해주세요.');
     return;
   }
   document.getElementById('previewCard').style.display = 'block';
@@ -1159,7 +1244,7 @@ function showAlert(id, type, msg) {
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0513_1525</span>
 </div>
 
 </body></html>
