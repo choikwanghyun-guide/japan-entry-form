@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0055)https://choikwanghyun-guide.github.io/japan-entry-form/ -->
+<!-- saved from url=(0051)file:///C:/Users/lovei/Downloads/index_test_19.html -->
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,8 +51,8 @@
   .dot-info { background:var(--accent); }
   .scroll-table { overflow-x:auto; max-height:260px; overflow-y:auto; margin-top:12px; }
   .passengers-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .passengers-table th { background:var(--surface2); color:var(--text2); padding:8px 10px; text-align:left; font-size:11px; border-bottom:1px solid var(--border); }
-  .passengers-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); font-size:11px; }
+  .passengers-table th { background:var(--surface2); color:var(--text2); padding:8px 10px; text-align:center; font-size:11px; border-bottom:1px solid var(--border); }
+  .passengers-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); font-size:11px; vertical-align:middle; text-align:center; }
   .count-badge { background:var(--accent); color:white; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:auto; }
   @page { size:A4 portrait; margin:0; }
   @media print {
@@ -104,7 +104,17 @@
     <div class="card-title"><div class="step-badge">2</div> 공통 정보 입력</div>
     <div class="form-grid">
       <div class="form-group">
-        <label class="form-label">🏨 호텔명 </label>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px;">
+          <label class="form-label" style="margin-bottom:0;">🏨 호텔명</label>
+          <div style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
+            <span style="font-size:11px; color:var(--text3); white-space:nowrap;">글자 크기 조절</span>
+            <span style="font-size:10px; color:var(--text3);">-4</span>
+            <input type="range" id="hotelFontDelta" min="-4" max="4" step="1" value="0" style="flex:1; accent-color:#4f8ef7; min-width:60px;" oninput="document.getElementById(&#39;hotelFontDeltaVal&#39;).textContent = (this.value &gt; 0 ? &#39;+&#39; : &#39;&#39;) + this.value">
+            <span style="font-size:10px; color:var(--text3);">+4</span>
+            <span id="hotelFontDeltaVal" style="font-size:12px; color:#4f8ef7; font-weight:700; width:20px; text-align:center;">0</span>
+            <span style="font-size:10px; color:var(--text3); white-space:nowrap;">(입국:12, 세관:13)</span>
+          </div>
+        </div>
         <input type="text" id="hotelName" class="form-input" placeholder="예: ホテルユニバーサルポート">
       </div>
       <div class="form-group">
@@ -178,15 +188,15 @@
     </div>
     <div class="scroll-table">
       <table class="passengers-table">
-        <thead><tr><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>여권 만료</th></tr></thead>
+        <thead><tr><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>국적</th><th>직업</th><th>여권 만료</th></tr></thead>
         <tbody id="passengersBody"></tbody>
       </table>
     </div>
     <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
-      <button class="btn-print" id="btnImmigration" onclick="setMode('immigration')" style="margin-top:0; flex:1;">
+      <button class="btn-print" id="btnImmigration" onclick="setMode(&#39;immigration&#39;)" style="margin-top:0; flex:1;">
         🛂 입국신고서 인쇄
       </button>
-      <button class="btn-print" id="btnCustoms" onclick="setMode('customs')" style="margin-top:0; flex:1; background:linear-gradient(135deg,#f7b84f,#f78c4f);">
+      <button class="btn-print" id="btnCustoms" onclick="setMode(&#39;customs&#39;)" style="margin-top:0; flex:1; background:linear-gradient(135deg,#f7b84f,#f78c4f);">
         🛃 세관신고서 인쇄
       </button>
       <button class="btn-print" id="btnEdCard" onclick="generateEdCard()" style="margin-top:0; flex:1; background:linear-gradient(135deg,#3ecf8e,#2eb87a);">
@@ -201,12 +211,12 @@
         <span style="font-size:11px; color:var(--text3); font-weight:400;">(작은 용지는 세로로 넣으면 덜 걸려요)</span>
       </div>
       <div style="display:flex; gap:10px;">
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="landscape">
-          <input type="radio" name="immOrient" value="landscape" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
+        <label style="flex: 1 1 0%; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(79, 142, 247, 0.1); border-color: var(--accent); border-top-style: ; border-top-width: ; border-right-style: ; border-right-width: ; border-bottom-style: ; border-bottom-width: ; border-left-style: ; border-left-width: ; border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 8px; cursor: pointer; transition: 0.15s;" class="orient-label" data-val="landscape">
+          <input type="radio" name="immOrient" value="landscape" checked="" onchange="updateOrientUI()" style="accent-color:var(--accent);">
           <span style="font-size:13px; color:var(--text);">📄 가로 (기본)</span>
           <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 가로 방향</span>
         </label>
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait">
+        <label style="flex: 1 1 0%; display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--surface); border-color: var(--border); border-top-style: ; border-top-width: ; border-right-style: ; border-right-width: ; border-bottom-style: ; border-bottom-width: ; border-left-style: ; border-left-width: ; border-image-source: ; border-image-slice: ; border-image-width: ; border-image-outset: ; border-image-repeat: ; border-radius: 8px; cursor: pointer; transition: 0.15s;" class="orient-label" data-val="portrait">
           <input type="radio" name="immOrient" value="portrait" onchange="updateOrientUI()" style="accent-color:var(--accent);">
           <span style="font-size:13px; color:var(--text);">📋 세로 (작은 카드용)</span>
           <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 세로 + 90° 회전</span>
@@ -222,7 +232,7 @@
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
           <span style="font-size:12px; color:var(--text2); width:60px;">위 ▲ 아래</span>
           <span style="font-size:12px; color:var(--text3);">-10</span>
-          <input type="range" id="immOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById('immOffsetYVal').textContent = this.value; saveImmOffset();">
+          <input type="range" id="immOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById(&#39;immOffsetYVal&#39;).textContent = this.value; saveImmOffset();">
           <span style="font-size:12px; color:var(--text3);">+10</span>
           <span id="immOffsetYVal" style="font-size:13px; color:var(--accent); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
@@ -230,13 +240,13 @@
         <div style="display:flex; align-items:center; gap:12px;">
           <span style="font-size:12px; color:var(--text2); width:60px;">좌 ◀ 우</span>
           <span style="font-size:12px; color:var(--text3);">-10</span>
-          <input type="range" id="immOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById('immOffsetXVal').textContent = this.value; saveImmOffset();">
+          <input type="range" id="immOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById(&#39;immOffsetXVal&#39;).textContent = this.value; saveImmOffset();">
           <span style="font-size:12px; color:var(--text3);">+10</span>
           <span id="immOffsetXVal" style="font-size:13px; color:var(--accent); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
         </div>
         <div style="margin-top:10px; text-align:right;">
-          <button onclick="document.getElementById('immOffsetY').value=0; document.getElementById('immOffsetX').value=0; document.getElementById('immOffsetYVal').textContent='0'; document.getElementById('immOffsetXVal').textContent='0'; saveImmOffset();" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+          <button onclick="document.getElementById(&#39;immOffsetY&#39;).value=0; document.getElementById(&#39;immOffsetX&#39;).value=0; document.getElementById(&#39;immOffsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;immOffsetXVal&#39;).textContent=&#39;0&#39;; saveImmOffset();" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
             초기화
           </button>
         </div>
@@ -267,6 +277,17 @@
           초기화
         </button>
       </div>
+    </div>
+
+    <!-- 서명란 핑크 형광 표시 옵션 -->
+    <div style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+        <input type="checkbox" id="pinkSignature" style="width:18px; height:18px; cursor:pointer; accent-color:#ff4d8d;">
+        <span style="font-size:13px; color:var(--text2); font-weight:600;">
+          🌸 서명란 핑크 형광색 표시
+          <span style="font-size:11px; color:var(--text3); font-weight:400; display:block; margin-top:2px;">컬러 잉크젯/레이저 프린터에서만 사용하세요 (흑백 인쇄 시 회색으로 나옴)</span>
+        </span>
+      </label>
     </div>
   </div>
 </div>
@@ -326,20 +347,6 @@ function loadBuiltinEdCard() {
 window.addEventListener('DOMContentLoaded', () => {
   loadBuiltinEdCard();
 });
-
-// ── 직업 계산 ──
-function getOccupation(birthYear, birthMonth, birthDay) {
-  if (!birthYear || !birthMonth || !birthDay) return '会社員';
-  const today = new Date();
-  const birth = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay));
-  let age = today.getFullYear() - birth.getFullYear();
-  const md = today.getMonth() - birth.getMonth();
-  if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
-  if (age <= 6)  return '幼児';
-  if (age <= 18) return '学生';
-  return '会社員';
-}
-
 
 // ── 이디카드 생성 ──
 function generateEdCard() {
@@ -628,7 +635,9 @@ function parsePassengers(wb) {
       passport = passport.replace(/\s*\(.*?\)/, '').trim();
 
       const birth = parseBirth(birthRaw);
-      const genderNorm = normalizeGender(gender);
+      const genderNorm = normalizeGender(gender) === '?' || !gender
+        ? inferGenderFromBirthRaw(birthRaw)
+        : normalizeGender(gender);
 
       if (lastName && firstName && passport) {
         passengers.push({
@@ -644,6 +653,7 @@ function parsePassengers(wb) {
           birthRaw,
           expiryRaw,
           expiryWarning: isExpiryWarning(expiryRaw),
+          occupation: getOccupation(birth.year, birth.month, birth.day),  // 직업 자동 매핑 (사용자 수정 가능)
           ok: birth.year && birth.month && birth.day && passport
         });
         found = true;
@@ -906,6 +916,29 @@ function normalizeGender(raw) {
   return raw || '?';
 }
 
+// 주민번호/생년월일 raw에서 성별 추론 (성별 컬럼 없을 때 사용)
+// 주민번호 패턴: YYMMDD-N... 또는 YYMMDDN 7자리 형태
+// N = 1,3,5,7,9 → 남자 / 2,4,6,8,0 → 여자
+function inferGenderFromBirthRaw(raw) {
+  if (!raw) return '?';
+  const s = String(raw).trim();
+  // YYMMDD-N (예: "830619-1") 또는 YYYYMMDD-N (예: "19830619-1")
+  const m1 = s.match(/-(\d)/);
+  if (m1) {
+    const n = parseInt(m1[1], 10);
+    if (n === 1 || n === 3 || n === 5 || n === 7 || n === 9) return 'M';
+    if (n === 2 || n === 4 || n === 6 || n === 8 || n === 0) return 'F';
+  }
+  // 하이픈 없는 7자리 (예: "8311192") — 마지막 1자리가 성별 코드
+  const m2 = s.match(/^\d{7}$/);
+  if (m2) {
+    const n = parseInt(s.slice(-1), 10);
+    if (n === 1 || n === 3 || n === 5 || n === 7 || n === 9) return 'M';
+    if (n === 2 || n === 4 || n === 6 || n === 8 || n === 0) return 'F';
+  }
+  return '?';
+}
+
 // ── 테이블 렌더링 ──
 function renderPassengers() {
   const tbody = document.getElementById('passengersBody');
@@ -957,7 +990,7 @@ function renderPassengers() {
 
 }
 
-// ── 직업 계산 ──
+// ── 직업 계산 (나이 기준 자동 매핑) ──
 function getOccupation(birthYear, birthMonth, birthDay) {
   if (!birthYear || !birthMonth || !birthDay) return '会社員';
   const today = new Date();
@@ -967,7 +1000,9 @@ function getOccupation(birthYear, birthMonth, birthDay) {
   if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
   if (age <= 6)  return '幼児';
   if (age <= 18) return '学生';
-  return '会社員';
+  if (age <= 25) return '大学生';
+  if (age <= 69) return '会社員';
+  return 'RETIREE';  // 70세 이상
 }
 
 // ── 이디카드 생성 ──
@@ -1194,6 +1229,8 @@ function renderPreview() {
       <td style="color:var(--accent);font-weight:600">${p.lastName}</td>
       <td style="color:var(--accent)">${p.firstName}</td>
       <td>${p.birthYear}-${p.birthMonth}-${p.birthDay}</td>
+      <td>${renderNationalityCell(p)}</td>
+      <td>${renderOccupationCell(p)}</td>
       ${expWarn ? `<td><span style="
         display:inline-flex; align-items:center; gap:4px;
         background:rgba(247,79,79,0.2); border:1px solid rgba(247,79,79,0.7);
@@ -1205,10 +1242,122 @@ function renderPreview() {
   });
 }
 
+// 국적 셀 렌더링 (드롭다운 + 직접 입력 토글)
+function renderNationalityCell(p) {
+  const options = [
+    { v: '大韓民国', label: '大韓民国' },
+    { v: '__custom__', label: '✍ 직접 입력...' },
+    { v: 'アメリカ', label: 'アメリカ' },
+    { v: '中国', label: '中国' },
+    { v: '台湾', label: '台湾' },
+    { v: 'ベトナム', label: 'ベトナム' },
+    { v: 'フィリピン', label: 'フィリピン' },
+    { v: 'タイ', label: 'タイ' },
+    { v: 'インドネシア', label: 'インドネシア' },
+    { v: 'マレーシア', label: 'マレーシア' },
+    { v: 'シンガポール', label: 'シンガポール' },
+    { v: 'カナダ', label: 'カナダ' },
+    { v: 'オーストラリア', label: 'オーストラリア' },
+    { v: 'イギリス', label: 'イギリス' }
+  ];
+  const cur = p.nationality === undefined ? '大韓民国' : p.nationality;
+  // __custom__ 제외한 옵션 중에 현재값이 있는지 확인 (없으면 직접 입력 모드)
+  const knownValues = options.filter(o => o.v !== '__custom__').map(o => o.v);
+  const isCustom = !knownValues.includes(cur);
+  let html = `<select onchange="onNationalityChange(${p.no - 1}, this)" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; cursor:pointer; max-width:140px;">`;
+  options.forEach(o => {
+    let sel = '';
+    if (o.v === '__custom__') {
+      sel = isCustom ? 'selected' : '';
+    } else {
+      sel = !isCustom && o.v === cur ? 'selected' : '';
+    }
+    html += `<option value="${o.v}" ${sel}>${o.label}</option>`;
+  });
+  html += `</select>`;
+  html += `<input type="text" value="${isCustom ? cur : ''}" placeholder="직접 입력" oninput="onNationalityInput(${p.no - 1}, this)" style="display:${isCustom ? 'inline-block' : 'none'}; margin-left:6px; width:100px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px;">`;
+  return html;
+}
+
+function onNationalityChange(idx, sel) {
+  const textInput = sel.nextElementSibling;
+  if (sel.value === '__custom__') {
+    textInput.style.display = 'inline-block';
+    textInput.focus();
+    passengers[idx].nationality = textInput.value || '';
+  } else {
+    textInput.style.display = 'none';
+    passengers[idx].nationality = sel.value;
+  }
+}
+
+function onNationalityInput(idx, inp) {
+  passengers[idx].nationality = inp.value;
+}
+
+// 직업 셀 렌더링 (드롭다운 + 직접 입력 토글)
+function renderOccupationCell(p) {
+  const options = [
+    { v: '会社員', label: '会社員' },
+    { v: '経営者', label: '経営者' },
+    { v: '自営業', label: '自営業' },
+    { v: 'フリーランサー', label: 'フリーランサー' },
+    { v: '大学生', label: '大学生' },
+    { v: '学生', label: '学生' },
+    { v: '幼児', label: '幼児' },
+    { v: '主婦', label: '主婦' },
+    { v: '公務員', label: '公務員' },
+    { v: 'RETIREE', label: 'RETIREE' },
+    { v: '', label: '(빈칸)' }
+  ];
+  const cur = p.occupation === undefined ? getOccupation(p.birthYear, p.birthMonth, p.birthDay) : p.occupation;
+  const isCustom = !options.some(o => o.v === cur);
+  let html = `<select onchange="onOccupationChange(${p.no - 1}, this)" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; cursor:pointer; max-width:160px;">`;
+  options.forEach(o => {
+    const sel = !isCustom && o.v === cur ? 'selected' : '';
+    html += `<option value="${o.v}" ${sel}>${o.label}</option>`;
+  });
+  html += `<option value="__custom__" ${isCustom ? 'selected' : ''}>✍ 직접 입력...</option>`;
+  html += `</select>`;
+  // 직접 입력 모드면 텍스트 박스도 표시
+  html += `<input type="text" value="${isCustom ? cur : ''}" placeholder="직접 입력" oninput="onOccupationInput(${p.no - 1}, this)" style="display:${isCustom ? 'inline-block' : 'none'}; margin-left:6px; width:110px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px;">`;
+  return html;
+}
+
+// 드롭다운 선택 변경 시
+function onOccupationChange(idx, sel) {
+  const textInput = sel.nextElementSibling;
+  if (sel.value === '__custom__') {
+    textInput.style.display = 'inline-block';
+    textInput.focus();
+    passengers[idx].occupation = textInput.value || '';
+  } else {
+    textInput.style.display = 'none';
+    passengers[idx].occupation = sel.value;
+  }
+}
+
+// 직접 입력 텍스트 변경 시
+function onOccupationInput(idx, inp) {
+  passengers[idx].occupation = inp.value;
+}
+
 // ── 세관신고서 생성 ──
 function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+
+  // 핑크 형광 박스 (체크박스 켜져 있을 때만)
+  const pinkOn = document.getElementById('pinkSignature') && document.getElementById('pinkSignature').checked;
+  const pinkBox = (left, top, width, height) =>
+    pinkOn
+      ? `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; width:${width}mm; height:${height}mm; background:#ff4d8d; opacity:0.55; mix-blend-mode:multiply; pointer-events:none;"></div>`
+      : '';
+
+  // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4, 기본 13pt)
+  const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelSize = Math.max(6, 13 + hotelDelta);
+
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
   return `<div class="print-page">
@@ -1219,20 +1368,33 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
     ${field(90,  61, 12, p.birthYear)}
     ${field(134, 24, 11, info.cityName || '')}
     ${field(98,  24, 11, info.flightNo || '')}
-    ${field(115, 46, 13, info.hotelName || '')}
+    ${field(115, 46, hotelSize, info.hotelName || '')}
     ${field(115, 52, 12, info.telNo || '')}
     ${field(90,  28, 10, arrYear)}
     ${field(113, 28, 10, arrMonth)}
     ${field(132, 28, 10, arrDay)}
     ${field(112, 65, 10, p.passport || '')}
-    ${field(90,  56, 11, '大韓民国')}
-    ${field(130, 56, 11, '会社員')}
+    ${field(90,  56, 11, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
+    ${field(130, 56, 11, (p.occupation !== undefined ? p.occupation : getOccupation(p.birthYear, p.birthMonth, p.birthDay)))}
+    ${pinkBox(65, 240, 15, 6)}
   </div>`;
 }
 
 function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left + offsetX}mm; top:${top + offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+
+  // 핑크 형광 박스 (체크박스 켜져 있을 때만)
+  const pinkOn = document.getElementById('pinkSignature') && document.getElementById('pinkSignature').checked;
+  const pinkBox = (left, top, width, height) =>
+    pinkOn
+      ? `<div style="position:absolute; left:${left + offsetX}mm; top:${top + offsetY}mm; width:${width}mm; height:${height}mm; background:#ff4d8d; opacity:0.55; mix-blend-mode:multiply; pointer-events:none;"></div>`
+      : '';
+
+  // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4)
+  const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelLandscapeSize = Math.max(6, 12 + hotelDelta);  // 가로 기본 12pt
+  const hotelPortraitSize  = Math.max(6, 14 + hotelDelta);  // 세로 기본 14pt
 
   // ─── 가로 모드 좌표 (운영 기준 - 절대 변경 금지) ───
   const fieldsLandscape = `
@@ -1241,13 +1403,14 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
     ${field(51, 21, 13, p.birthDay)}
     ${field(61, 21, 13, p.birthMonth)}
     ${field(77, 21, 13, p.birthYear)}
-    ${field(125, 21, 12, '大韓民国')}
+    ${field(125, 21, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
     ${field(160, 21, 12, info.cityName || '')}
     ${field(165, 27, 12, info.flightNo || '')}
-    ${field(85, 43, 12, info.hotelName || '')}
+    ${field(85, 43, hotelLandscapeSize, info.hotelName || '')}
     ${field(165, 43, 12, info.telNo || '')}
     ${field(50,  26, 14, '✓')}
     ${field(165, 34, 14, info.stayDuration || '')}
+    ${pinkBox(13, 104, 35, 7)}
   `;
 
   // ─── 세로 모드 좌표 (회전 후 위치 보정용 - 별도 관리) ───
@@ -1257,13 +1420,14 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
     ${field(51, 23, 13, p.birthDay)}
     ${field(64, 23, 13, p.birthMonth)}
     ${field(83, 23, 13, p.birthYear)}
-    ${field(133, 23, 12, '大韓民国')}
+    ${field(133, 23, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
     ${field(168, 23, 12, info.cityName || '')}
     ${field(165, 30, 12, info.flightNo || '')}
-    ${field(85, 46, 14, info.hotelName || '')}
+    ${field(85, 46, hotelPortraitSize, info.hotelName || '')}
     ${field(165, 46, 14, info.telNo || '')}
     ${field(50,  29, 14, '✓')}
     ${field(165, 37, 14, info.stayDuration || '')}
+    ${pinkBox(13, 104, 35, 7)}
   `;
 
   if (isPortrait) {
@@ -1426,8 +1590,8 @@ if (document.readyState !== 'loading') { cleanInvalidOffsets(); updateOrientUI()
 else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); });
 </script>
 
-<div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0513_1455</span>
+<div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:&#39;Noto Sans KR&#39;, sans-serif; letter-spacing:0.5px;" class="no-print">
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0514_1420</span>
 </div>
 
 </body></html>
