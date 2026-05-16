@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0112)file:///C:/Users/User/Downloads/%EC%9D%BC%EB%B3%B8%EC%9E%85%EA%B5%AD%EC%84%9C%EB%A5%98_%ED%86%B5%ED%95%A9_6.html -->
+<!-- saved from url=(0055)https://choikwanghyun-guide.github.io/japan-entry-form/ -->
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,8 +51,8 @@
   .dot-info { background:var(--accent); }
   .scroll-table { overflow-x:auto; max-height:260px; overflow-y:auto; margin-top:12px; }
   .passengers-table { width:100%; border-collapse:collapse; font-size:12px; }
-  .passengers-table th { background:var(--surface2); color:var(--text2); padding:8px 10px; text-align:left; font-size:11px; border-bottom:1px solid var(--border); }
-  .passengers-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); font-size:11px; }
+  .passengers-table th { background:var(--surface2); color:var(--text2); padding:8px 10px; text-align:center; font-size:11px; border-bottom:1px solid var(--border); }
+  .passengers-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); font-size:11px; vertical-align:middle; text-align:center; }
   .count-badge { background:var(--accent); color:white; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:auto; }
   @page { size:A4 portrait; margin:0; }
   @media print {
@@ -71,7 +71,7 @@
 
 <div class="header">
   <h1>일본 입국 서류 자동출력</h1>
-  <p>명부 파일 업로드 → 승객 요약 확인 · 입국신고서 · 세관신고서 인쇄 · 이디카드 다운로드</p>
+  <p>명부 파일 업로드 → 승객 요약 확인 · 입국신고서 · 세관신고서 인쇄 · 고객요약정보 내려받기</p>
   <div class="badge">✅ A4 · 여백없음 인쇄</div>
 </div>
 
@@ -84,7 +84,7 @@
       <div class="upload-text">
         <strong>여행사 명부 파일</strong>
         클릭하거나 파일을 여기에 드래그하세요<br>
-        <small style="color:var(--text3)">xlsx, xls, txt 형식 지원</small>
+        <small style="color:var(--text3)">xlsx, xls 형식 지원</small>
       </div>
       <div class="upload-btn">파일 선택</div>
     </div>
@@ -104,7 +104,17 @@
     <div class="card-title"><div class="step-badge">2</div> 공통 정보 입력</div>
     <div class="form-grid">
       <div class="form-group">
-        <label class="form-label">🏨 호텔명 </label>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <label class="form-label" style="margin-bottom:0;">🏨 호텔명</label>
+          <div style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
+            <span style="font-size:11px; color:var(--text3); white-space:nowrap;">글자 크기 조절</span>
+            <span style="font-size:10px; color:var(--text3);">-4</span>
+            <input type="range" id="hotelFontDelta" min="-4" max="4" step="1" value="0" style="flex:1; accent-color:#4f8ef7; min-width:60px;" oninput="document.getElementById('hotelFontDeltaVal').textContent = (this.value > 0 ? '+' : '') + this.value">
+            <span style="font-size:10px; color:var(--text3);">+4</span>
+            <span id="hotelFontDeltaVal" style="font-size:12px; color:#4f8ef7; font-weight:700; width:20px; text-align:center;">0</span>
+            <span style="font-size:10px; color:var(--text3); white-space:nowrap;">(입국:12, 세관:13)</span>
+          </div>
+        </div>
         <input type="text" id="hotelName" class="form-input" placeholder="예: ホテルユニバーサルポート">
       </div>
       <div class="form-group">
@@ -121,7 +131,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">📅 체류기간</label>
-        <input type="text" id="stayDuration" class="form-input" placeholder="예: 3泊4日">
+        <input type="text" id="stayDuration" class="form-input" placeholder="예: 3 Days">
       </div>
       <div class="form-group">
         <label class="form-label">🗓️ 입국일자</label>
@@ -178,15 +188,15 @@
     </div>
     <div class="scroll-table">
       <table class="passengers-table">
-        <thead><tr><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>여권 만료</th></tr></thead>
+        <thead><tr><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>국적</th><th>직업</th><th>여권 만료</th></tr></thead>
         <tbody id="passengersBody"></tbody>
       </table>
     </div>
     <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
-      <button class="btn-print" id="btnImmigration" onclick="setMode(&#39;immigration&#39;)" style="margin-top:0; flex:1;">
+      <button class="btn-print" id="btnImmigration" onclick="setMode('immigration')" style="margin-top:0; flex:1;">
         🛂 입국신고서 인쇄
       </button>
-      <button class="btn-print" id="btnCustoms" onclick="setMode(&#39;customs&#39;)" style="margin-top:0; flex:1; background:linear-gradient(135deg,#f7b84f,#f78c4f);">
+      <button class="btn-print" id="btnCustoms" onclick="setMode('customs')" style="margin-top:0; flex:1; background:linear-gradient(135deg,#f7b84f,#f78c4f);">
         🛃 세관신고서 인쇄
       </button>
       <button class="btn-print" id="btnEdCard" onclick="generateEdCard()" style="margin-top:0; flex:1; background:linear-gradient(135deg,#3ecf8e,#2eb87a);">
@@ -194,32 +204,87 @@
       </button>
     </div>
 
+    <!-- 서명 핑크 형광 표시 옵션 -->
+    <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+        <input type="checkbox" id="pinkSignature" style="width:18px; height:18px; cursor:pointer; accent-color:#ff80b3;">
+        <span style="font-size:13px; color:#ff80b3; font-weight:600;">
+          "서명" 핑크 형광색 표시
+          <span style="font-size:11px; color:var(--text3); font-weight:400; display:block; margin-top:2px;">컬러 잉크젯/레이저 프린터에서만 사용하세요 (흑백 인쇄 시 회색으로 나옴)</span>
+        </span>
+      </label>
+    </div>
+
+    <!-- 입국신고서 용지 방향 선택 -->
+    <div style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">
+        🛂 입국신고서 용지 방향
+        <span style="font-size:11px; color:var(--text3); font-weight:400;">(작은 용지는 세로로 넣으면 덜 걸려요)</span>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="landscape">
+          <input type="radio" name="immOrient" value="landscape" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <span style="font-size:13px; color:var(--text);">📄 가로 (기본)</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 가로 방향</span>
+        </label>
+        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait">
+          <input type="radio" name="immOrient" value="portrait" onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <span style="font-size:13px; color:var(--text);">📋 세로 (작은 카드용)</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 세로 + 90° 회전</span>
+        </label>
+      </div>
+
+      <!-- 입국신고서 위치 미세조정 -->
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">
+          🖨️ 입국신고서 위치 미세조정
+          <span style="font-size:11px; color:var(--text3); font-weight:400;">(가로/세로 각각 따로 저장돼요)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+          <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
+          <span style="font-size:12px; color:var(--text3);">상</span>
+          <input type="range" id="immOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById('immOffsetYVal').textContent = this.value; saveImmOffset();">
+          <span style="font-size:12px; color:var(--text3);">하</span>
+          <span id="immOffsetYVal" style="font-size:13px; color:var(--accent); font-weight:700; width:36px; text-align:right;">0</span>
+          <span style="font-size:11px; color:var(--text3);">mm</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
+          <span style="font-size:12px; color:var(--text3);">좌</span>
+          <input type="range" id="immOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--accent);" oninput="document.getElementById('immOffsetXVal').textContent = this.value; saveImmOffset();">
+          <span style="font-size:12px; color:var(--text3);">우</span>
+          <span id="immOffsetXVal" style="font-size:13px; color:var(--accent); font-weight:700; width:36px; text-align:right;">0</span>
+          <span style="font-size:11px; color:var(--text3);">mm</span>
+        </div>
+        <div style="margin-top:10px; text-align:right;">
+          <button onclick="document.getElementById('immOffsetY').value=0; document.getElementById('immOffsetX').value=0; document.getElementById('immOffsetYVal').textContent='0'; document.getElementById('immOffsetXVal').textContent='0'; saveImmOffset();" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+            초기화
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 세관신고서 위치 조정 슬라이더 -->
     <div id="customsAdjust" style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
       <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">🖨️ 세관신고서 위치 미세조정 <span style="font-size:11px; color:var(--text3); font-weight:400;">(프린터마다 다를 수 있어요)</span></div>
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-        <span style="font-size:12px; color:var(--text2); width:60px;">위 ▲ 아래</span>
-        <span style="font-size:12px; color:var(--text3);">-10</span>
-        <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0"
-          style="flex:1; accent-color:#f7b84f;"
-          oninput="document.getElementById('offsetYVal').textContent = this.value">
-        <span style="font-size:12px; color:var(--text3);">+10</span>
+        <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
+        <span style="font-size:12px; color:var(--text3);">상</span>
+        <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
+        <span style="font-size:12px; color:var(--text3);">하</span>
         <span id="offsetYVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
         <span style="font-size:11px; color:var(--text3);">mm</span>
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:12px; color:var(--text2); width:60px;">좌 ◀ 우</span>
-        <span style="font-size:12px; color:var(--text3);">-10</span>
-        <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0"
-          style="flex:1; accent-color:#f7b84f;"
-          oninput="document.getElementById('offsetXVal').textContent = this.value">
-        <span style="font-size:12px; color:var(--text3);">+10</span>
+        <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
+        <span style="font-size:12px; color:var(--text3);">좌</span>
+        <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
+        <span style="font-size:12px; color:var(--text3);">우</span>
         <span id="offsetXVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
         <span style="font-size:11px; color:var(--text3);">mm</span>
       </div>
       <div style="margin-top:10px; text-align:right;">
-        <button onclick="document.getElementById('customsOffsetY').value=0; document.getElementById('customsOffsetX').value=0; document.getElementById('offsetYVal').textContent='0'; document.getElementById('offsetXVal').textContent='0';"
-          style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+        <button onclick="document.getElementById(&#39;customsOffsetY&#39;).value=0; document.getElementById(&#39;customsOffsetX&#39;).value=0; document.getElementById(&#39;offsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;offsetXVal&#39;).textContent=&#39;0&#39;;" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
           초기화
         </button>
       </div>
@@ -282,20 +347,6 @@ function loadBuiltinEdCard() {
 window.addEventListener('DOMContentLoaded', () => {
   loadBuiltinEdCard();
 });
-
-// ── 직업 계산 ──
-function getOccupation(birthYear, birthMonth, birthDay) {
-  if (!birthYear || !birthMonth || !birthDay) return '会社員';
-  const today = new Date();
-  const birth = new Date(parseInt(birthYear), parseInt(birthMonth) - 1, parseInt(birthDay));
-  let age = today.getFullYear() - birth.getFullYear();
-  const md = today.getMonth() - birth.getMonth();
-  if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
-  if (age <= 6)  return '幼児';
-  if (age <= 18) return '学生';
-  return '会社員';
-}
-
 
 // ── 이디카드 생성 ──
 function generateEdCard() {
@@ -386,10 +437,12 @@ function readExcel(file, callback) {
     // 손상된 파일도 최대한 읽기 위해 여러 옵션 시도
     let wb;
     try {
+      // 1차: 표준 옵션
       wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true, cellNF: true });
     } catch (e1) {
       console.warn('1차 파싱 실패, 복구 모드 시도:', e1);
       try {
+        // 2차: 오류 무시 모드
         wb = XLSX.read(data, { type: 'array', cellDates: false, raw: true, WTF: false, bookVBA: false });
       } catch (e2) {
         console.error('파싱 완전 실패:', e2);
@@ -429,97 +482,145 @@ function handleFile(input) {
   document.getElementById('fileSize').textContent = formatSize(file.size);
   document.getElementById('fileInfo').style.display = 'block';
 
-  if (file.name.toLowerCase().endsWith('.txt')) {
-    parseTxtFile(file);
+  // 파일 확장자로 분기: txt는 전용 파서, 나머지는 엑셀 파서
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (ext === 'txt') {
+    readTxtRoster(file);
   } else {
     readExcel(file, wb => { travelData = wb; parsePassengers(wb); });
   }
 }
 
-// ── TSV 명부 파싱 (EUC-KR 인코딩 지원) ──
-function parseTxtFile(file) {
+// ── TXT 명부 파싱 (특정 여행사 탭 구분 형식) ──
+// 헤더: saleProdCd, resCd, ..., tustEnln, tustEnNm, tustPpn, tustBthd, ... tustGndrCd, tustKoNm ...
+function readTxtRoster(file) {
   const reader = new FileReader();
   reader.onload = e => {
-    // EUC-KR로 디코딩 시도
     let text = '';
-    try {
-      const decoder = new TextDecoder('euc-kr');
-      text = decoder.decode(new Uint8Array(e.target.result));
-    } catch(err) {
+    let buf = new Uint8Array(e.target.result);
+    // 인코딩 자동 판별: UTF-8 BOM 확인 → UTF-8 엄격 디코딩 → 검증 → 실패 시 EUC-KR
+    // (EUC-KR 한글이 우연히 유효한 UTF-8로 통과해 깨진 채 진행되는 경우를 막기 위해
+    //  디코딩 결과에 깨짐 문자(U+FFFD)가 있는지 한 단계 더 검증)
+    const hasUtf8Bom = buf.length >= 3 && buf[0] === 0xEF && buf[1] === 0xBB && buf[2] === 0xBF;
+    if (hasUtf8Bom) buf = buf.subarray(3); // BOM 제거
+
+    // 디코딩 결과가 멀쩡한지 검사: 깨짐 문자(U+FFFD)나 제어문자가 섞이면 실패로 간주
+    const looksClean = s => s.indexOf('\uFFFD') === -1 && !/[\u0000-\u0008\u000E-\u001F]/.test(s);
+
+    if (hasUtf8Bom) {
+      // BOM이 있으면 UTF-8로 확정
+      text = new TextDecoder('utf-8').decode(buf);
+    } else {
+      // 1차: UTF-8 엄격 디코딩 시도
+      let utf8Text = null;
       try {
-        const decoder2 = new TextDecoder('cp949');
-        text = decoder2.decode(new Uint8Array(e.target.result));
-      } catch(err2) {
-        text = new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+        utf8Text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+      } catch (err) {
+        utf8Text = null;
+      }
+      if (utf8Text !== null && looksClean(utf8Text)) {
+        // UTF-8로 깔끔하게 읽혔으면 채택
+        text = utf8Text;
+      } else {
+        // UTF-8 실패 또는 깨짐 → EUC-KR(CP949) 시도
+        let eucText = null;
+        try {
+          eucText = new TextDecoder('euc-kr').decode(buf);
+        } catch (err2) {
+          eucText = null;
+        }
+        if (eucText !== null && looksClean(eucText)) {
+          text = eucText;
+        } else if (utf8Text !== null) {
+          text = utf8Text;   // 차선: 그나마 디코딩된 UTF-8 결과
+        } else if (eucText !== null) {
+          text = eucText;    // 차선: EUC-KR 결과
+        } else {
+          text = new TextDecoder('utf-8').decode(buf); // 최후: 깨져도 진행
+        }
       }
     }
-
-    // \r\n, \r, \n 모두 처리 / 탭만 있는 줄도 제거
-    const lines = text.split(/\r\n|\r|\n/).filter(l => l.replace(/\t/g,'').trim().length > 0);
-    if (lines.length < 2) {
-      showAlert('uploadAlert', 'error', '❌ 파일에 데이터가 없습니다.');
-      return;
-    }
-
-    // 헤더: \r, \0, 공백 모두 제거
-    const headers = lines[0].split('\t').map(h => h.replace(/[\r\n\x00]/g,'').trim());
-    const colIdx = name => headers.indexOf(name);
-
-    // 컬럼 매핑 (하나투어 TSV 형식)
-    const iLastName  = colIdx('tustEnln');   // 성
-    const iFirstName = colIdx('tustEnNm');   // 이름
-    const iPassport  = colIdx('tustPpn');    // 여권번호
-    const iBirthd    = colIdx('tustBthd');   // 생년월일 (YYYYMMDD)
-    const iGender    = colIdx('tustGndrCd'); // 성별
-    const iKoName    = colIdx('tustKoNm');   // 한글이름
-
-    if (iLastName === -1 || iPassport === -1) {
-      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 txt 형식입니다.\n(tustEnln, tustPpn 컬럼이 필요합니다)');
-      return;
-    }
-
-    const parsed = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split('\t');
-      if (cols.length < 3) continue;
-
-      const lastName  = iLastName  >= 0 ? (cols[iLastName]  || '').trim() : '';
-      const firstName = iFirstName >= 0 ? (cols[iFirstName] || '').trim() : '';
-      const passport  = iPassport  >= 0 ? (cols[iPassport]  || '').trim() : '';
-      const birthdRaw = iBirthd    >= 0 ? (cols[iBirthd]    || '').trim() : '';
-      const gender    = iGender    >= 0 ? (cols[iGender]    || '').trim() : '';
-      const koName    = iKoName    >= 0 ? (cols[iKoName]    || '').trim() : '';
-
-      if (!lastName && !passport) continue;
-
-      const birth = parseBirth(birthdRaw);
-      const genderNorm = normalizeGender(gender);
-      parsed.push({
-        no: parsed.length + 1,
-        korName:    koName,
-        lastName:   lastName.toUpperCase(),
-        firstName:  firstName.toUpperCase(),
-        birthYear:  birth.year,
-        birthMonth: birth.month,
-        birthDay:   birth.day,
-        gender:     genderNorm,
-        passport:   passport.toUpperCase(),
-        birthRaw:   birthdRaw,
-        expiryRaw:  '',
-        expiryWarning: false,
-        ok: birth.year && birth.month && birth.day && passport
-      });
-    }
-
-    if (parsed.length === 0) {
-      showAlert('uploadAlert', 'error', '❌ 승객 정보를 찾을 수 없습니다.');
-      return;
-    }
-
-    passengers = parsed;
-    renderPreview();
+    parseTxtRoster(text);
   };
   reader.readAsArrayBuffer(file);
+}
+
+function parseTxtRoster(text) {
+  passengers = [];
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length < 2) {
+    showAlert('uploadAlert', 'warning', '⚠️ 명부 내용이 비어있어요.');
+    return;
+  }
+
+  // 첫 줄 = 헤더 (탭 구분)
+  const headers = lines[0].split('\t').map(h => h.trim());
+  const idx = {};
+  headers.forEach((h, i) => { idx[h] = i; });
+
+  // 컬럼 위치 (해당 여행사 TXT 표준 필드명)
+  const cEnln  = idx['tustEnln'];      // 영문 성
+  const cEnNm  = idx['tustEnNm'];      // 영문 이름
+  const cPpn   = idx['tustPpn'];       // 여권번호
+  const cBthd  = idx['tustBthd'];      // 생년월일 (YYYYMMDD)
+  const cGndr  = idx['tustGndrCd'];    // 성별
+  const cKoNm  = idx['tustKoNm'];      // 한글명
+  const cHtl   = idx['htlEnNm'];       // 호텔명
+  const cTel   = idx['telVal'];        // 전화번호
+  const cCity  = idx['cityCd'];        // 도시
+  const cStay  = idx['stayDays'];      // 체류일수
+
+  if (cEnln === undefined && cEnNm === undefined) {
+    showAlert('uploadAlert', 'warning', '⚠️ TXT 명부 형식을 인식하지 못했어요. (영문 이름 컬럼 없음)');
+    return;
+  }
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split('\t');
+    const get = c => (c !== undefined && cols[c] !== undefined) ? String(cols[c]).trim() : '';
+
+    const lastName = get(cEnln).toUpperCase();
+    const firstName = get(cEnNm).toUpperCase();
+    const passport = get(cPpn).toUpperCase();
+    const birthRaw = get(cBthd);
+    const korName = get(cKoNm);
+    let gender = get(cGndr);
+
+    // 영문 이름도 여권번호도 없으면 빈 행으로 보고 스킵
+    if (!lastName && !firstName && !passport) continue;
+
+    // 생년월일 파싱 (YYYYMMDD)
+    const birth = parseBirth(birthRaw);
+    // 성별: M/F 아니면 주민번호 등으로 추론
+    let genderNorm = normalizeGender(gender);
+    if (genderNorm === '?' || !gender) genderNorm = inferGenderFromBirthRaw(birthRaw);
+
+    passengers.push({
+      no: passengers.length + 1,
+      korName,
+      lastName,
+      firstName,
+      birthYear:  birth.year,
+      birthMonth: birth.month,
+      birthDay:   birth.day,
+      gender:     genderNorm,
+      passport,
+      birthRaw,
+      expiryRaw: '',
+      expiryWarning: false,
+      occupation: getOccupation(birth.year, birth.month, birth.day),
+      ok: birth.year && birth.month && birth.day && passport
+    });
+  }
+
+  if (passengers.length === 0) {
+    showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요. TXT 파일 내용을 확인해주세요.');
+    return;
+  }
+
+  travelData = null;
+  renderPreview();
+  showAlert('uploadAlert', 'success', `✅ ${passengers.length}명의 승객 정보를 인식했어요!`);
 }
 
 
@@ -531,13 +632,15 @@ function parsePassengers(wb) {
   for (const sheetName of wb.SheetNames) {
     const sheet = wb.Sheets[sheetName];
     if (!sheet) {
-      console.warn(`시트 "${sheetName}"의 내용이 비어있음 (파일 손상 가능)`);
+      console.warn(`[parsePassengers] 시트 "${sheetName}"의 내용이 비어있음 (파일 손상 가능)`);
       continue;
     }
     let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
 
-    // 폴백: sheet_to_json이 빈 배열을 반환할 때 시트 객체에서 직접 셀 스캔
+    // 폴백: sheet_to_json이 빈 배열을 반환할 때 (오류 셀이 있어 파싱 실패한 경우)
+    // 시트 객체에서 직접 셀을 읽어서 rows 재구성
     if (rows.length === 0 && sheet['!ref']) {
+      console.log(`[parsePassengers] 빈 결과 → 직접 셀 스캔 시도. ref=${sheet['!ref']}`);
       const range = XLSX.utils.decode_range(sheet['!ref']);
       rows = [];
       for (let r = range.s.r; r <= range.e.r; r++) {
@@ -546,11 +649,13 @@ function parsePassengers(wb) {
           const addr = XLSX.utils.encode_cell({ r, c });
           const cell = sheet[addr];
           if (!cell) { row.push(''); continue; }
+          // 오류 셀(t='e')은 빈 문자열, 나머진 v(원본값) 또는 w(표시값)
           if (cell.t === 'e') row.push('');
           else row.push(cell.v !== undefined ? cell.v : (cell.w || ''));
         }
         rows.push(row);
       }
+      console.log(`[parsePassengers] 직접 스캔 후 행 수: ${rows.length}`);
     }
 
     let headerRow = -1;
@@ -625,6 +730,8 @@ function parsePassengers(wb) {
       const firstCell = String(row[0] || '').trim();
       if (!firstCell && !row[colMap.passport]) continue;
       if (/^(번호|no\.?|합계|room|경고|passenger)/i.test(firstCell)) continue;
+      if (!firstCell && !row[colMap.passport]) { console.log(`R${i+1} 스킵: firstCell 비어있음`); continue; }
+      if (/^(번호|no\.?|합계|room|경고|passenger)/i.test(firstCell)) { console.log(`R${i+1} 스킵: 헤더성 행 "${firstCell}"`); continue; }
 
       let lastName = '', firstName = '', fullName = '', korName = '', birthRaw = '', passport = '', gender = '', expiryRaw = '';
 
@@ -667,7 +774,9 @@ function parsePassengers(wb) {
       passport = passport.replace(/\s*\(.*?\)/, '').trim();
 
       const birth = parseBirth(birthRaw);
-      const genderNorm = normalizeGender(gender);
+      const genderNorm = normalizeGender(gender) === '?' || !gender
+        ? inferGenderFromBirthRaw(birthRaw)
+        : normalizeGender(gender);
 
       if (lastName && firstName && passport) {
         passengers.push({
@@ -683,6 +792,7 @@ function parsePassengers(wb) {
           birthRaw,
           expiryRaw,
           expiryWarning: isExpiryWarning(expiryRaw),
+          occupation: getOccupation(birth.year, birth.month, birth.day),  // 직업 자동 매핑 (사용자 수정 가능)
           ok: birth.year && birth.month && birth.day && passport
         });
         found = true;
@@ -711,8 +821,17 @@ function parseFullName(raw, korNameHint) {
   // 공백 없는 한 단어 (예: "JEONSOYOUNG") → 한글명 힌트로 분리 시도
   if (korNameHint) {
     const kor = String(korNameHint).trim().replace(/\s+/g, '');
+    // 한글 글자만 추출
     const korChars = kor.match(/[가-힣]/g);
     if (korChars && korChars.length >= 2) {
+      // 한글 성은 보통 1자(특수 케이스: 황보, 남궁, 선우 등 2자 성도 있음)
+      // 일반적으로 첫 1자를 성으로 가정
+      const lastLen = guessKoreanLastNameLen(korChars);
+      const firstLen = korChars.length - lastLen;
+
+      // 영문 글자 비율로 분리점 계산
+      // 한국식 로마자 표기는 보통 성 1자 ≈ 영문 3~5자
+      // 정확한 매칭이 어려우니 알려진 한글성-로마자 매핑 우선 시도
       const splitIdx = guessRomanLastNameEnd(raw, korChars[0]);
       if (splitIdx > 0 && splitIdx < raw.length) {
         return { last: raw.slice(0, splitIdx), first: raw.slice(splitIdx) };
@@ -723,35 +842,97 @@ function parseFullName(raw, korNameHint) {
   return { last: raw, first: '' };
 }
 
+// 한국 복성(2자 성) 처리
+function guessKoreanLastNameLen(korChars) {
+  if (korChars.length < 3) return 1;
+  const twoCharLastNames = ['황보','남궁','선우','독고','제갈','사공','서문','동방','어금','강전'];
+  const first2 = korChars.slice(0, 2).join('');
+  return twoCharLastNames.includes(first2) ? 2 : 1;
+}
+
 // 한글 성에 해당하는 로마자가 영문명 어디까지인지 추정
 function guessRomanLastNameEnd(roman, korLastChar) {
+  // 흔한 한글 성 → 로마자 매핑 (다양한 표기 포함)
   const map = {
-    '김': ['KIM'], '이': ['LEE','YI','RHEE','LI'], '박': ['PARK','BAK','PAK'],
-    '최': ['CHOI','CHOE'], '정': ['JUNG','JEONG','CHUNG','JOUNG'],
-    '강': ['KANG','GANG'], '조': ['CHO','JO','JOE'], '윤': ['YOON','YUN'],
-    '장': ['JANG','CHANG'], '임': ['LIM','IM','YIM','LEEM'], '한': ['HAN'],
-    '오': ['OH','O'], '서': ['SEO','SUH','SHEO'], '신': ['SHIN','SIN'],
-    '권': ['KWON','GWON'], '황': ['HWANG'], '안': ['AHN','AN'], '송': ['SONG'],
-    '전': ['JEON','JUN','CHUN','CHON'], '홍': ['HONG'],
-    '유': ['YOO','YU','RYU','RYOO'], '고': ['KO','GO','KOH'],
-    '문': ['MOON','MUN'], '양': ['YANG'], '손': ['SON','SOHN'],
-    '배': ['BAE','BAI','PAE'], '백': ['BAEK','BAIK','PAEK','PAIK'],
-    '허': ['HUH','HEO','HUR'], '남': ['NAM'], '심': ['SIM','SHIM'],
-    '노': ['NOH','NO','ROH'], '하': ['HA'], '곽': ['KWAK','GWAK'],
-    '성': ['SUNG','SEONG'], '차': ['CHA'], '주': ['JOO','JU','CHU'],
-    '우': ['WOO','U'], '구': ['KOO','GU','KU'], '나': ['NA','RA'],
-    '민': ['MIN'], '진': ['JIN','CHIN'], '지': ['JI','CHI'],
-    '엄': ['EOM','UHM','UM'], '원': ['WON'], '천': ['CHEON','CHUN'],
-    '방': ['BANG','PANG'], '공': ['GONG','KONG'], '현': ['HYUN','HYEON'],
-    '함': ['HAM'], '변': ['BYUN','BYEON','PYON'], '염': ['YOM','YEOM'],
-    '추': ['CHU','CHOO'], '도': ['DO','DOH'], '소': ['SO','SOH'],
-    '석': ['SEOK','SUK','SOK'], '선': ['SUN','SEON'], '설': ['SEOL','SUL'],
-    '마': ['MA'], '길': ['GIL','KIL'], '연': ['YEON','YON'],
-    '위': ['WI','WEE'], '표': ['PYO'], '명': ['MYUNG','MYEONG'],
-    '기': ['KI','GI'], '반': ['BAN','PAN'], '왕': ['WANG'],
-    '금': ['KEUM','GEUM','KUM'], '옥': ['OK','OAK'], '육': ['YOOK','YUK'],
-    '인': ['IN'], '맹': ['MAENG'], '제': ['JE','JEH'], '모': ['MO'],
-    '탁': ['TAK'], '국': ['KOOK','KUK','GUK'], '여': ['YEO','YO','YEU']
+    '김': ['KIM'],
+    '이': ['LEE', 'YI', 'RHEE', 'LI'],
+    '박': ['PARK', 'BAK', 'PAK'],
+    '최': ['CHOI', 'CHOE'],
+    '정': ['JUNG', 'JEONG', 'CHUNG', 'JOUNG'],
+    '강': ['KANG', 'GANG'],
+    '조': ['CHO', 'JO', 'JOE'],
+    '윤': ['YOON', 'YUN'],
+    '장': ['JANG', 'CHANG'],
+    '임': ['LIM', 'IM', 'YIM','LEEM'],
+    '한': ['HAN'],
+    '오': ['OH', 'O'],
+    '서': ['SEO', 'SUH', 'SHEO'],
+    '신': ['SHIN', 'SIN'],
+    '권': ['KWON', 'GWON'],
+    '황': ['HWANG'],
+    '안': ['AHN', 'AN'],
+    '송': ['SONG'],
+    '전': ['JEON', 'JUN', 'CHUN','CHON'],
+    '홍': ['HONG'],
+    '유': ['YOO', 'YU', 'RYU','RYOO'],
+    '고': ['KO', 'GO', 'KOH'],
+    '문': ['MOON', 'MUN'],
+    '양': ['YANG'],
+    '손': ['SON', 'SOHN'],
+    '배': ['BAE', 'BAI', 'PAE'],
+    '백': ['BAEK', 'BAIK', 'PAEK','PAIK'],
+    '허': ['HUH', 'HEO', 'HUR'],
+    '남': ['NAM'],
+    '심': ['SIM', 'SHIM'],
+    '노': ['NOH', 'NO', 'ROH'],
+    '하': ['HA'],
+    '곽': ['KWAK', 'GWAK'],
+    '성': ['SUNG', 'SEONG'],
+    '차': ['CHA'],
+    '주': ['JOO', 'JU', 'CHU'],
+    '우': ['WOO', 'U'],
+    '구': ['KOO', 'GU', 'KU'],
+    '나': ['NA', 'RA'],
+    '민': ['MIN'],
+    '진': ['JIN', 'CHIN'],
+    '지': ['JI', 'CHI'],
+    '엄': ['EOM', 'UHM','UM'],
+    '원': ['WON'],
+    '천': ['CHEON','CHUN'],
+    '방': ['BANG', 'PANG'],
+    '공': ['GONG', 'KONG'],
+    '현': ['HYUN','HYEON'],
+    '함': ['HAM'],
+    '변': ['BYUN','BYEON','PYON'],
+    '염': ['YOM','YEOM'],
+    '추': ['CHU','CHOO'],
+    '도': ['DO','DOH'],
+    '소': ['SO','SOH'],
+    '석': ['SEOK','SUK','SOK'],
+    '선': ['SUN','SEON'],
+    '설': ['SEOL','SUL'],
+    '마': ['MA'],
+    '길': ['GIL','KIL'],
+    '연': ['YEON','YON'],
+    '위': ['WI','WEE'],
+    '표': ['PYO'],
+    '명': ['MYUNG','MYEONG'],
+    '기': ['KI','GI'],
+    '반': ['BAN','PAN'],
+    '왕': ['WANG'],
+    '금': ['KEUM','GEUM','KUM'],
+    '옥': ['OK','OAK'],
+    '육': ['YOOK','YUK'],
+    '인': ['IN'],
+    '맹': ['MAENG'],
+    '제': ['JE','JEH'],
+    '모': ['MO'],
+    '탁': ['TAK'],
+    '국': ['KOOK','KUK','GUK'],
+    '여': ['YEO','YO','YEU'],
+    '룡': ['RYONG'],
+    '편': ['PYON'],
+    '구': ['KOO','GU'],
   };
   const candidates = map[korLastChar] || [];
   for (const c of candidates) {
@@ -874,23 +1055,42 @@ function normalizeGender(raw) {
   return raw || '?';
 }
 
+// 주민번호/생년월일 raw에서 성별 추론 (성별 컬럼 없을 때 사용)
+// 주민번호 패턴: YYMMDD-N... 또는 YYMMDDN 7자리 형태
+// N = 1,3,5,7,9 → 남자 / 2,4,6,8,0 → 여자
+function inferGenderFromBirthRaw(raw) {
+  if (!raw) return '?';
+  const s = String(raw).trim();
+  // YYMMDD-N (예: "830619-1") 또는 YYYYMMDD-N (예: "19830619-1")
+  const m1 = s.match(/-(\d)/);
+  if (m1) {
+    const n = parseInt(m1[1], 10);
+    if (n === 1 || n === 3 || n === 5 || n === 7 || n === 9) return 'M';
+    if (n === 2 || n === 4 || n === 6 || n === 8 || n === 0) return 'F';
+  }
+  // 하이픈 없는 7자리 (예: "8311192") — 마지막 1자리가 성별 코드
+  const m2 = s.match(/^\d{7}$/);
+  if (m2) {
+    const n = parseInt(s.slice(-1), 10);
+    if (n === 1 || n === 3 || n === 5 || n === 7 || n === 9) return 'M';
+    if (n === 2 || n === 4 || n === 6 || n === 8 || n === 0) return 'F';
+  }
+  return '?';
+}
+
 // ── 테이블 렌더링 ──
 function renderPassengers() {
   const tbody = document.getElementById('passengersBody');
-  if (!tbody) return;
   tbody.innerHTML = '';
 
-  const resultCard = document.getElementById('resultCard');
-  const passengerCount = document.getElementById('passengerCount');
-
   if (passengers.length === 0) {
-    if (resultCard) resultCard.style.display = 'none';
+    document.getElementById('resultCard').style.display = 'none';
     showAlert('uploadAlert', 'warning', '⚠️ 승객 정보를 찾을 수 없어요.\n\n📝 파일이 손상됐을 수 있어요. 다음을 시도해보세요:\n1) 엑셀에서 파일을 열고 → "다른 이름으로 저장" → .xlsx로 새로 저장\n2) 새로 저장한 파일을 업로드');
     return;
   }
 
-  if (resultCard) resultCard.style.display = 'block';
-  if (passengerCount) passengerCount.textContent = passengers.length + '명';
+  document.getElementById('resultCard').style.display = 'block';
+  document.getElementById('passengerCount').textContent = passengers.length + '명';
 
   const warns = [];
 
@@ -929,7 +1129,7 @@ function renderPassengers() {
 
 }
 
-// ── 직업 계산 ──
+// ── 직업 계산 (나이 기준 자동 매핑) ──
 function getOccupation(birthYear, birthMonth, birthDay) {
   if (!birthYear || !birthMonth || !birthDay) return '会社員';
   const today = new Date();
@@ -939,7 +1139,9 @@ function getOccupation(birthYear, birthMonth, birthDay) {
   if (md < 0 || (md === 0 && today.getDate() < birth.getDate())) age--;
   if (age <= 6)  return '幼児';
   if (age <= 18) return '学生';
-  return '会社員';
+  if (age <= 25) return '大学生';
+  if (age <= 69) return '会社員';
+  return 'RETIREE';  // 70세 이상
 }
 
 // ── 이디카드 생성 ──
@@ -1053,8 +1255,15 @@ function setMode(mode) {
     const offsetY = parseFloat(document.getElementById('customsOffsetY').value) || 0;
     const offsetX = parseFloat(document.getElementById('customsOffsetX').value) || 0;
     document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY)).join('');
+    document.body.classList.remove('imm-portrait');
   } else {
-    document.getElementById('printArea').innerHTML = list.map(p => buildCard(p, info)).join('');
+    // 입국신고서: 선택된 방향에 따라 회전 적용
+    const orient = document.querySelector('input[name="immOrient"]:checked');
+    const isPortrait = orient && orient.value === 'portrait';
+    const immOffsetY = parseFloat(document.getElementById('immOffsetY').value) || 0;
+    const immOffsetX = parseFloat(document.getElementById('immOffsetX').value) || 0;
+    document.getElementById('printArea').innerHTML = list.map(p => buildCard(p, info, isPortrait, immOffsetX, immOffsetY)).join('');
+    document.body.classList.toggle('imm-portrait', isPortrait);
   }
   window.print();
 }
@@ -1159,6 +1368,8 @@ function renderPreview() {
       <td style="color:var(--accent);font-weight:600">${p.lastName}</td>
       <td style="color:var(--accent)">${p.firstName}</td>
       <td>${p.birthYear}-${p.birthMonth}-${p.birthDay}</td>
+      <td>${renderNationalityCell(p)}</td>
+      <td>${renderOccupationCell(p)}</td>
       ${expWarn ? `<td><span style="
         display:inline-flex; align-items:center; gap:4px;
         background:rgba(247,79,79,0.2); border:1px solid rgba(247,79,79,0.7);
@@ -1170,10 +1381,122 @@ function renderPreview() {
   });
 }
 
+// 국적 셀 렌더링 (드롭다운 + 직접 입력 토글)
+function renderNationalityCell(p) {
+  const options = [
+    { v: '大韓民国', label: '大韓民国' },
+    { v: '__custom__', label: '✍ 직접 입력...' },
+    { v: 'アメリカ', label: 'アメリカ' },
+    { v: '中国', label: '中国' },
+    { v: '台湾', label: '台湾' },
+    { v: 'ベトナム', label: 'ベトナム' },
+    { v: 'フィリピン', label: 'フィリピン' },
+    { v: 'タイ', label: 'タイ' },
+    { v: 'インドネシア', label: 'インドネシア' },
+    { v: 'マレーシア', label: 'マレーシア' },
+    { v: 'シンガポール', label: 'シンガポール' },
+    { v: 'カナダ', label: 'カナダ' },
+    { v: 'オーストラリア', label: 'オーストラリア' },
+    { v: 'イギリス', label: 'イギリス' }
+  ];
+  const cur = p.nationality === undefined ? '大韓民国' : p.nationality;
+  // __custom__ 제외한 옵션 중에 현재값이 있는지 확인 (없으면 직접 입력 모드)
+  const knownValues = options.filter(o => o.v !== '__custom__').map(o => o.v);
+  const isCustom = !knownValues.includes(cur);
+  let html = `<select onchange="onNationalityChange(${p.no - 1}, this)" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; cursor:pointer; max-width:140px;">`;
+  options.forEach(o => {
+    let sel = '';
+    if (o.v === '__custom__') {
+      sel = isCustom ? 'selected' : '';
+    } else {
+      sel = !isCustom && o.v === cur ? 'selected' : '';
+    }
+    html += `<option value="${o.v}" ${sel}>${o.label}</option>`;
+  });
+  html += `</select>`;
+  html += `<input type="text" value="${isCustom ? cur : ''}" placeholder="직접 입력" oninput="onNationalityInput(${p.no - 1}, this)" style="display:${isCustom ? 'inline-block' : 'none'}; margin-left:6px; width:100px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px;">`;
+  return html;
+}
+
+function onNationalityChange(idx, sel) {
+  const textInput = sel.nextElementSibling;
+  if (sel.value === '__custom__') {
+    textInput.style.display = 'inline-block';
+    textInput.focus();
+    passengers[idx].nationality = textInput.value || '';
+  } else {
+    textInput.style.display = 'none';
+    passengers[idx].nationality = sel.value;
+  }
+}
+
+function onNationalityInput(idx, inp) {
+  passengers[idx].nationality = inp.value;
+}
+
+// 직업 셀 렌더링 (드롭다운 + 직접 입력 토글)
+function renderOccupationCell(p) {
+  const options = [
+    { v: '会社員', label: '会社員' },
+    { v: '経営者', label: '経営者' },
+    { v: '自営業', label: '自営業' },
+    { v: 'フリーランサー', label: 'フリーランサー' },
+    { v: '大学生', label: '大学生' },
+    { v: '学生', label: '学生' },
+    { v: '幼児', label: '幼児' },
+    { v: '主婦', label: '主婦' },
+    { v: '公務員', label: '公務員' },
+    { v: 'RETIREE', label: 'RETIREE' },
+    { v: '', label: '(빈칸)' }
+  ];
+  const cur = p.occupation === undefined ? getOccupation(p.birthYear, p.birthMonth, p.birthDay) : p.occupation;
+  const isCustom = !options.some(o => o.v === cur);
+  let html = `<select onchange="onOccupationChange(${p.no - 1}, this)" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px; cursor:pointer; max-width:160px;">`;
+  options.forEach(o => {
+    const sel = !isCustom && o.v === cur ? 'selected' : '';
+    html += `<option value="${o.v}" ${sel}>${o.label}</option>`;
+  });
+  html += `<option value="__custom__" ${isCustom ? 'selected' : ''}>✍ 직접 입력...</option>`;
+  html += `</select>`;
+  // 직접 입력 모드면 텍스트 박스도 표시
+  html += `<input type="text" value="${isCustom ? cur : ''}" placeholder="직접 입력" oninput="onOccupationInput(${p.no - 1}, this)" style="display:${isCustom ? 'inline-block' : 'none'}; margin-left:6px; width:110px; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:12px;">`;
+  return html;
+}
+
+// 드롭다운 선택 변경 시
+function onOccupationChange(idx, sel) {
+  const textInput = sel.nextElementSibling;
+  if (sel.value === '__custom__') {
+    textInput.style.display = 'inline-block';
+    textInput.focus();
+    passengers[idx].occupation = textInput.value || '';
+  } else {
+    textInput.style.display = 'none';
+    passengers[idx].occupation = sel.value;
+  }
+}
+
+// 직접 입력 텍스트 변경 시
+function onOccupationInput(idx, inp) {
+  passengers[idx].occupation = inp.value;
+}
+
 // ── 세관신고서 생성 ──
 function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+
+  // 핑크 형광 박스 (체크박스 켜져 있을 때만)
+  const pinkOn = document.getElementById('pinkSignature') && document.getElementById('pinkSignature').checked;
+  const pinkBox = (left, top, width, height) =>
+    pinkOn
+      ? `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; width:${width}mm; height:${height}mm; background:#ff80b3; opacity:0.4; mix-blend-mode:multiply; pointer-events:none;"></div>`
+      : '';
+
+  // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4, 기본 13pt)
+  const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelSize = Math.max(6, 13 + hotelDelta);
+
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
   return `<div class="print-page">
@@ -1184,33 +1507,102 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
     ${field(90,  61, 12, p.birthYear)}
     ${field(134, 24, 11, info.cityName || '')}
     ${field(98,  24, 11, info.flightNo || '')}
-    ${field(115, 46, 13, info.hotelName || '')}
+    ${field(115, 46, hotelSize, info.hotelName || '')}
     ${field(115, 52, 12, info.telNo || '')}
     ${field(90,  28, 10, arrYear)}
     ${field(113, 28, 10, arrMonth)}
     ${field(132, 28, 10, arrDay)}
     ${field(112, 65, 10, p.passport || '')}
-    ${field(90,  56, 11, '大韓民国')}
-    ${field(130, 56, 11, '会社員')}
+    ${field(90,  56, 11, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
+    ${field(130, 56, 11, (p.occupation !== undefined ? p.occupation : getOccupation(p.birthYear, p.birthMonth, p.birthDay)))}
+    ${pinkBox(64, 201, 15, 6)}
   </div>`;
 }
 
-function buildCard(p, info) {
+function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
   const field = (left, top, size, val) =>
-    `<div style="position:absolute; left:${left}mm; top:${top}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
-  return `<div class="print-page">
+    `<div style="position:absolute; left:${left + offsetX}mm; top:${top + offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+
+  // 핑크 형광 박스 (체크박스 켜져 있을 때만)
+  const pinkOn = document.getElementById('pinkSignature') && document.getElementById('pinkSignature').checked;
+  const pinkBox = (left, top, width, height) =>
+    pinkOn
+      ? `<div style="position:absolute; left:${left + offsetX}mm; top:${top + offsetY}mm; width:${width}mm; height:${height}mm; background:#ff80b3; opacity:0.4; mix-blend-mode:multiply; pointer-events:none;"></div>`
+      : '';
+
+  // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4)
+  const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelLandscapeSize = Math.max(6, 12 + hotelDelta);  // 가로 기본 12pt
+  const hotelPortraitSize  = Math.max(6, 14 + hotelDelta);  // 세로 기본 14pt
+
+  // ─── 가로 모드 좌표 (운영 기준 - 절대 변경 금지) ───
+  const fieldsLandscape = `
     ${field(80, 12, 14, p.lastName)}
     ${field(145, 12, 14, p.firstName)}
     ${field(51, 21, 13, p.birthDay)}
     ${field(61, 21, 13, p.birthMonth)}
     ${field(77, 21, 13, p.birthYear)}
-    ${field(125, 21, 12, '大韓民国')}
+    ${field(125, 21, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
     ${field(160, 21, 12, info.cityName || '')}
     ${field(165, 27, 12, info.flightNo || '')}
-    ${field(85, 43, 12, info.hotelName || '')}
+    ${field(85, 43, hotelLandscapeSize, info.hotelName || '')}
     ${field(165, 43, 12, info.telNo || '')}
     ${field(50,  26, 14, '✓')}
     ${field(165, 34, 14, info.stayDuration || '')}
+    ${pinkBox(25, 86, 30, 7)}
+  `;
+
+  // ─── 세로 모드 좌표 (옵션 B: 세워진 카드 기준 직관 좌표계) ───
+  // 카드 실측 크기: 가로 93mm × 세로 162mm (세워서 프린터에 투입)
+  // 좌표 기준: 세워진 카드 왼쪽위 (0,0) ~ 오른쪽아래 (93,162)
+  //   pLeft = 카드 가로 위치 (0~93, 왼쪽→오른쪽)
+  //   pTop  = 카드 세로 위치 (0~162, 위→아래)
+  // 글자는 세워진 카드에서 옆으로 누우므로 각 글자에 rotate(90deg) 적용
+  const pField = (pLeft, pTop, size, val) =>
+    `<div style="position:absolute; left:${pLeft}mm; top:${pTop}mm;
+       transform:translate(-50%,-50%) rotate(90deg);
+       transform-origin:center center;
+       font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal;
+       color:#000; white-space:nowrap;">${val}</div>`;
+  const pPinkBox = (pLeft, pTop, w, h) =>
+    pinkOn
+      ? `<div style="position:absolute; left:${pLeft}mm; top:${pTop}mm;
+           width:${w}mm; height:${h}mm; transform:translate(-50%,-50%);
+           background:#ff80b3; opacity:0.4; mix-blend-mode:multiply; pointer-events:none;"></div>`
+      : '';
+
+  const portraitFields = `
+    ${pField(81, 35, 13, p.lastName)}
+    ${pField(81, 100, 13, p.firstName)}
+    ${pField(72, 9, 12, p.birthDay)}
+    ${pField(72, 19, 12, p.birthMonth)}
+    ${pField(72, 31, 12, p.birthYear)}
+    ${pField(73, 75, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
+    ${pField(72, 110, 12, info.cityName || '')}
+    ${pField(66, 115, 12, info.flightNo || '')}
+    ${pField(51, 40, hotelPortraitSize, info.hotelName || '')}
+    ${pField(50, 115, 14, info.telNo || '')}
+    ${pField(68, 6, 15, '✓')}
+    ${pField(59, 115, 13, info.stayDuration || '')}
+    ${pPinkBox(6, -5, 5, 25)}
+  `;
+
+  if (isPortrait) {
+    // 세로 모드: A4 세로 페이지(210×297mm) 상단 중앙에 세워진 카드(93×162mm) 배치
+    // offsetX/offsetY는 미세조정 슬라이더 값 (mm)
+    return `<div class="print-page">
+      <div style="position:absolute;
+                  left:${(210 - 93) / 2 + offsetX}mm;
+                  top:${20 + offsetY}mm;
+                  width:93mm; height:162mm;">
+        ${portraitFields}
+      </div>
+    </div>`;
+  }
+
+  // 가로 모드 (기본 - 운영용 좌표 그대로)
+  return `<div class="print-page">
+    ${fieldsLandscape}
   </div>`;
 }
 
@@ -1241,10 +1633,121 @@ function showAlert(id, type, msg) {
       <div>${msg}</div>
     </div>`;
 }
+
+// ── 입국신고서 방향 선택 UI 업데이트 ──
+function updateOrientUI() {
+  document.querySelectorAll('.orient-label').forEach(label => {
+    const radio = label.querySelector('input[type="radio"]');
+    if (radio && radio.checked) {
+      label.style.borderColor = 'var(--accent)';
+      label.style.background = 'rgba(79,142,247,0.1)';
+    } else {
+      label.style.borderColor = 'var(--border)';
+      label.style.background = 'var(--surface)';
+    }
+  });
+  // 방향이 바뀌면 해당 방향의 저장된 offset 복원
+  loadImmOffset();
+}
+
+// ── 입국신고서 미세조정 offset 저장/복원 (가로/세로 따로) ──
+function getImmOrientKey() {
+  const orient = document.querySelector('input[name="immOrient"]:checked');
+  return orient && orient.value === 'portrait' ? 'portrait' : 'landscape';
+}
+function saveImmOffset() {
+  try {
+    const key = getImmOrientKey();
+    const x = document.getElementById('immOffsetX').value;
+    const y = document.getElementById('immOffsetY').value;
+    localStorage.setItem('immOffset_' + key, JSON.stringify({ x, y }));
+  } catch (e) { /* localStorage 사용 불가 환경 무시 */ }
+}
+function loadImmOffset() {
+  try {
+    const xEl = document.getElementById('immOffsetX');
+    const yEl = document.getElementById('immOffsetY');
+    const xValEl = document.getElementById('immOffsetXVal');
+    const yValEl = document.getElementById('immOffsetYVal');
+    if (!xEl || !yEl) {
+      console.log('[loadImmOffset] 슬라이더 요소를 찾을 수 없음');
+      return;
+    }
+
+    // 디버그: 현재 슬라이더 상태
+    console.log('[loadImmOffset] 호출됨. 현재값 X=' + xEl.value + ', Y=' + yEl.value);
+
+    // 1단계: 슬라이더와 표시값을 강제로 0으로 초기화
+    xEl.value = 0;
+    yEl.value = 0;
+    if (xValEl) xValEl.textContent = '0';
+    if (yValEl) yValEl.textContent = '0';
+    console.log('[loadImmOffset] 강제 0 초기화 후: X=' + xEl.value + ', Y=' + yEl.value);
+
+    // 2단계: localStorage에 저장된 값이 있으면 복원
+    const key = getImmOrientKey();
+    const saved = localStorage.getItem('immOffset_' + key);
+    console.log('[loadImmOffset] localStorage key=' + key + ', saved=' + saved);
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const x = parseFloat(parsed.x);
+      const y = parseFloat(parsed.y);
+      console.log('[loadImmOffset] parsed x=' + x + ', y=' + y);
+      if (!isNaN(x) && x >= -10 && x <= 10) {
+        xEl.value = x;
+        if (xValEl) xValEl.textContent = String(x);
+      }
+      if (!isNaN(y) && y >= -10 && y <= 10) {
+        yEl.value = y;
+        if (yValEl) yValEl.textContent = String(y);
+      }
+    }
+    console.log('[loadImmOffset] 최종 X=' + xEl.value + ', Y=' + yEl.value);
+  } catch (e) {
+    console.error('[loadImmOffset] 오류:', e);
+  }
+}
+// 이전 버전에서 저장됐을 수 있는 잘못된 offset 값 정리
+function cleanInvalidOffsets() {
+  try {
+    // 일회성 마이그레이션: 한 번도 정리 안 된 사용자는 모든 저장값을 지움
+    const MIGRATION_KEY = 'immOffset_migrated_v2';
+    if (!localStorage.getItem(MIGRATION_KEY)) {
+      localStorage.removeItem('immOffset_landscape');
+      localStorage.removeItem('immOffset_portrait');
+      localStorage.setItem(MIGRATION_KEY, '1');
+      console.log('[cleanInvalidOffsets] 일회성 마이그레이션 실행 (저장값 모두 초기화)');
+      return;
+    }
+
+    // 그 외의 경우는 유효성 검증 후 정리
+    ['landscape', 'portrait'].forEach(orient => {
+      const key = 'immOffset_' + orient;
+      const saved = localStorage.getItem(key);
+      if (!saved) return;
+      try {
+        const parsed = JSON.parse(saved);
+        const x = parseFloat(parsed.x);
+        const y = parseFloat(parsed.y);
+        // 유효 범위 -10 ~ +10 벗어나거나 NaN이면 삭제
+        if (isNaN(x) || isNaN(y) || x < -10 || x > 10 || y < -10 || y > 10) {
+          localStorage.removeItem(key);
+        }
+      } catch (e) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (e) { /* 무시 */ }
+}
+
+// 초기 UI 적용
+if (document.readyState !== 'loading') { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); }
+else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); });
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0513_1525</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0516_2105</span>
 </div>
 
 </body></html>
