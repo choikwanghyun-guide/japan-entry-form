@@ -221,16 +221,18 @@
         🛂 입국신고서 용지 방향
         <span style="font-size:11px; color:var(--text3); font-weight:400;">(작은 용지는 세로로 넣으면 덜 걸려요)</span>
       </div>
-      <div style="display:flex; gap:10px;">
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="landscape">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="landscape">
           <input type="radio" name="immOrient" value="landscape" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
           <span style="font-size:13px; color:var(--text);">📄 가로방향 인쇄</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 가로 방향</span>
         </label>
-        <label style="flex:1; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait">
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait">
           <input type="radio" name="immOrient" value="portrait" onchange="updateOrientUI()" style="accent-color:var(--accent);">
-          <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text3);">A4 세로 + 90° 회전</span>
+          <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (가운데 정렬)</span>
+        </label>
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait-left">
+          <input type="radio" name="immOrient" value="portrait-left" onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (왼쪽 정렬)</span>
         </label>
       </div>
 
@@ -1259,10 +1261,13 @@ function setMode(mode) {
   } else {
     // 입국신고서: 선택된 방향에 따라 회전 적용
     const orient = document.querySelector('input[name="immOrient"]:checked');
-    const isPortrait = orient && orient.value === 'portrait';
+    const orientVal = orient ? orient.value : 'landscape';
+    // 'portrait'(가운데), 'portrait-left'(왼쪽) 둘 다 세로 모드
+    const isPortrait = orientVal === 'portrait' || orientVal === 'portrait-left';
+    const portraitAlign = orientVal === 'portrait-left' ? 'left' : 'center';
     const immOffsetY = parseFloat(document.getElementById('immOffsetY').value) || 0;
     const immOffsetX = parseFloat(document.getElementById('immOffsetX').value) || 0;
-    document.getElementById('printArea').innerHTML = list.map(p => buildCard(p, info, isPortrait, immOffsetX, immOffsetY)).join('');
+    document.getElementById('printArea').innerHTML = list.map(p => buildCard(p, info, isPortrait, immOffsetX, immOffsetY, portraitAlign)).join('');
     document.body.classList.toggle('imm-portrait', isPortrait);
   }
   window.print();
@@ -1519,7 +1524,7 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
   </div>`;
 }
 
-function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
+function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0, portraitAlign = 'center') {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left + offsetX}mm; top:${top + offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
 
@@ -1588,11 +1593,16 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0) {
   `;
 
   if (isPortrait) {
-    // 세로 모드: A4 세로 페이지(210×297mm) 상단 중앙에 세워진 카드(93×162mm) 배치
+    // 세로 모드: A4 세로 페이지(210×297mm)에 세워진 카드(93×162mm) 배치
+    // portraitAlign === 'left'  → 페이지 왼쪽에서 10mm (왼쪽 정렬)
+    // portraitAlign === 'center'(기본) → 페이지 가운데 정렬
     // offsetX/offsetY는 미세조정 슬라이더 값 (mm)
+    const portraitBaseLeft = portraitAlign === 'left'
+      ? 10                  // 왼쪽 정렬: 왼쪽 여백 10mm
+      : (210 - 93) / 2;     // 가운데 정렬: 기존 동작 그대로
     return `<div class="print-page">
       <div style="position:absolute;
-                  left:${(210 - 93) / 2 + offsetX}mm;
+                  left:${portraitBaseLeft + offsetX}mm;
                   top:${20 + offsetY}mm;
                   width:93mm; height:162mm;">
         ${portraitFields}
@@ -1653,7 +1663,9 @@ function updateOrientUI() {
 // ── 입국신고서 미세조정 offset 저장/복원 (가로/세로 따로) ──
 function getImmOrientKey() {
   const orient = document.querySelector('input[name="immOrient"]:checked');
-  return orient && orient.value === 'portrait' ? 'portrait' : 'landscape';
+  const v = orient ? orient.value : 'landscape';
+  // landscape / portrait / portrait-left 각각 미세조정 offset을 따로 저장
+  return (v === 'portrait' || v === 'portrait-left') ? v : 'landscape';
 }
 function saveImmOffset() {
   try {
@@ -1747,7 +1759,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0516_2130</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0516_2320</span>
 </div>
 
 </body></html>
