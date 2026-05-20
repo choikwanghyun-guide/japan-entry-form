@@ -674,7 +674,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2015</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2115</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -796,6 +796,7 @@ function showFormatBadge(format) {
     'tourphone': '🟦 투어폰형',
     'kta':       '🟩 KTA / 현대드림투어형',
     'tw':        '🟧 TW 확정서형',
+    'guide':     '📑 가이드 일정표 (자체 양식)',
     'lotte':     '🟥 롯데 / 부산롯데형',
     'hanastar':  '🟨 노랑풍선 / 스타재팬형',
     'yballoon_event': '📄 노랑풍선 행사개요서 (PDF)',
@@ -826,8 +827,9 @@ function parseExcelConfirm(file) {
     if (format === 'tourphone') data = parseTourPhone(rows);
     else if (format === 'kta')  data = parseKTA(rows);
     else if (format === 'tw')   data = parseTW(rows);
+    else if (format === 'guide') data = parseGuideItinerary(rows);
     else {
-      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 엑셀 형식이에요.\n투어폰, KTA, TW 확정서 형식을 지원해요.');
+      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 엑셀 형식이에요.\n투어폰, KTA, TW, 가이드 일정표 형식을 지원해요.');
       return;
     }
 
@@ -843,6 +845,13 @@ function parseExcelConfirm(file) {
 // ── 형식 감지 ──
 function detectExcelFormat(rows) {
   const flat = rows.slice(0, 20).map(r => r.join(' ')).join('\n').toLowerCase();
+  const flatRaw = rows.slice(0, 20).map(r => r.join(' ')).join('\n');
+
+  // 가이드 일정표(우리 프로그램에서 출력한 양식): "여행지역" + "항공편" 또는 "1일차" + "도착/출발/이동시간/체류시간/장소" 헤더
+  const hasGuideHeader = /도\s*착.*출\s*발.*이\s*동\s*시\s*간.*체\s*류\s*시\s*간.*장\s*소/.test(flatRaw);
+  const hasGuideDayLabel = /\b\d+\s*일\s*차\b/.test(flatRaw);
+  const hasGuideInfo = /여\s*행\s*지\s*역/.test(flatRaw) && /항\s*공\s*편/.test(flatRaw);
+  if ((hasGuideHeader && hasGuideDayLabel) || hasGuideInfo) return 'guide';
 
   // KTA: DATE, PLACE, TRANS, TIME 헤더
   if (/\bDATE\b.*\bPLACE\b.*\bTRANS\b/i.test(rows.slice(0,20).map(r=>r.join(' ')).join('\n'))) return 'kta';
@@ -1162,7 +1171,177 @@ function parseTW(rows) {
   return data;
 }
 
-// ── DOCX 파싱 ──
+// ── 가이드 일정표 (우리 프로그램 자체 양식) 파싱 ──
+// 구조: r1=제목, r3=정보, r6=일자헤더, r7=컬럼헤더, r8~=일정행, 빈줄, 다음 일자헤더, ...
+function parseGuideItinerary(rows) {
+  const data = {
+    title: '', startDate: '', endDate: '', nights: 0,
+    departureFlight: '', returnFlight: '', transport: '전용차량',
+    pax: '', days: []
+  };
+
+  // 시간 변환: SheetJS가 raw:true로 줄 때 시간 셀은 0~1 사이 숫자(시리얼)
+  // 0.5 = 12:00 → 분으로 24*60 곱하기
+  const toHHMM = v => {
+    if (v == null || v === '') return '';
+    if (typeof v === 'number' && v >= 0 && v < 1) {
+      const totalMin = Math.round(v * 24 * 60);
+      const h = Math.floor(totalMin / 60), m = totalMin % 60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
+    if (typeof v === 'string') {
+      const m = v.match(/(\d{1,2}):(\d{2})/);
+      if (m) return String(m[1]).padStart(2,'0') + ':' + m[2];
+    }
+    return '';
+  };
+  // 이동·체류시간: 시리얼 → "H:MM" 형식 (예: 0.04166 = 1:00)
+  const toHMM = v => {
+    if (v == null || v === '') return '';
+    if (typeof v === 'number' && v >= 0 && v < 1) {
+      const totalMin = Math.round(v * 24 * 60);
+      const h = Math.floor(totalMin / 60), m = totalMin % 60;
+      return h + ':' + String(m).padStart(2,'0');
+    }
+    if (typeof v === 'string') {
+      const m = v.match(/(\d{1,2}):(\d{2})/);
+      if (m) return parseInt(m[1],10) + ':' + m[2];
+    }
+    return '';
+  };
+
+  // 1) 제목 (보통 r1)
+  for (let i = 0; i < Math.min(rows.length, 5); i++) {
+    for (let j = 0; j < (rows[i] || []).length; j++) {
+      const v = String(rows[i][j] || '').trim();
+      if (v && !/여행지역|항공편|인원|일\s*차|도\s*착|출\s*발/.test(v) && v.length < 50) {
+        data.title = v;
+        i = 5; break;
+      }
+    }
+  }
+
+  // 2) 공통 정보 ("여행지역 : ... / 출·도착 항공편 : ... / 인원 : ...")
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const line = (rows[i] || []).map(x => String(x||'')).join(' ');
+    if (/여\s*행\s*지\s*역|항\s*공\s*편|인\s*원/.test(line)) {
+      const titleMatch = line.match(/여\s*행\s*지\s*역\s*[:：]\s*([^\/]+)/);
+      if (titleMatch && !data.title) data.title = titleMatch[1].trim();
+      const flightMatch = line.match(/항\s*공\s*편\s*[:：]\s*([^\/]+?)(?:\s*\/|$)/);
+      if (flightMatch) {
+        const fl = flightMatch[1].trim();
+        const arr = fl.split(/[→\->~]/).map(s => s.trim()).filter(Boolean);
+        if (arr.length >= 1) data.departureFlight = arr[0];
+        if (arr.length >= 2) data.returnFlight = arr[1];
+      }
+      const paxMatch = line.match(/인\s*원\s*[:：]\s*([^\/]+)/);
+      if (paxMatch) data.pax = paxMatch[1].trim();
+      break;
+    }
+  }
+
+  // 3) 일자별 행 파싱
+  // "1일차 7/6 (월) ..." 같은 헤더를 찾고, 그 다음에 "도착/출발/..." 컬럼 헤더가 나오면 그 아래 일정 행을 모음
+  // 빈 줄이 2회 이상 연속되거나 다음 "N일차" 헤더가 나오면 그 일자 종료
+  const dayHeaderRe = /(\d+)\s*일\s*차\s*([\d\/\.\-]+)?(?:\s*\(([^)]+)\))?/;
+  const colHeaderRe = /도\s*착.*출\s*발.*이\s*동\s*시\s*간/;
+  let i = 0;
+  while (i < rows.length) {
+    const line = (rows[i] || []).map(x => String(x||'')).join(' ');
+    const dm = line.match(dayHeaderRe);
+    if (!dm) { i++; continue; }
+
+    const dayNo = parseInt(dm[1], 10);
+    const monthDay = dm[2] || '';
+    let dateStr = '';
+    const md = monthDay.match(/(\d{1,2})[\/\.\-](\d{1,2})/);
+    if (md) {
+      const month = String(md[1]).padStart(2,'0');
+      const day = String(md[2]).padStart(2,'0');
+      dateStr = month + '-' + day; // 연도는 마지막에 일괄 처리
+    }
+
+    // 다음 줄 또는 그 다음 줄에서 컬럼 헤더 찾기
+    let headerRow = -1;
+    for (let k = i + 1; k < Math.min(i + 5, rows.length); k++) {
+      const ln = (rows[k] || []).map(x => String(x||'')).join(' ');
+      if (colHeaderRe.test(ln)) { headerRow = k; break; }
+    }
+    if (headerRow < 0) { i++; continue; }
+
+    // 컬럼 헤더 행에서 각 컬럼 위치 찾기
+    const hdr = rows[headerRow];
+    const colIdx = { arrive:-1, depart:-1, move:-1, stay:-1, place:-1, note:-1 };
+    for (let c = 0; c < hdr.length; c++) {
+      const h = String(hdr[c]||'').replace(/\s+/g,'');
+      if (h === '도착' && colIdx.arrive < 0) colIdx.arrive = c;
+      else if (h === '출발' && colIdx.depart < 0) colIdx.depart = c;
+      else if (h === '이동시간' && colIdx.move < 0) colIdx.move = c;
+      else if (h === '체류시간' && colIdx.stay < 0) colIdx.stay = c;
+      else if ((h === '장소' || h === '내용') && colIdx.place < 0) colIdx.place = c;
+      else if (h === '비고' && colIdx.note < 0) colIdx.note = c; // 첫 번째 비고만
+    }
+
+    const items = [];
+    let emptyStreak = 0;
+    let j = headerRow + 1;
+    while (j < rows.length) {
+      const r = rows[j] || [];
+      const nextLine = r.map(x => String(x||'')).join(' ').trim();
+      if (dayHeaderRe.test(nextLine)) break; // 다음 일자 시작
+      if (!nextLine) { emptyStreak++; if (emptyStreak >= 2) break; j++; continue; }
+      emptyStreak = 0;
+
+      const arrive = toHHMM(r[colIdx.arrive]);
+      const depart = toHHMM(r[colIdx.depart]);
+      const moveDur = toHMM(r[colIdx.move]);
+      const stayDur = toHMM(r[colIdx.stay]);
+      // 장소 텍스트: 사용자 정의(PUA) 영역 문자 제거 (호텔 아이콘 등 깨진 글자 방지)
+      let desc = String(r[colIdx.place] || '').replace(/[\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/gu, '').trim();
+      const note = String(r[colIdx.note] || '').trim();
+
+      // 의미 없는 행 건너뛰기
+      if (!arrive && !depart && !desc) { j++; continue; }
+
+      items.push({
+        arrive, depart, moveDur, stayDur,
+        desc: desc,
+        note: note,
+        type: (typeof guessItemType === 'function') ? guessItemType(desc, '') : 'other'
+      });
+      j++;
+    }
+
+    data.days.push({ dayNo, date: dateStr, items });
+    i = j;
+  }
+
+  // 4) 출발일 추정: 첫 일자의 월-일 + "오늘 이후로 가장 가까운 연도"
+  if (data.days.length > 0 && data.days[0].date) {
+    const [mm, dd] = data.days[0].date.split('-').map(Number);
+    const today = new Date();
+    let year = today.getFullYear();
+    const candidate = new Date(year, mm - 1, dd);
+    // 첫 일자가 오늘보다 너무 과거(예: 6개월 이상)이면 다음 해로 잡음
+    const diffDays = (today - candidate) / (1000*60*60*24);
+    if (diffDays > 180) year += 1;
+    const ymd = `${year}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    data.startDate = ymd;
+    // days[].date를 풀 ISO로 갱신
+    data.days.forEach((d, idx) => {
+      const base = new Date(year, mm - 1, dd);
+      base.setDate(base.getDate() + idx);
+      d.date = `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-${String(base.getDate()).padStart(2,'0')}`;
+    });
+  }
+
+  // 박수 계산
+  if (data.days.length > 0) data.nights = data.days.length - 1;
+
+  return data;
+}
+
+
 function parseDocxConfirm(file) {
   showAlert('uploadAlert', 'info', '⏳ 문서를 분석하는 중...');
   const reader = new FileReader();
