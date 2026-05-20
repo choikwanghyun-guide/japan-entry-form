@@ -351,6 +351,48 @@
     padding: 12px;
   }
 
+  /* 접기/펼치기 토글 */
+  .collapsible-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f0f4f8;
+    border: 1px solid #dbe4eb;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    margin-bottom: 8px;
+    font-family: inherit;
+  }
+  .collapsible-header .chevron {
+    transition: transform 0.2s;
+    font-size: 12px;
+    color: #888;
+  }
+  .collapsible-header.open .chevron {
+    transform: rotate(180deg);
+  }
+  .collapsible-content {
+    display: none;
+  }
+  .collapsible-content.open {
+    display: block;
+  }
+
+  /* 리비전 정보 */
+  .rev-info {
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    padding: 20px 0 10px;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+  }
+
   /* 모달 */
   .modal-backdrop {
     display: none;
@@ -392,37 +434,39 @@
   }
 
   @media (prefers-color-scheme: dark) {
-    body { background: #1c1c1e; color: #fff; }
-    .app-header { background: #2c2c2e; border-bottom-color: #48484a; }
-    .tab-bar { background: #3a3a3c; }
+    body { background: #000; color: #fff; }
+    .app-header { background: #1c1c1e; border-bottom-color: #48484a; }
+    .tab-bar { background: #2c2c2e; border: 1px solid #48484a; }
     .tab { color: #8e8e93; }
-    .tab.active { background: #636366; color: #fff; }
-    input[type="text"], input[type="date"], select, textarea { background: #2c2c2e; color: #fff; border-color: #48484a; }
+    .tab.active { background: #5a5a5e; color: #fff; }
+    input[type="text"], input[type="date"], select, textarea { background: #3a3a3c; color: #fff; border: 1px solid #636366; }
     input[type="text"]::placeholder, textarea::placeholder { color: #8e8e93; }
-    .toggle-row { background: #2c2c2e; border-color: #48484a; }
+    .toggle-row { background: #1c1c1e; border: 1px solid #48484a; }
     .toggle-label { color: #fff; }
-    .divider { background: #48484a; }
-    .msg-card { background: #2c2c2e; border-color: #48484a; }
-    .msg-header { background: #3a3a3c; border-bottom-color: #48484a; }
+    .divider { background: #48484a; height: 1px; }
+    .msg-card { background: #1c1c1e; border: 1px solid #48484a; }
+    .msg-header { background: #2c2c2e; border-bottom: 1px solid #48484a; }
     .msg-title { color: #fff; }
-    .msg-body-edit { background: #2c2c2e; color: #e5e5e7; }
-    .msg-body-edit:focus { background: #38381f; }
-    .edit-hint { background: #3a3a3c; color: #aeaeb2; border-top-color: #48484a; }
-    .info-banner { background: #1c3a52; color: #7cb8e8; }
-    .btn-secondary { background: #2c2c2e; color: #0a84ff; border-color: #48484a; }
-    .regen-btn { color: #aeaeb2; border-color: #48484a; }
-    label.field-label { color: #aeaeb2; }
-    .section-title { color: #aeaeb2; }
-    .preset-container { background: #2c2c2e; border-color: #48484a; }
-    .preset-header-title { color: #aeaeb2; }
-    .preset-item { background: #3a3a3c; border-color: #48484a; }
+    .msg-body-edit { background: #1c1c1e; color: #f2f2f7; }
+    .msg-body-edit:focus { background: #2c2c2e; }
+    .edit-hint { background: #2c2c2e; color: #c7c7cc; border-top: 1px solid #48484a; }
+    .info-banner { background: #1c3a52; color: #7cb8e8; border: 1px solid #2a5278; }
+    .btn-secondary { background: #1c1c1e; color: #0a84ff; border: 1px solid #48484a; }
+    .regen-btn { color: #c7c7cc; border-color: #48484a; }
+    label.field-label { color: #ebebf5; }
+    .section-title { color: #c7c7cc; }
+    .preset-container { background: #1c1c1e; border: 1px solid #48484a; }
+    .preset-header-title { color: #c7c7cc; }
+    .preset-item { background: #2c2c2e; border: 1px solid #48484a; }
     .preset-item:active { background: #1c3a52; }
     .preset-item-title { color: #fff; }
-    .preset-item-preview { color: #aeaeb2; }
-    #btn-open-calendar, #btn-open-period-cal { background: #2c2c2e !important; border-color: #48484a !important; color: #fff !important; }
-    #meeting-date-display, #period-display { color: #aeaeb2 !important; }
-    .modal { background: #2c2c2e; }
+    .preset-item-preview { color: #c7c7cc; }
+    #btn-open-calendar, #btn-open-period-cal { background: #3a3a3c !important; border: 1px solid #636366 !important; color: #fff !important; }
+    #meeting-date-display, #period-display { color: #c7c7cc !important; }
+    .modal { background: #1c1c1e; border: 1px solid #48484a; }
     .btn-cancel { background: #48484a; color: #fff; }
+    .collapsible-header { background: #2c2c2e !important; border: 1px solid #48484a !important; color: #fff !important; }
+    .rev-info { color: #636366 !important; }
   }
 </style>
 </head>
@@ -495,12 +539,19 @@
     <div class="section">
       <label class="field-label">날씨 안내</label>
 
-      <div class="preset-container">
-        <div class="preset-header">
-          <span class="preset-header-title">📋 자주 쓰는 포맷 (탭하면 입력됨)</span>
-          <button class="preset-add-btn" id="btn-add-preset">+ 추가</button>
+      <button type="button" class="collapsible-header" id="toggle-weather-presets">
+        <span>📋 자주 쓰는 포맷 보기</span>
+        <span class="chevron">▼</span>
+      </button>
+
+      <div class="collapsible-content" id="weather-presets-content">
+        <div class="preset-container">
+          <div class="preset-header">
+            <span class="preset-header-title">탭하면 입력됨</span>
+            <button class="preset-add-btn" id="btn-add-preset">+ 추가</button>
+          </div>
+          <div class="preset-list" id="preset-list"></div>
         </div>
-        <div class="preset-list" id="preset-list"></div>
       </div>
 
       <textarea id="f-weather" rows="4" placeholder="위 포맷을 탭하거나 직접 입력하세요"></textarea>
@@ -574,12 +625,19 @@
     <div class="section">
       <label class="field-label">미팅 위치 (상세)</label>
 
-      <div class="preset-container">
-        <div class="preset-header">
-          <span class="preset-header-title">📍 자주 쓰는 위치 (탭하면 입력됨)</span>
-          <button class="preset-add-btn" id="btn-add-location">+ 추가</button>
+      <button type="button" class="collapsible-header" id="toggle-location-presets">
+        <span>📍 자주 쓰는 위치 보기</span>
+        <span class="chevron">▼</span>
+      </button>
+
+      <div class="collapsible-content" id="location-presets-content">
+        <div class="preset-container">
+          <div class="preset-header">
+            <span class="preset-header-title">탭하면 입력됨</span>
+            <button class="preset-add-btn" id="btn-add-location">+ 추가</button>
+          </div>
+          <div class="preset-list" id="location-list"></div>
         </div>
-        <div class="preset-list" id="location-list"></div>
       </div>
 
       <input type="text" id="f-meeting-spot" placeholder="위 항목을 탭하거나 직접 입력하세요">
@@ -637,6 +695,8 @@
     <div id="messages-container"></div>
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
+
+  <div class="rev-info">rev_2026_0520_2335</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1097,6 +1157,18 @@
   }
 
   document.getElementById('f-transport-type').addEventListener('change', toggleTransport);
+
+  // 접기/펼치기 토글
+  function setupCollapsible(headerId, contentId) {
+    const header = document.getElementById(headerId);
+    const content = document.getElementById(contentId);
+    header.addEventListener('click', () => {
+      const isOpen = content.classList.toggle('open');
+      header.classList.toggle('open', isOpen);
+    });
+  }
+  setupCollapsible('toggle-weather-presets', 'weather-presets-content');
+  setupCollapsible('toggle-location-presets', 'location-presets-content');
   document.getElementById('f-meeting-date').addEventListener('change', syncDateText);
   document.getElementById('f-meeting-date-text').addEventListener('input', syncDateFromText);
   document.getElementById('f-meeting-date-text').addEventListener('blur', syncDateFromText);
