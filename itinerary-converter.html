@@ -674,7 +674,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2115</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2200</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -2179,8 +2179,26 @@ async function fetchAndParseUrl(url) {
 }
 
 // ── 파싱 결과 UI 적용 ──
+// ── 새로 변환된 일정의 desc/note에서 줄 맨 앞 기호 자동 제거 ──
+// (저장 파일을 불러올 때는 호출하지 않음 — 사용자가 의도적으로 적은 기호 보존)
+function cleanupParsedSymbols() {
+  if (!parsedData || !parsedData.days) return;
+  // 줄 맨 앞에 자주 붙는 장식 기호들
+  const leadSymbols = /^[\s▶▷◆◇●○■□★☆※◎◉▪▫•·❖✦✧♦♥♠♣→⇒➔➤▲▼]+/;
+  parsedData.days.forEach(day => {
+    (day.items || []).forEach(it => {
+      if (typeof it.desc === 'string') it.desc = it.desc.replace(leadSymbols, '').trim();
+      if (typeof it.note === 'string') it.note = it.note.replace(leadSymbols, '').trim();
+    });
+  });
+}
+
 function applyParsedData() {
   if (!parsedData) return;
+
+  // 저장 파일에서 불러온 경우(_savedAt 표시 있음)는 사용자가 편집한 상태 그대로 두고,
+  // 새로 변환된 경우에만 줄 맨 앞 장식 기호(▶ ◆ ● ★ 등)를 자동으로 떼어냄
+  if (!parsedData._savedAt) cleanupParsedSymbols();
 
   clearAlert('uploadAlert');
   showAlert('uploadAlert', 'success', `✅ 확정서 분석 완료! ${parsedData.days.length}일 일정을 인식했어요.`);
