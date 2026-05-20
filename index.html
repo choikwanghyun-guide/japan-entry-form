@@ -3,7 +3,7 @@
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>일본 입국 서류 자동출력 (입국신고서 + 세관신고서)</title>
+<title>일본 입국 서류 자동출력 (이디카드 + 입국신고서 + 세관신고서)</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
   :root {
@@ -266,29 +266,46 @@
       </div>
     </div>
 
-    <!-- 세관신고서 위치 조정 슬라이더 -->
-    <div id="customsAdjust" style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
-      <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">🖨️ 세관신고서 위치 미세조정 <span style="font-size:11px; color:var(--text3); font-weight:400;">(프린터마다 다를 수 있어요)</span></div>
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-        <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
-        <span style="font-size:12px; color:var(--text3);">상</span>
-        <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
-        <span style="font-size:12px; color:var(--text3);">하</span>
-        <span id="offsetYVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
-        <span style="font-size:11px; color:var(--text3);">mm</span>
+    <!-- 세관신고서 용지 방향 + 위치 미세조정 (한 그룹) -->
+    <div style="margin-top:16px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:16px;">
+      <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">
+        🛃 세관신고서 용지 방향
       </div>
-      <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
-        <span style="font-size:12px; color:var(--text3);">좌</span>
-        <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
-        <span style="font-size:12px; color:var(--text3);">우</span>
-        <span id="offsetXVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
-        <span style="font-size:11px; color:var(--text3);">mm</span>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-portrait">
+          <input type="radio" name="customsOrient" value="portrait" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (가운데 정렬)</span>
+        </label>
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-portrait-left">
+          <input type="radio" name="customsOrient" value="portrait-left" onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (왼쪽 정렬)</span>
+        </label>
       </div>
-      <div style="margin-top:10px; text-align:right;">
-        <button onclick="document.getElementById(&#39;customsOffsetY&#39;).value=0; document.getElementById(&#39;customsOffsetX&#39;).value=0; document.getElementById(&#39;offsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;offsetXVal&#39;).textContent=&#39;0&#39;;" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
-          초기화
-        </button>
+
+      <!-- 세관신고서 위치 미세조정 -->
+      <div id="customsAdjust" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:12px;">🖨️ 세관신고서 위치 미세조정 <span style="font-size:11px; color:var(--text3); font-weight:400;">(프린터마다 다를 수 있어요)</span></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+          <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
+          <span style="font-size:12px; color:var(--text3);">상</span>
+          <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
+          <span style="font-size:12px; color:var(--text3);">하</span>
+          <span id="offsetYVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+          <span style="font-size:11px; color:var(--text3);">mm</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
+          <span style="font-size:12px; color:var(--text3);">좌</span>
+          <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
+          <span style="font-size:12px; color:var(--text3);">우</span>
+          <span id="offsetXVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+          <span style="font-size:11px; color:var(--text3);">mm</span>
+        </div>
+        <div style="margin-top:10px; text-align:right;">
+          <button onclick="document.getElementById(&#39;customsOffsetY&#39;).value=0; document.getElementById(&#39;customsOffsetX&#39;).value=0; document.getElementById(&#39;offsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;offsetXVal&#39;).textContent=&#39;0&#39;;" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+            초기화
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1256,7 +1273,10 @@ function setMode(mode) {
   if (mode === 'customs') {
     const offsetY = parseFloat(document.getElementById('customsOffsetY').value) || 0;
     const offsetX = parseFloat(document.getElementById('customsOffsetX').value) || 0;
-    document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY)).join('');
+    // 세관신고서 정렬: 'portrait'(가운데, 기본) / 'portrait-left'(왼쪽)
+    const cOrient = document.querySelector('input[name="customsOrient"]:checked');
+    const customsAlign = (cOrient && cOrient.value === 'portrait-left') ? 'left' : 'center';
+    document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY, customsAlign)).join('');
     document.body.classList.remove('imm-portrait');
   } else {
     // 입국신고서: 선택된 방향에 따라 회전 적용
@@ -1487,7 +1507,7 @@ function onOccupationInput(idx, inp) {
 }
 
 // ── 세관신고서 생성 ──
-function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
+function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center') {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
 
@@ -1504,7 +1524,9 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0) {
 
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
-  return `<div class="print-page">
+  // 왼쪽 정렬: 카드 전체를 좌측으로 70mm 이동 (좌표 자체는 한 줄도 안 건드림)
+  const pageStyle = align === 'left' ? ' style="transform: translateX(-70mm);"' : '';
+  return `<div class="print-page"${pageStyle}>
     ${field(92,  38, 13, p.lastName)}
     ${field(122, 38, 13, p.firstName)}
     ${field(131, 61, 12, p.birthDay)}
@@ -1628,7 +1650,9 @@ function printCards(type) {
   // 모든 공통정보 선택사항 - 필수 체크 없음
   if (passengers.length === 0) { alert('먼저 명부 파일을 업로드해주세요!'); return; }
   if (type === 'customs') {
-    document.getElementById('printArea').innerHTML = passengers.map(p => buildCustomsCard(p, info)).join('');
+    const cOrient2 = document.querySelector('input[name="customsOrient"]:checked');
+    const customsAlign2 = (cOrient2 && cOrient2.value === 'portrait-left') ? 'left' : 'center';
+    document.getElementById('printArea').innerHTML = passengers.map(p => buildCustomsCard(p, info, 0, 0, customsAlign2)).join('');
   } else {
     document.getElementById('printArea').innerHTML = passengers.map(p => buildCard(p, info)).join('');
   }
@@ -1759,7 +1783,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0516_2320</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0520_1800</span>
 </div>
 
 </body></html>
