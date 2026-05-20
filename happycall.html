@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="해피콜">
+<title>해피콜 문자 생성기</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #f5f5f5;
+    color: #222;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+    padding-bottom: 80px;
+  }
+  .app-header {
+    background: #fff;
+    margin: -16px -16px 16px;
+    padding: 16px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: center;
+  }
+  .app-header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  .app-header .subtitle { font-size: 12px; color: #888; margin-top: 4px; }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: #e8e8e8;
+    padding: 4px;
+    border-radius: 10px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-weight: 500;
+  }
+  .tab.active {
+    background: #fff;
+    color: #222;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .section { margin-bottom: 14px; }
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  input[type="text"], input[type="date"], select, textarea {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    background: #fff;
+    color: #222;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+  }
+  input[type="date"] { min-height: 44px; }
+  select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23666' d='M6 8L0 0h12z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74,144,226,0.15);
+  }
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    border: 1px solid #ececec;
+  }
+  .toggle-label { font-size: 15px; color: #222; }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: 0.2s;
+    border-radius: 28px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  input:checked + .slider { background-color: #34c759; }
+  input:checked + .slider:before { transform: translateX(20px); }
+
+  .divider { height: 1px; background: #e0e0e0; margin: 18px 0; }
+  .section-title {
+    font-size: 13px;
+    color: #888;
+    font-weight: 600;
+    margin: 0 0 10px 4px;
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: #007aff;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    font-family: inherit;
+  }
+  .btn-primary:active { background: #0062cc; transform: scale(0.99); }
+  .btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: #fff;
+    color: #007aff;
+    border: 1px solid #d0d0d0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .status {
+    font-size: 12px;
+    color: #34c759;
+    text-align: center;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+  .info-banner {
+    background: #e8f4fd;
+    color: #0a558c;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .msg-card {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .msg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #fafafa;
+    border-bottom: 1px solid #ececec;
+  }
+  .msg-title { font-size: 14px; font-weight: 600; color: #222; }
+  .msg-meta { display: flex; align-items: center; gap: 10px; }
+  .msg-count {
+    font-size: 12px;
+    color: #888;
+    font-variant-numeric: tabular-nums;
+  }
+  .msg-count.over { color: #ff3b30; font-weight: 600; }
+  .msg-body-edit {
+    width: 100%;
+    padding: 14px;
+    font-size: 14px;
+    line-height: 1.7;
+    border: none;
+    background: #fff;
+    color: #333;
+    resize: vertical;
+    min-height: 180px;
+    font-family: inherit;
+    border-radius: 0;
+    outline: none;
+    -webkit-appearance: none;
+    display: block;
+  }
+  .msg-body-edit:focus { background: #fffef5; box-shadow: none; }
+  .msg-copy {
+    background: #007aff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .msg-copy.copied { background: #34c759; }
+  .msg-copy:active { transform: scale(0.96); }
+  .edit-hint {
+    font-size: 11px;
+    color: #999;
+    padding: 6px 14px;
+    background: #fafafa;
+    border-top: 1px solid #ececec;
+  }
+  .reset-btn {
+    background: transparent;
+    border: none;
+    color: #ff3b30;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px;
+    margin-top: 16px;
+    width: 100%;
+    text-align: center;
+    font-family: inherit;
+  }
+  .regen-btn {
+    background: transparent;
+    border: 1px dashed #d0d0d0;
+    color: #666;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 10px;
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-family: inherit;
+  }
+
+  /* 날씨 프리셋 */
+  .preset-container {
+    background: #f0f4f8;
+    border: 1px solid #dbe4eb;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .preset-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .preset-header-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+  }
+  .preset-add-btn {
+    background: #007aff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .preset-list { display: flex; flex-direction: column; gap: 6px; }
+  .preset-item {
+    background: #fff;
+    border: 1px solid #e0e6eb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    transition: all 0.15s;
+  }
+  .preset-item:active { background: #e8f4fd; transform: scale(0.99); }
+  .preset-item-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .preset-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+  }
+  .preset-item-preview {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .preset-item-delete {
+    background: transparent;
+    border: none;
+    color: #ff3b30;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    line-height: 1;
+    font-family: inherit;
+  }
+  .preset-empty {
+    text-align: center;
+    color: #999;
+    font-size: 12px;
+    padding: 12px;
+  }
+
+  /* 모달 */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .modal-actions button { flex: 1; }
+  .btn-cancel {
+    padding: 11px;
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1e; color: #fff; }
+    .app-header { background: #2c2c2e; border-bottom-color: #3a3a3c; }
+    .tab-bar { background: #2c2c2e; }
+    .tab.active { background: #48484a; color: #fff; }
+    input[type="text"], input[type="date"], select, textarea { background: #2c2c2e; color: #fff; border-color: #3a3a3c; }
+    .toggle-row { background: #2c2c2e; border-color: #3a3a3c; }
+    .toggle-label { color: #fff; }
+    .divider { background: #3a3a3c; }
+    .msg-card { background: #2c2c2e; border-color: #3a3a3c; }
+    .msg-header { background: #1c1c1e; border-bottom-color: #3a3a3c; }
+    .msg-title { color: #fff; }
+    .msg-body-edit { background: #2c2c2e; color: #e5e5e7; }
+    .msg-body-edit:focus { background: #38381f; }
+    .edit-hint { background: #1c1c1e; color: #888; border-top-color: #3a3a3c; }
+    .info-banner { background: #1c3a52; color: #7cb8e8; }
+    .btn-secondary { background: #2c2c2e; color: #0a84ff; border-color: #3a3a3c; }
+    .regen-btn { color: #aaa; border-color: #3a3a3c; }
+    label.field-label { color: #aaa; }
+    .preset-container { background: #2c2c2e; border-color: #3a3a3c; }
+    .preset-header-title { color: #aaa; }
+    .preset-item { background: #1c1c1e; border-color: #3a3a3c; }
+    .preset-item:active { background: #1c3a52; }
+    .preset-item-title { color: #fff; }
+    .preset-item-preview { color: #888; }
+    .modal { background: #2c2c2e; }
+    .btn-cancel { background: #48484a; color: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="app-header">
+    <h1>🇯🇵 일본 가이드 해피콜</h1>
+    <div class="subtitle">투어 전 안내 문자 자동 생성</div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" id="tab-input">입력</button>
+    <button class="tab" id="tab-output">분할 문자</button>
+  </div>
+
+  <div id="panel-input">
+
+    <div class="section-title">기본 정보</div>
+
+    <div class="section">
+      <label class="field-label">가이드명</label>
+      <input type="text" id="f-guide" placeholder="예: 최광현">
+    </div>
+
+    <div class="section">
+      <label class="field-label">행사기간 (시작일 + 일수 자동계산)</label>
+      <div style="display: flex; gap: 8px; align-items: stretch;">
+        <input type="text" id="f-period-start-text" placeholder="시작일 (예: 20260504 또는 0504)" inputmode="numeric" style="flex: 1;">
+        <button type="button" id="btn-open-period-cal" aria-label="달력 열기" style="width: 48px; padding: 0; border: 1px solid #ddd; background: #fff; border-radius: 8px; cursor: pointer; font-size: 20px; flex-shrink: 0;">📅</button>
+        <input type="date" id="f-period-start" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;">
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+        <select id="f-period-days" style="flex: 1;">
+          <option value="2">1박 2일</option>
+          <option value="3">2박 3일</option>
+          <option value="4" selected>3박 4일</option>
+          <option value="5">4박 5일</option>
+          <option value="6">5박 6일</option>
+          <option value="7">6박 7일</option>
+          <option value="8">7박 8일</option>
+          <option value="9">8박 9일</option>
+          <option value="10">9박 10일</option>
+        </select>
+      </div>
+      <div id="period-display" style="font-size: 13px; color: #666; margin-top: 6px; padding-left: 4px;"></div>
+      <input type="hidden" id="f-period">
+    </div>
+
+    <div class="grid2">
+      <div class="section">
+        <label class="field-label">지역</label>
+        <select id="f-region">
+          <option value="후쿠오카">후쿠오카</option>
+          <option value="오사카">오사카</option>
+          <option value="도쿄">도쿄</option>
+          <option value="오키나와">오키나와</option>
+          <option value="대마도">대마도</option>
+          <option value="북해도">북해도</option>
+          <option value="마츠야마">마츠야마</option>
+          <option value="나고야">나고야</option>
+        </select>
+      </div>
+      <div class="section">
+        <label class="field-label">일정</label>
+        <input type="text" id="f-days" placeholder="예: 3일">
+      </div>
+    </div>
+
+    <div class="section">
+      <label class="field-label">날씨 안내</label>
+
+      <div class="preset-container">
+        <div class="preset-header">
+          <span class="preset-header-title">📋 자주 쓰는 포맷 (탭하면 입력됨)</span>
+          <button class="preset-add-btn" id="btn-add-preset">+ 추가</button>
+        </div>
+        <div class="preset-list" id="preset-list"></div>
+      </div>
+
+      <textarea id="f-weather" rows="4" placeholder="위 포맷을 탭하거나 직접 입력하세요"></textarea>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">교통편</div>
+
+    <div class="section">
+      <label class="field-label">교통편 종류</label>
+      <select id="f-transport-type">
+        <option value="항공">항공</option>
+        <option value="선박">선박 (대마도)</option>
+      </select>
+    </div>
+
+    <div id="air-fields">
+      <div class="section">
+        <label class="field-label">출발 공항</label>
+        <select id="f-airport">
+          <option value="김해국제공항">김해국제공항</option>
+          <option value="대구국제공항">대구국제공항</option>
+          <option value="인천국제공항">인천국제공항</option>
+          <option value="청주국제공항">청주국제공항</option>
+        </select>
+      </div>
+
+      <div class="section">
+        <label class="field-label">항공사</label>
+        <select id="f-airline">
+          <option value="에어부산">에어부산</option>
+          <option value="진에어">진에어</option>
+          <option value="제주항공">제주항공</option>
+          <option value="이스타항공">이스타항공</option>
+          <option value="대한항공">대한항공</option>
+          <option value="트리니티항공">트리니티항공</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="ship-fields" style="display: none;">
+      <div class="section">
+        <label class="field-label">출발 항구</label>
+        <input type="text" id="f-port" value="부산항 국제여객터미널">
+      </div>
+      <div class="section">
+        <label class="field-label">선사명</label>
+        <input type="text" id="f-shipline" placeholder="예: 미래고속">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">미팅 정보</div>
+
+    <div class="section">
+      <label class="field-label">미팅일</label>
+      <div style="display: flex; gap: 8px; align-items: stretch;">
+        <input type="text" id="f-meeting-date-text" placeholder="예: 20260504 또는 0504" inputmode="numeric" style="flex: 1;">
+        <button type="button" id="btn-open-calendar" aria-label="달력 열기" style="width: 48px; padding: 0; border: 1px solid #ddd; background: #fff; border-radius: 8px; cursor: pointer; font-size: 20px; flex-shrink: 0;">📅</button>
+        <input type="date" id="f-meeting-date" style="position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;">
+      </div>
+      <div id="meeting-date-display" style="font-size: 13px; color: #666; margin-top: 6px; padding-left: 4px;"></div>
+      <div style="font-size: 11px; color: #999; margin-top: 4px; padding-left: 4px;">※ 8자리(20260504) 또는 4자리(0504) 입력, 또는 달력 버튼 사용</div>
+    </div>
+
+    <div class="section">
+      <label class="field-label">미팅 시간</label>
+      <input type="text" id="f-meeting-time" placeholder="예: 07시">
+    </div>
+
+    <div class="section">
+      <label class="field-label">미팅 위치 (상세)</label>
+
+      <div class="preset-container">
+        <div class="preset-header">
+          <span class="preset-header-title">📍 자주 쓰는 위치 (탭하면 입력됨)</span>
+          <button class="preset-add-btn" id="btn-add-location">+ 추가</button>
+        </div>
+        <div class="preset-list" id="location-list"></div>
+      </div>
+
+      <input type="text" id="f-meeting-spot" placeholder="위 항목을 탭하거나 직접 입력하세요">
+    </div>
+
+    <div class="section">
+      <label class="field-label">피켓명 (매번 변경)</label>
+      <input type="text" id="f-picket" placeholder="예: 에어부산 시즈오카3일 최광현 가이드">
+      <div style="font-size: 11px; color: #999; margin-top: 4px; padding-left: 4px;">※ 따옴표는 자동으로 붙습니다</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">선택 항목 (켜면 문자에 포함)</div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">돼지코 (110V 플러그)</span>
+      <label class="switch"><input type="checkbox" id="opt-plug" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">온천 안내</span>
+      <label class="switch"><input type="checkbox" id="opt-onsen" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">수하물 안내 (항공)</span>
+      <label class="switch"><input type="checkbox" id="opt-baggage" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">아이젠 안내 (눈길)</span>
+      <label class="switch"><input type="checkbox" id="opt-aizen"><span class="slider"></span></label>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">연락처</div>
+
+    <div class="section">
+      <label class="field-label">한국 번호</label>
+      <input type="text" id="f-phone-kr" placeholder="010-0000-0000">
+    </div>
+    <div class="section">
+      <label class="field-label">일본 번호</label>
+      <input type="text" id="f-phone-jp" placeholder="090-0000-0000">
+    </div>
+
+    <button class="btn-primary" id="btn-generate">분할 문자 만들기 →</button>
+    <div class="status" id="save-status"></div>
+    <button class="reset-btn" id="btn-reset">전체 입력 초기화</button>
+  </div>
+
+  <div id="panel-output" style="display: none;">
+    <div class="info-banner">
+      💡 카톡 전체보기 방지를 위해 1000자 이내로 분할했습니다.<br>
+      ✏️ 각 편의 내용을 직접 수정할 수 있습니다 (수정 시 글자 수 실시간 표시).
+    </div>
+    <button class="regen-btn" id="btn-regen">↻ 입력값으로 다시 생성 (수정 내용 초기화)</button>
+    <div id="messages-container"></div>
+    <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
+  </div>
+</div>
+
+<!-- 프리셋 추가/편집 모달 -->
+<div class="modal-backdrop" id="preset-modal">
+  <div class="modal">
+    <h3 id="preset-modal-title">날씨 포맷 추가</h3>
+    <div class="section">
+      <label class="field-label">제목 (구분용)</label>
+      <input type="text" id="preset-title-input" placeholder="예: 봄/가을 일교차, 한겨울, 장마철 등">
+    </div>
+    <div class="section">
+      <label class="field-label">내용</label>
+      <textarea id="preset-content-input" rows="6" placeholder="문자에 들어갈 날씨 안내 내용"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="preset-cancel">취소</button>
+      <button class="btn-primary" id="preset-save" style="margin-top: 0;">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 미팅 위치 추가/편집 모달 -->
+<div class="modal-backdrop" id="location-modal">
+  <div class="modal">
+    <h3 id="location-modal-title">미팅 위치 추가</h3>
+    <div class="section">
+      <label class="field-label">위치 (그대로 입력란에 들어갑니다)</label>
+      <textarea id="location-content-input" rows="3" placeholder="예: 국제선 2층 5번 게이트 안쪽 던킨도너츠 부근"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="location-cancel">취소</button>
+      <button class="btn-primary" id="location-save" style="margin-top: 0;">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'happycall_form_v4';
+  const PRESET_KEY = 'happycall_weather_presets_v1';
+  const LOCATION_KEY = 'happycall_location_presets_v1';
+  const MAX_LEN = 1000;
+  const fieldIds = ['f-guide','f-period','f-period-start','f-period-start-text','f-period-days','f-region','f-days','f-weather','f-transport-type','f-airport','f-airline','f-port','f-shipline','f-meeting-date','f-meeting-time','f-meeting-spot','f-picket','f-phone-kr','f-phone-jp'];
+  const checkIds = ['opt-plug','opt-onsen','opt-baggage','opt-aizen'];
+  const WEEKDAYS = ['일','월','화','수','목','금','토'];
+
+  // 기본 프리셋
+  const DEFAULT_PRESETS = [
+    {
+      title: '봄/가을 (일교차 큼)',
+      content: '최저기온 13도/ 최고기온 22도의 기온으로 일교차가 높은 날씨가 예상됩니다. 대기불안정으로 갑자기 비가 내릴 수도 있으니 만약을 위해 접는 우산을 준비하시길 추천드립니다.'
+    },
+    {
+      title: '한겨울 (강설)',
+      content: '최저기온 -5도/ 최고기온 2도의 기온으로 매우 추운 날씨가 예상됩니다. 강설 확율이 높으니 우산 및 추운 날씨를 대비한 용품등을 챙겨오시기 바랍니다.'
+    },
+    {
+      title: '여름 (더위)',
+      content: '최저기온 24도/ 최고기온 33도의 무더운 날씨가 예상됩니다. 가벼운 옷차림과 썬크림, 모자, 충분한 수분 섭취를 위한 물을 준비해 주시기 바랍니다.'
+    },
+    {
+      title: '장마철',
+      content: '장마철로 비가 자주 내리는 날씨가 예상됩니다. 접는 우산은 반드시 챙기시고, 방수 신발 또는 갈아신을 양말을 준비하시면 편하십니다.'
+    }
+  ];
+
+  let presets = [];
+  let editingPresetIdx = -1;
+
+  function loadPresets() {
+    try {
+      const raw = localStorage.getItem(PRESET_KEY);
+      if (raw) {
+        presets = JSON.parse(raw);
+      } else {
+        presets = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
+        savePresets();
+      }
+    } catch (e) {
+      presets = JSON.parse(JSON.stringify(DEFAULT_PRESETS));
+    }
+    renderPresets();
+  }
+
+  function savePresets() {
+    try {
+      localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    } catch (e) {}
+  }
+
+  function renderPresets() {
+    const list = document.getElementById('preset-list');
+    if (presets.length === 0) {
+      list.innerHTML = '<div class="preset-empty">저장된 포맷이 없습니다. + 추가 버튼으로 추가하세요.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    presets.forEach((p, i) => {
+      const item = document.createElement('div');
+      item.className = 'preset-item';
+      item.innerHTML = `
+        <div class="preset-item-content">
+          <div class="preset-item-title"></div>
+          <div class="preset-item-preview"></div>
+        </div>
+        <button class="preset-item-edit" data-idx="${i}" aria-label="편집" style="background: transparent; border: none; color: #007aff; font-size: 14px; cursor: pointer; padding: 0 8px; flex-shrink: 0; font-family: inherit;">편집</button>
+        <button class="preset-item-delete" data-idx="${i}" aria-label="삭제">×</button>
+      `;
+      item.querySelector('.preset-item-title').textContent = p.title;
+      item.querySelector('.preset-item-preview').textContent = p.content;
+      item.querySelector('.preset-item-content').addEventListener('click', () => {
+        document.getElementById('f-weather').value = p.content;
+        saveData();
+        // 가벼운 피드백
+        item.style.background = '#d0e8ff';
+        setTimeout(() => { item.style.background = ''; }, 300);
+      });
+      item.querySelector('.preset-item-edit').addEventListener('click', (e) => {
+        e.stopPropagation();
+        editingPresetIdx = i;
+        document.getElementById('preset-modal-title').textContent = '날씨 포맷 편집';
+        document.getElementById('preset-title-input').value = p.title;
+        document.getElementById('preset-content-input').value = p.content;
+        document.getElementById('preset-modal').classList.add('show');
+      });
+      item.querySelector('.preset-item-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm(`"${p.title}" 포맷을 삭제하시겠습니까?`)) {
+          presets.splice(i, 1);
+          savePresets();
+          renderPresets();
+        }
+      });
+      list.appendChild(item);
+    });
+  }
+
+  // 프리셋 모달
+  document.getElementById('btn-add-preset').addEventListener('click', () => {
+    editingPresetIdx = -1;
+    document.getElementById('preset-modal-title').textContent = '날씨 포맷 추가';
+    document.getElementById('preset-title-input').value = '';
+    document.getElementById('preset-content-input').value = '';
+    document.getElementById('preset-modal').classList.add('show');
+  });
+
+  document.getElementById('preset-cancel').addEventListener('click', () => {
+    document.getElementById('preset-modal').classList.remove('show');
+  });
+
+  document.getElementById('preset-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'preset-modal') {
+      document.getElementById('preset-modal').classList.remove('show');
+    }
+  });
+
+  document.getElementById('preset-save').addEventListener('click', () => {
+    const title = document.getElementById('preset-title-input').value.trim();
+    const content = document.getElementById('preset-content-input').value.trim();
+    if (!title || !content) {
+      alert('제목과 내용을 모두 입력해 주세요.');
+      return;
+    }
+    if (editingPresetIdx >= 0) {
+      presets[editingPresetIdx] = { title, content };
+    } else {
+      presets.push({ title, content });
+    }
+    savePresets();
+    renderPresets();
+    document.getElementById('preset-modal').classList.remove('show');
+  });
+
+  // 기본 위치 프리셋
+  const DEFAULT_LOCATIONS = [
+    { content: '김해국제공항 국제선 2층 3번 게이트 앞' },
+    { content: '김해국제공항 국제선 2층 4번 게이트 앞' },
+    { content: '김해국제공항 국제선 2층 4번 게이트 진에어 카운터 부근' },
+    { content: '김해국제공항 국제선 2층 4번 게이트 이스타항공 카운터 부근' },
+    { content: '김해국제공항 국제선 2층 5번 게이트 안쪽 던킨도너츠 부근' },
+    { content: '김해국제공항 국제선 2층 5번 게이트 안쪽 인포메이션 부근' },
+    { content: '대구국제공항 1층 IM뱅크 앞' },
+    { content: '대구국제공항 2층 미팅 데스크 앞 (하나투어 피켓)' },
+    { content: '부산 국제여객터미널 3층' }
+  ];
+
+  let locations = [];
+  let editingLocationIdx = -1;
+
+  function loadLocations() {
+    try {
+      const raw = localStorage.getItem(LOCATION_KEY);
+      if (raw) {
+        locations = JSON.parse(raw);
+      } else {
+        locations = JSON.parse(JSON.stringify(DEFAULT_LOCATIONS));
+        saveLocations();
+      }
+    } catch (e) {
+      locations = JSON.parse(JSON.stringify(DEFAULT_LOCATIONS));
+    }
+    renderLocations();
+  }
+
+  function saveLocations() {
+    try {
+      localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
+    } catch (e) {}
+  }
+
+  function renderLocations() {
+    const list = document.getElementById('location-list');
+    if (locations.length === 0) {
+      list.innerHTML = '<div class="preset-empty">저장된 위치가 없습니다. + 추가 버튼으로 추가하세요.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    locations.forEach((loc, i) => {
+      const item = document.createElement('div');
+      item.className = 'preset-item';
+      item.innerHTML = `
+        <div class="preset-item-content">
+          <div class="preset-item-preview" style="font-size: 13px; color: #333; -webkit-line-clamp: 3;"></div>
+        </div>
+        <button class="preset-item-edit" data-idx="${i}" aria-label="편집" style="background: transparent; border: none; color: #007aff; font-size: 14px; cursor: pointer; padding: 0 8px; flex-shrink: 0; font-family: inherit;">편집</button>
+        <button class="preset-item-delete" data-idx="${i}" aria-label="삭제">×</button>
+      `;
+      item.querySelector('.preset-item-preview').textContent = loc.content;
+      item.querySelector('.preset-item-content').addEventListener('click', () => {
+        document.getElementById('f-meeting-spot').value = loc.content;
+        saveData();
+        item.style.background = '#d0e8ff';
+        setTimeout(() => { item.style.background = ''; }, 300);
+      });
+      item.querySelector('.preset-item-edit').addEventListener('click', (e) => {
+        e.stopPropagation();
+        editingLocationIdx = i;
+        document.getElementById('location-modal-title').textContent = '미팅 위치 편집';
+        document.getElementById('location-content-input').value = loc.content;
+        document.getElementById('location-modal').classList.add('show');
+      });
+      item.querySelector('.preset-item-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('이 위치를 삭제하시겠습니까?')) {
+          locations.splice(i, 1);
+          saveLocations();
+          renderLocations();
+        }
+      });
+      list.appendChild(item);
+    });
+  }
+
+  // 위치 프리셋 모달
+  document.getElementById('btn-add-location').addEventListener('click', () => {
+    editingLocationIdx = -1;
+    document.getElementById('location-modal-title').textContent = '미팅 위치 추가';
+    document.getElementById('location-content-input').value = '';
+    document.getElementById('location-modal').classList.add('show');
+  });
+
+  document.getElementById('location-cancel').addEventListener('click', () => {
+    document.getElementById('location-modal').classList.remove('show');
+  });
+
+  document.getElementById('location-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'location-modal') {
+      document.getElementById('location-modal').classList.remove('show');
+    }
+  });
+
+  document.getElementById('location-save').addEventListener('click', () => {
+    const content = document.getElementById('location-content-input').value.trim();
+    if (!content) {
+      alert('위치를 입력해 주세요.');
+      return;
+    }
+    if (editingLocationIdx >= 0) {
+      locations[editingLocationIdx] = { content };
+    } else {
+      locations.push({ content });
+    }
+    saveLocations();
+    renderLocations();
+    document.getElementById('location-modal').classList.remove('show');
+  });
+
+  function loadSaved() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      fieldIds.forEach(id => {
+        if (data[id] !== undefined) document.getElementById(id).value = data[id];
+      });
+      checkIds.forEach(id => {
+        if (data[id] !== undefined) document.getElementById(id).checked = data[id];
+      });
+      toggleTransport();
+      syncDateText();
+      syncPeriodStartText();
+    } catch (e) {}
+  }
+
+  function saveData() {
+    const data = {};
+    fieldIds.forEach(id => { data[id] = document.getElementById(id).value; });
+    checkIds.forEach(id => { data[id] = document.getElementById(id).checked; });
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      const s = document.getElementById('save-status');
+      s.textContent = '✓ 자동 저장됨';
+      setTimeout(() => { s.textContent = ''; }, 1500);
+    } catch (e) {}
+  }
+
+  function toggleTransport() {
+    const isShip = document.getElementById('f-transport-type').value === '선박';
+    document.getElementById('air-fields').style.display = isShip ? 'none' : 'block';
+    document.getElementById('ship-fields').style.display = isShip ? 'block' : 'none';
+  }
+
+  function formatMeetingDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return '';
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const w = WEEKDAYS[d.getDay()];
+    return `${mm}월 ${dd}일 (${w})`;
+  }
+
+  function updateMeetingDateDisplay() {
+    const dateStr = document.getElementById('f-meeting-date').value;
+    const formatted = formatMeetingDate(dateStr);
+    document.getElementById('meeting-date-display').textContent = formatted ? `→ ${formatted}` : '';
+  }
+
+  // 텍스트 입력을 YYYY-MM-DD로 파싱
+  function parseFlexibleDate(input) {
+    const digits = input.replace(/\D/g, '');
+    const currentYear = new Date().getFullYear();
+    let y, m, d;
+
+    if (digits.length === 8) {
+      // YYYYMMDD
+      y = parseInt(digits.substring(0, 4));
+      m = parseInt(digits.substring(4, 6));
+      d = parseInt(digits.substring(6, 8));
+    } else if (digits.length === 6) {
+      // YYMMDD (2000년대로 가정)
+      y = 2000 + parseInt(digits.substring(0, 2));
+      m = parseInt(digits.substring(2, 4));
+      d = parseInt(digits.substring(4, 6));
+    } else if (digits.length === 4) {
+      // MMDD (현재 연도)
+      y = currentYear;
+      m = parseInt(digits.substring(0, 2));
+      d = parseInt(digits.substring(2, 4));
+    } else if (digits.length === 3) {
+      // MDD (현재 연도)
+      y = currentYear;
+      m = parseInt(digits.substring(0, 1));
+      d = parseInt(digits.substring(1, 3));
+    } else {
+      return null;
+    }
+
+    // 유효성 검사
+    if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+    const testDate = new Date(y, m - 1, d);
+    if (testDate.getMonth() !== m - 1 || testDate.getDate() !== d) return null;
+
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  function syncDateText() {
+    const dateVal = document.getElementById('f-meeting-date').value;
+    const textInput = document.getElementById('f-meeting-date-text');
+    if (dateVal) {
+      // 달력에서 선택된 값을 텍스트에 표시 (YYYYMMDD 형태)
+      textInput.value = dateVal.replace(/-/g, '');
+    }
+    updateMeetingDateDisplay();
+  }
+
+  function syncDateFromText() {
+    const textInput = document.getElementById('f-meeting-date-text');
+    const parsed = parseFlexibleDate(textInput.value);
+    if (parsed) {
+      document.getElementById('f-meeting-date').value = parsed;
+      textInput.style.borderColor = '';
+    } else if (textInput.value.trim() !== '') {
+      textInput.style.borderColor = '#ff3b30';
+    } else {
+      document.getElementById('f-meeting-date').value = '';
+      textInput.style.borderColor = '';
+    }
+    updateMeetingDateDisplay();
+  }
+
+  // 행사기간 계산
+  function calculatePeriod() {
+    const startStr = document.getElementById('f-period-start').value;
+    const days = parseInt(document.getElementById('f-period-days').value);
+    const periodInput = document.getElementById('f-period');
+    const displayEl = document.getElementById('period-display');
+
+    if (!startStr || !days) {
+      periodInput.value = '';
+      displayEl.textContent = '';
+      return;
+    }
+
+    const startDate = new Date(startStr + 'T00:00:00');
+    if (isNaN(startDate.getTime())) {
+      periodInput.value = '';
+      displayEl.textContent = '';
+      return;
+    }
+
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + days - 1);
+
+    const startM = startDate.getMonth() + 1;
+    const startD = startDate.getDate();
+    const endM = endDate.getMonth() + 1;
+    const endD = endDate.getDate();
+    const startW = WEEKDAYS[startDate.getDay()];
+    const endW = WEEKDAYS[endDate.getDay()];
+
+    periodInput.value = `${startM}/${startD} - ${endM}/${endD}`;
+    displayEl.textContent = `→ ${startM}/${startD}(${startW}) ~ ${endM}/${endD}(${endW})`;
+  }
+
+  function syncPeriodStartText() {
+    const dateVal = document.getElementById('f-period-start').value;
+    const textInput = document.getElementById('f-period-start-text');
+    if (dateVal) {
+      textInput.value = dateVal.replace(/-/g, '');
+    }
+    calculatePeriod();
+  }
+
+  function syncPeriodStartFromText() {
+    const textInput = document.getElementById('f-period-start-text');
+    const parsed = parseFlexibleDate(textInput.value);
+    if (parsed) {
+      document.getElementById('f-period-start').value = parsed;
+      textInput.style.borderColor = '';
+    } else if (textInput.value.trim() !== '') {
+      textInput.style.borderColor = '#ff3b30';
+    } else {
+      document.getElementById('f-period-start').value = '';
+      textInput.style.borderColor = '';
+    }
+    calculatePeriod();
+  }
+
+  document.getElementById('f-transport-type').addEventListener('change', toggleTransport);
+  document.getElementById('f-meeting-date').addEventListener('change', syncDateText);
+  document.getElementById('f-meeting-date-text').addEventListener('input', syncDateFromText);
+  document.getElementById('f-meeting-date-text').addEventListener('blur', syncDateFromText);
+  document.getElementById('btn-open-calendar').addEventListener('click', () => {
+    const dateInput = document.getElementById('f-meeting-date');
+    if (typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+      } catch (e) {
+        dateInput.focus();
+        dateInput.click();
+      }
+    } else {
+      dateInput.focus();
+      dateInput.click();
+    }
+  });
+
+  document.getElementById('f-period-start').addEventListener('change', syncPeriodStartText);
+  document.getElementById('f-period-start-text').addEventListener('input', syncPeriodStartFromText);
+  document.getElementById('f-period-start-text').addEventListener('blur', syncPeriodStartFromText);
+  document.getElementById('f-period-days').addEventListener('change', calculatePeriod);
+  document.getElementById('btn-open-period-cal').addEventListener('click', () => {
+    const dateInput = document.getElementById('f-period-start');
+    if (typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+      } catch (e) {
+        dateInput.focus();
+        dateInput.click();
+      }
+    } else {
+      dateInput.focus();
+      dateInput.click();
+    }
+  });
+  document.getElementById('tab-input').addEventListener('click', () => switchTab('input'));
+  document.getElementById('tab-output').addEventListener('click', () => switchTab('output'));
+
+  function switchTab(tab) {
+    document.getElementById('tab-input').classList.toggle('active', tab === 'input');
+    document.getElementById('tab-output').classList.toggle('active', tab === 'output');
+    document.getElementById('panel-input').style.display = tab === 'input' ? 'block' : 'none';
+    document.getElementById('panel-output').style.display = tab === 'output' ? 'block' : 'none';
+    window.scrollTo(0, 0);
+  }
+
+  function getVal(id) { return document.getElementById(id).value.trim(); }
+  function getChk(id) { return document.getElementById(id).checked; }
+
+  function buildBlocks() {
+    const guide = getVal('f-guide');
+    const period = getVal('f-period');
+    const region = getVal('f-region');
+    const days = getVal('f-days');
+    const weather = getVal('f-weather');
+    const isShip = getVal('f-transport-type') === '선박';
+    const airport = getVal('f-airport');
+    const port = getVal('f-port');
+    const meetingDateRaw = getVal('f-meeting-date');
+    const meetingDate = formatMeetingDate(meetingDateRaw);
+    const meetingTime = getVal('f-meeting-time');
+    const meetingSpot = getVal('f-meeting-spot');
+    const picketRaw = getVal('f-picket');
+    const phoneKr = getVal('f-phone-kr');
+    const phoneJp = getVal('f-phone-jp');
+
+    const meetingLoc = isShip ? port : airport;
+    const picket = picketRaw ? `"${picketRaw}"` : '';
+
+    const items = ['1. 본인 여권', '2. 시간 확인 가능한 시계 또는 휴대폰', '3. 비상약 (소화제, 두통약, 감기약 등)', '4. 세면도구', '5. 엔화 및 해외사용 가능한 신용카드'];
+    let idx = 6;
+    if (getChk('opt-plug')) items.push(`${idx++}. 110V 전용 플러그 (일명 돼지코)`);
+    if (getChk('opt-aizen')) items.push(`${idx++}. 아이젠 (눈길 미끄럼 방지)`);
+
+    const blocks = [];
+
+    blocks.push({
+      title: '인사 · 미팅 · 준비물',
+      text: `안녕하세요. ${period} 일본 ${region} 일정을 함께하게 된 ${guide} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
+
+* 미팅일시: ${meetingDate} ${meetingTime} 미팅
+* 미팅장소: ${meetingLoc} ${meetingSpot}
+* 피켓명: ${picket}
+
+< 준비물 >
+${items.join('\n')}
+
+< 날씨 >
+${weather}`
+    });
+
+    blocks.push({
+      title: '화폐 · 금제품 · 식당',
+      text: `< 화폐 >
+일본은 엔화로만 사용 가능하며, 신용카드가 안되는 곳이 많습니다. 사용하실 만큼 엔화로 준비해 오시면 됩니다. 면세점 등에서 사용 가능한 카드는 VISA, MASTER 등 해외 사용 가능한 카드로 준비해 주시기 바랍니다. (일반 체크카드는 사용 불가)
+
+< 금제품 안내 >
+일본 입국시 금목걸이, 팔찌, 고가의 시계 등에 세금이 부과되는 사례가 잦습니다. 수십만원에서 백만원이 넘는 세금이 나올 수 있으니 고가 제품 착용은 자제해 주시길 권해드립니다.
+
+< 식당 >
+일본 식당은 외부음식 및 주류 반입이 불가합니다. 한국 또는 식당 밖에서 구매하신 음식·주류는 식당 내 반입이 불가하오니 참고 부탁드립니다.`
+    });
+
+    let block3 = `< 검역 >
+최근 일본 검역이 매우 까다로워졌습니다. 육류(고기, 햄, 소세지 등)뿐만 아니라 채소류(상추, 깻잎 등), 과일류를 소지한 채 입국 시 식물 검역 증명서가 필요합니다. 신고하지 않고 가져가다 적발되면 최대 100만엔(약 천만원)의 벌금이 부과될 수 있습니다.`;
+
+    if (getChk('opt-onsen')) {
+      block3 += `\n\n< 온천 >\n온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`;
+    }
+
+    blocks.push({ title: '검역' + (getChk('opt-onsen') ? ' · 온천' : ''), text: block3 });
+
+    if (getChk('opt-baggage') && !isShip) {
+      blocks.push({
+        title: '수하물 안내',
+        text: `< 수하물 >
+모든 액체류는 캐리어에 넣고 위탁 수하물로 부쳐주세요. 라이타, 보조배터리, 전자담배, 무선 고데기 등 폭발 위험 제품은 위탁 불가이므로 반드시 기내 수하물로 반입하셔야 합니다.
+
+100ml 미만 액체류는 비닐에 넣어 1개까지만 기내 반입 가능합니다. 라이타 1개(지포 제외), 보조배터리는 반드시 기내에 들고 타셔야 합니다.
+
+※ 한국 다이슨 드라이기는 일본에서 작동하지 않습니다.
+※ 무선(충전식) 고데기는 일본 반입 불가, 유선 고데기만 위탁 가능합니다.
+※ 칼, 면도기, 손톱깍기, 가위 등은 반드시 위탁 수하물로 맡겨주세요.`
+      });
+    }
+
+    blocks.push({
+      title: '마무리 · 연락처',
+      text: `대표자님께서는 동행하시는 일행분들께 메세지 전달 부탁드립니다.
+
+메세지와 별도로 오늘 중 전화로 연락드릴 예정이나, 전화 연락이 필요 없으시면 카톡으로 회신 주시면 연락드리지 않겠습니다.
+
+즐거운 여행이 되도록 최선을 다하겠습니다. 감사합니다.
+
+-연락처-
+한국 ${phoneKr}
+일본 ${phoneJp}`
+    });
+
+    return blocks;
+  }
+
+  function renderBlocks(blocks) {
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+    blocks.forEach((block, i) => {
+      const card = document.createElement('div');
+      card.className = 'msg-card';
+      card.innerHTML = `
+        <div class="msg-header">
+          <span class="msg-title">${i+1}편. ${block.title}</span>
+          <div class="msg-meta">
+            <span class="msg-count" id="count-${i}">0자</span>
+            <button class="msg-copy" data-idx="${i}">복사</button>
+          </div>
+        </div>
+        <textarea class="msg-body-edit" id="body-${i}" rows="10"></textarea>
+        <div class="edit-hint">✏️ 위 내용을 직접 수정할 수 있습니다</div>
+      `;
+      container.appendChild(card);
+      const textarea = document.getElementById('body-' + i);
+      textarea.value = block.text;
+      updateCount(i);
+      autoResize(textarea);
+      textarea.addEventListener('input', () => {
+        updateCount(i);
+        autoResize(textarea);
+      });
+    });
+
+    container.querySelectorAll('.msg-copy').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        const text = document.getElementById('body-' + idx).value;
+        copyText(text, btn);
+      });
+    });
+  }
+
+  function updateCount(idx) {
+    const text = document.getElementById('body-' + idx).value;
+    const len = text.length;
+    const isOver = len > MAX_LEN;
+    const el = document.getElementById('count-' + idx);
+    el.textContent = `${len}자${isOver ? ' ⚠' : ''}`;
+    el.classList.toggle('over', isOver);
+  }
+
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight + 4, 500) + 'px';
+  }
+
+  function copyText(text, btn) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => showCopied(btn)).catch(() => fallbackCopy(text, btn));
+    } else {
+      fallbackCopy(text, btn);
+    }
+  }
+
+  function fallbackCopy(text, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showCopied(btn); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  function showCopied(btn) {
+    const originalText = btn.textContent;
+    btn.textContent = '✓ 복사됨';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove('copied');
+    }, 2000);
+  }
+
+  document.getElementById('btn-generate').addEventListener('click', () => {
+    saveData();
+    const blocks = buildBlocks();
+    renderBlocks(blocks);
+    switchTab('output');
+  });
+
+  document.getElementById('btn-regen').addEventListener('click', () => {
+    if (confirm('수정한 내용을 모두 버리고 입력값으로 다시 생성합니다. 계속하시겠습니까?')) {
+      const blocks = buildBlocks();
+      renderBlocks(blocks);
+    }
+  });
+
+  document.getElementById('btn-back').addEventListener('click', () => switchTab('input'));
+
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (confirm('정말로 모든 입력 정보를 지우시겠습니까?\n(가이드명, 연락처 등 저장된 정보가 사라집니다)\n※ 날씨 포맷은 유지됩니다')) {
+      localStorage.removeItem(STORAGE_KEY);
+      fieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el.tagName === 'SELECT') el.selectedIndex = 0;
+        else if (el.tagName === 'TEXTAREA') el.value = '';
+        else el.value = id === 'f-port' ? '부산항 국제여객터미널' : '';
+      });
+      checkIds.forEach(id => {
+        document.getElementById(id).checked = (id !== 'opt-aizen');
+      });
+      toggleTransport();
+      document.getElementById('f-meeting-date-text').value = '';
+      document.getElementById('f-period-start-text').value = '';
+      document.getElementById('f-period-days').value = '4';
+      document.getElementById('period-display').textContent = '';
+      updateMeetingDateDisplay();
+    }
+  });
+
+  [...fieldIds, ...checkIds].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', saveData);
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) el.addEventListener('blur', saveData);
+  });
+
+  loadPresets();
+  loadLocations();
+  loadSaved();
+})();
+</script>
+</body>
+</html>
