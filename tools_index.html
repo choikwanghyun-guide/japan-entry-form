@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>가이드 도구 모음 — 최광현</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #15161a;
+    --bg-grad-1: #1d1f27;
+    --bg-grad-2: #15161a;
+    --surface: #22242b;
+    --border: #353841;
+    --text: #f0f1f3;
+    --text2: #b4b7c0;
+    --text3: #6b6f7a;
+
+    --c-itinerary-1: #6366f1;
+    --c-itinerary-2: #8b5cf6;
+    --c-happycall-1: #10b981;
+    --c-happycall-2: #14b8a6;
+    --c-entry-1: #f59e0b;
+    --c-entry-2: #f97316;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(ellipse at top, var(--bg-grad-1), var(--bg-grad-2));
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    padding: 48px 20px;
+  }
+  .container {
+    max-width: 840px;
+    margin: 0 auto;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 5px 12px;
+    background: rgba(99,102,241,0.15);
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 20px;
+    font-size: 11px;
+    color: #a5b4fc;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+  .header h1 {
+    font-size: 34px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    font-size: 14px;
+    color: var(--text2);
+  }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+  }
+  .tool-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    color: var(--text);
+    text-decoration: none;
+    overflow: hidden;
+    transition: all 0.25s;
+  }
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--c1), var(--c2));
+    opacity: 0.9;
+  }
+  .tool-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; width: 140px; height: 140px;
+    background: radial-gradient(circle at top right, var(--c1) 0%, transparent 70%);
+    opacity: 0.08;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .tool-card:hover {
+    border-color: var(--c1);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--c1);
+  }
+  .tool-card:hover::after { opacity: 0.18; }
+
+  .tool-card.c-itinerary { --c1: var(--c-itinerary-1); --c2: var(--c-itinerary-2); }
+  .tool-card.c-happycall { --c1: var(--c-happycall-1); --c2: var(--c-happycall-2); }
+  .tool-card.c-entry     { --c1: var(--c-entry-1);     --c2: var(--c-entry-2); }
+
+  .tool-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border-radius: 14px;
+    font-size: 28px;
+    margin-bottom: 18px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  }
+  .tool-icon svg {
+    width: 30px;
+    height: 30px;
+    color: #fff;
+  }
+  .tool-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .tool-desc {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .tool-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c1);
+    letter-spacing: 0.3px;
+  }
+  .tool-arrow .arrow {
+    transition: transform 0.25s;
+  }
+  .tool-card:hover .arrow {
+    transform: translateX(4px);
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .footer .rev {
+    color: var(--c-itinerary-1);
+    font-family: monospace;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 32px 16px; }
+    .header h1 { font-size: 26px; }
+    .tool-card { padding: 22px 20px; }
+    .tool-icon { width: 48px; height: 48px; font-size: 24px; margin-bottom: 14px; }
+    .tool-icon svg { width: 26px; height: 26px; }
+    .tool-title { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="badge">GUIDE TOOLS</div>
+    <h1>가이드 도구 모음</h1>
+    <p>최광현 가이드 · 일본 여행 도우미</p>
+  </div>
+
+  <div class="tool-grid">
+    <a class="tool-card c-itinerary" href="itinerary-converter.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="5" y="4" width="14" height="17" rx="2.2" stroke="currentColor" stroke-width="1.8"/>
+          <rect x="9" y="2.6" width="6" height="3.6" rx="1.1" fill="currentColor"/>
+          <line x1="8.5" y1="11" x2="15.5" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="8.5" y1="14.5" x2="15.5" y2="14.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="8.5" y1="18" x2="13" y2="18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tool-title">일정표 변환기</div>
+      <div class="tool-desc">여행사 확정서를 가이드 일정표로 자동 변환해요</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
+
+    <a class="tool-card c-happycall" href="happycall.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 3.4c-5.1 0-9.2 3.3-9.2 7.4 0 2.3 1.3 4.4 3.3 5.7-.1 1.1-.6 2.4-1.5 3.3-.2.2-.1.6.3.6 1.9-.1 3.8-.9 5-1.8 0.7 0.1 1.4 0.2 2.1 0.2 5.1 0 9.2-3.3 9.2-7.4S17.1 3.4 12 3.4z"/>
+        </svg>
+      </div>
+      <div class="tool-title">해피콜</div>
+      <div class="tool-desc">손님께 보낼 감사 인사 문자를 만들어요</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
+
+    <a class="tool-card c-entry" href="https://choikwanghyun-guide.github.io/japan-entry-form/">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <circle cx="12" cy="10" r="2.6" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M12 7.4v5.2 M9.4 10h5.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="8.5" y1="16.5" x2="15.5" y2="16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <line x1="9.5" y1="18.8" x2="14.5" y2="18.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tool-title">일본 입국 서류</div>
+      <div class="tool-desc">입국신고서 · 세관신고서 한 번에~^^</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
+  </div>
+
+  <div class="footer">
+    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0521_0135</span>
+  </div>
+</div>
+</body>
+</html>
