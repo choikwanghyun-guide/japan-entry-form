@@ -1524,8 +1524,8 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center') {
 
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
-  // 왼쪽 정렬: 카드 전체를 좌측으로 70mm 이동 (좌표 자체는 한 줄도 안 건드림)
-  const pageStyle = align === 'left' ? ' style="transform: translateX(-70mm);"' : '';
+  // 왼쪽 정렬: 카드 전체를 좌측으로 60mm 이동 (기본 70mm에서 우측으로 10mm 줄임 → 슬라이더 0인 상태로 바로 맞도록)
+  const pageStyle = align === 'left' ? ' style="transform: translateX(-60mm);"' : '';
   return `<div class="print-page"${pageStyle}>
     ${field(92,  38, 13, p.lastName)}
     ${field(122, 38, 13, p.firstName)}
@@ -1620,7 +1620,7 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0, portra
     // portraitAlign === 'center'(기본) → 페이지 가운데 정렬
     // offsetX/offsetY는 미세조정 슬라이더 값 (mm)
     const portraitBaseLeft = portraitAlign === 'left'
-      ? 10                  // 왼쪽 정렬: 왼쪽 여백 10mm
+      ? 0                   // 왼쪽 정렬: 기본 10mm에서 좌측으로 10mm 더 이동 → 0mm (요청에 따라 슬라이더 0인 상태로 바로 맞도록)
       : (210 - 93) / 2;     // 가운데 정렬: 기존 동작 그대로
     return `<div class="print-page">
       <div style="position:absolute;
@@ -1783,7 +1783,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0520_1800</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0520_1830</span>
 </div>
 
 </body></html>
