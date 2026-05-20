@@ -214,6 +214,8 @@
   /* 일정 테이블 */
   .sched-table { width: 100%; border-collapse: collapse; background: var(--bg3); font-size: 14px; table-layout: fixed; }
   .sched-table th, .sched-table td { overflow: hidden; }
+  /* 위치조정 칸은 색상 메뉴가 칸 밖으로 떠야 하므로 overflow 허용 */
+  .sched-table td:first-child { overflow: visible; }
   .sched-table th {
     background: rgba(255,255,255,0.04); color: var(--text2); font-size: 12px; font-weight: 700;
     padding: 8px 5px; border-bottom: 1px solid var(--border); text-align: center !important; white-space: nowrap;
@@ -247,6 +249,77 @@
   }
   .row-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
   .row-btn.del-btn:hover { color: var(--red); }
+
+  /* 행 색상 강조 */
+  tr.row-hl > td { background: #f7e96b !important; }
+  tr.row-bold .sched-input,
+  tr.row-bold td { font-weight: 700 !important; }
+  /* 글자색 (색상별) */
+  tr.row-tc-red .sched-input,    tr.row-tc-red td    { color: #e23b3b !important; }
+  tr.row-tc-black .sched-input,  tr.row-tc-black td  { color: #1a1a1a !important; }
+  tr.row-tc-green .sched-input,  tr.row-tc-green td  { color: #5bc23b !important; }
+  tr.row-tc-pink .sched-input,   tr.row-tc-pink td   { color: #f06595 !important; }
+  /* 색상 토글 버튼 */
+  .color-btn {
+    width: 16px; height: 16px; padding: 0; border-radius: 3px;
+    cursor: pointer; line-height: 1; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .color-btn.hl-btn { background: #f7e96b; border: 1px solid #c9bb3d; color: #6b6320; }
+  .color-btn.red-btn { background: none; border: 1px solid var(--border); color: #e23b3b; }
+  .color-btn.bold-btn { background: none; border: 1px solid var(--border); color: var(--text); }
+  .color-btn.active { outline: 2px solid var(--accent); outline-offset: 0; }
+  .color-btn:hover { filter: brightness(1.1); }
+  /* 위치조정 칸: 이동버튼(세로) + 색상버튼(세로)을 가로로 나란히 */
+  .rowtool-wrap { display: flex; gap: 4px; align-items: center; justify-content: center; }
+  .color-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+  /* 글자색 선택 펼침 메뉴 */
+  .tc-row { display: flex; align-items: center; gap: 2px; position: relative; }
+  .tc-swatches {
+    display: flex; gap: 4px; align-items: center;
+    position: absolute; left: 100%; top: 50%; transform: translateY(-50%);
+    margin-left: 4px; padding: 4px 6px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    z-index: 50; white-space: nowrap;
+  }
+  .tc-swatch {
+    width: 16px; height: 16px; border-radius: 50%; padding: 0;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.35);
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .tc-swatch:hover { transform: scale(1.2); }
+  .tc-swatch.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+  /* 기본색(색 없음) 버튼: 빈 원에 사선 표시 */
+  .tc-swatch.tc-none {
+    background: var(--bg3);
+    background-image: linear-gradient(135deg,
+      transparent 0%, transparent 43%,
+      #e23b3b 43%, #e23b3b 57%,
+      transparent 57%, transparent 100%);
+  }
+
+  /* 날씨 카드 (STEP 5) */
+  .weather-controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
+  .weather-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .weather-label { font-size: 13px; color: var(--text2); font-weight: 600; min-width: 56px; }
+  #weatherCity { flex: 1; min-width: 200px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: inherit; font-size: 14px; }
+  #weatherStartDate, #weatherDays { padding: 8px 10px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: inherit; font-size: 14px; }
+  .weather-hint { font-size: 11px; color: var(--text3); }
+  .weather-status { margin: 8px 0; font-size: 13px; color: var(--text2); min-height: 18px; }
+  .weather-status.error { color: var(--red, #e23b3b); }
+  .weather-status.warn  { color: #f0a020; }
+  .weather-result table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 8px; overflow: hidden; }
+  .weather-result th, .weather-result td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text); }
+  .weather-result th { background: var(--bg3); color: var(--text2); font-weight: 600; font-size: 12px; }
+  .weather-result tr:last-child td { border-bottom: none; }
+  .weather-result .temp-high { color: #f06060; font-weight: 600; }
+  .weather-result .temp-low  { color: #6db4ff; font-weight: 600; }
+  .weather-result .snow-cell { color: #b5d4f4; }
+  .weather-result .wave-cell { color: #5bc2c2; }
 
   /* 이동시간 버튼 */
   .move-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
@@ -379,6 +452,16 @@
 <div class="card">
   <div class="card-title"><div class="step-badge">1</div> 확정서 파일 업로드</div>
 
+  <div style="margin-bottom:14px; padding:12px 14px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="font-size:13px; color:var(--text2);">📂 전에 저장해 둔 일정표가 있으면 바로 열 수 있어요</span>
+    <button onclick="document.getElementById('loadItineraryInput').click()" style="
+      margin-left:auto; background:var(--accent); color:#fff; border:none;
+      border-radius:6px; padding:8px 16px; font-size:13px; font-weight:600;
+      cursor:pointer; font-family:inherit;">일정표 불러오기</button>
+    <input type="file" id="loadItineraryInput" accept=".itinerary,.json" style="display:none"
+      onchange="loadItineraryFile(this)">
+  </div>
+
   <div class="upload-zone" id="uploadZone">
     <input type="file" id="fileInput" accept=".xlsx,.xls,.pdf,.docx,.hwp,.jpg,.jpeg,.png,.gif,.webp"
            onchange="handleConfirmFile(this)">
@@ -461,7 +544,7 @@
           onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"
           title="달력으로 선택">📅</span>
         <input type="date" id="infoStartDatePicker"
-          onchange="document.getElementById('infoStartDate').value=this.value; renderPreview();"
+          onchange="document.getElementById('infoStartDate').value=this.value; renderPreview(); if(typeof syncWeatherStartFromItinerary==='function') syncWeatherStartFromItinerary();"
           style="position:absolute; right:0; top:0; width:1px; height:1px;
                  opacity:0; pointer-events:none; border:none; padding:0;">
       </div>
@@ -491,8 +574,8 @@
       <input type="text" id="infoGroupName" placeholder="예: JSP345260304LJC">
     </div>
     <div class="info-field full">
-      <label>🏨 여행 지역 / 상품명</label>
-      <input type="text" id="infoTitle" placeholder="예: 북해도 4일">
+      <label>🏨 지역</label>
+      <input type="text" id="infoTitle" placeholder="예: 북해도">
     </div>
     <div class="info-field full">
       <label>🪑 세키와리 (席割り) <span style="color:var(--text3);font-weight:400;font-size:10px;">— 테이블 좌석 배치 (예: 2*1, 4*2, 3*1)</span></label>
@@ -543,10 +626,55 @@
     <button class="btn btn-print" onclick="printItinerary()">
       🖨️ 인쇄용 보기 <span style="font-size:11px;opacity:0.8">(출력 후 휴대)</span>
     </button>
+    <button class="btn btn-print" onclick="saveItineraryFile()">
+      💾 일정표 저장 <span style="font-size:11px;opacity:0.8">(파일로 보관)</span>
+    </button>
+    <button class="btn btn-print" onclick="document.getElementById('loadItineraryInput').click()">
+      📂 일정표 불러오기 <span style="font-size:11px;opacity:0.8">(저장한 파일 열기)</span>
+    </button>
   </div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0513_1130</span></div>
+<!-- STEP 5: 현지 날씨 확인 -->
+<div class="card" id="weatherCard">
+  <div class="card-title"><div class="step-badge">5</div> 현지 날씨 확인</div>
+
+  <div class="weather-controls">
+    <div class="weather-row">
+      <label class="weather-label">🏙️ 도시</label>
+      <input type="text" id="weatherCity" placeholder="예: Osaka / Fukuoka / Tsushima"
+        oninput="onWeatherCityInput()" autocomplete="off">
+      <span class="weather-hint">되도록 영어로 입력해 주세요~^^</span>
+    </div>
+    <div class="weather-row">
+      <label class="weather-label">📅 시작일</label>
+      <div style="position:relative;">
+        <input type="text" id="weatherStartDate" placeholder="20260524 또는 2026-05-24" maxlength="10"
+          oninput="formatStartDate(this); onWeatherStartDateInput();"
+          onblur="normalizeStartDate(this);"
+          style="padding:8px 30px 8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:6px; color:var(--text); font-family:inherit; font-size:14px; width:200px;">
+        <span onclick="document.getElementById('weatherStartDatePicker').showPicker ? document.getElementById('weatherStartDatePicker').showPicker() : document.getElementById('weatherStartDatePicker').click()"
+          style="position:absolute; right:10px; top:50%; transform:translateY(-50%);
+                 font-size:14px; cursor:pointer; opacity:0.6; user-select:none;"
+          onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"
+          title="달력으로 선택">📅</span>
+        <input type="date" id="weatherStartDatePicker"
+          onchange="document.getElementById('weatherStartDate').value=this.value; onWeatherStartDateInput();"
+          style="position:absolute; right:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none; border:none; padding:0;">
+      </div>
+      <label class="weather-label" style="margin-left:14px;">📆 일수</label>
+      <input type="number" id="weatherDays" min="1" max="16" value="5" style="width:70px;">
+      <button class="btn" id="weatherFetchBtn" onclick="fetchWeather()" style="margin-left:auto;">
+        🔍 조회
+      </button>
+    </div>
+  </div>
+
+  <div id="weatherStatus" class="weather-status"></div>
+  <div id="weatherResult" class="weather-result"></div>
+</div>
+
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2015</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1881,12 +2009,14 @@ function applyParsedData() {
   // 공통정보 카드 표시
   document.getElementById('infoCard').style.display = 'block';
   document.getElementById('infoStartDate').value = parsedData.startDate || '';
+  if (typeof syncWeatherStartFromItinerary === 'function') syncWeatherStartFromItinerary();
   document.getElementById('infoNights').value = parsedData.nights || parsedData.days.length - 1 || '';
   document.getElementById('infoDepartureFlight').value = parsedData.departureFlight || '';
   document.getElementById('infoReturnFlight').value = parsedData.returnFlight || '';
   document.getElementById('infoTransport').value = parsedData.transport || '전용버스';
   document.getElementById('infoPax').value = parsedData.pax || '';
-  document.getElementById('infoTitle').value = parsedData.title || '';
+  // 지역: 자동 인식값은 넣지 않고, 저장 파일에서 불러온 경우(region)만 복원
+  document.getElementById('infoTitle').value = parsedData.region || '';
   const groupNameEl = document.getElementById('infoGroupName');
   if (groupNameEl) groupNameEl.value = parsedData.groupName || '';
 
@@ -1945,13 +2075,13 @@ function renderPreview() {
       <table class="sched-table">
         <thead>
           <tr>
+            <th style="width:64px">위치조정</th>
             <th style="width:64px">도착<span class="col-resizer"></span></th>
             <th style="width:64px">출발<span class="col-resizer"></span></th>
             <th style="width:74px">이동<span class="col-resizer"></span></th>
             <th style="width:64px">체류<span class="col-resizer"></span></th>
             <th>내용<span class="col-resizer"></span></th>
             <th style="width:500px; text-align:center !important;">비고<span class="col-resizer"></span></th>
-            <th style="width:36px">조작</th>
           </tr>
         </thead>
         <tbody id="tbody-${di}">`;
@@ -1972,7 +2102,37 @@ function renderPreview() {
 function renderRow(di, ii, item) {
   const rowCls = item.type === 'hotel' ? 'hotel-row' : item.type === 'flight' ? 'flight-row' : item.type === 'meal' ? 'meal-row' : '';
   const typeIcon = { flight:'✈️', move:'🚌', tour:'🗺️', hotel:'🏨', meal:'🍽️', other:'•' }[item.type] || '•';
-  return `<tr class="${rowCls}" id="row-${di}-${ii}">
+  const hlCls = item.hl ? ' row-hl' : '';
+  const tcCls = item.textColor ? ' row-tc-' + item.textColor : '';
+  const boldCls = item.bold ? ' row-bold' : '';
+  // 글자색 선택용 색상 팔레트
+  const TC = [['red','#e23b3b'],['black','#1a1a1a'],['green','#5bc23b'],['pink','#f06595']];
+  // 맨 앞: 기본색(색 없음)으로 되돌리는 버튼
+  const noneSwatch =
+    `<button class="tc-swatch tc-none${!item.textColor ? ' active' : ''}"
+       onclick="setTextColor(${di},${ii},'')" title="기본색" tabindex="-1"></button>`;
+  const swatches = noneSwatch + TC.map(([name,hex]) =>
+    `<button class="tc-swatch${item.textColor===name ? ' active' : ''}" style="background:${hex};"
+       onclick="setTextColor(${di},${ii},'${name}')" title="${name}" tabindex="-1"></button>`
+  ).join('');
+  return `<tr class="${rowCls}${hlCls}${tcCls}${boldCls}" id="row-${di}-${ii}">
+    <td>
+      <div class="rowtool-wrap">
+        <div class="row-btns">
+          <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
+          <button class="row-btn del-btn" onclick="deleteRow(${di},${ii})" title="삭제">✕</button>
+          <button class="row-btn" onclick="moveRow(${di},${ii},1)" title="아래로">▼</button>
+        </div>
+        <div class="color-btns">
+          <button class="color-btn hl-btn${item.hl ? ' active' : ''}" onclick="toggleRowColor(${di},${ii},'hl')" title="배경색(노랑)" tabindex="-1"></button>
+          <div class="tc-row">
+            <button class="color-btn red-btn${item.textColor ? ' active' : ''}" onclick="toggleTcMenu(${di},${ii})" title="글자색" tabindex="-1">가</button>
+            ${item._tcOpen ? `<div class="tc-swatches">${swatches}</div>` : ''}
+          </div>
+          <button class="color-btn bold-btn${item.bold ? ' active' : ''}" onclick="toggleRowColor(${di},${ii},'bold')" title="글자 두께(굵게)" tabindex="-1">B</button>
+        </div>
+      </div>
+    </td>
     <td><input class="sched-input time-input" id="arrive-${di}-${ii}" value="${item.arrive||''}" placeholder="HH:MM"
       tabindex="-1"
       onchange="updateItem(${di},${ii},'arrive',this.value)"
@@ -2006,13 +2166,6 @@ function renderRow(di, ii, item) {
     <td style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.meal||item.note||''}</textarea></td>
-    <td>
-      <div class="row-btns">
-        <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
-        <button class="row-btn del-btn" onclick="deleteRow(${di},${ii})" title="삭제">✕</button>
-        <button class="row-btn" onclick="moveRow(${di},${ii},1)" title="아래로">▼</button>
-      </div>
-    </td>
   </tr>`;
 }
 
@@ -2258,6 +2411,44 @@ async function aiGetDriveTime(di, ii) {
 }
 
 // ── 행 삭제 ──
+// ── 행 색상/스타일 토글 (hl: 노란 배경 / bold: 굵은 글자) ──
+function toggleRowColor(di, ii, kind) {
+  const item = parsedData.days[di].items[ii];
+  item[kind] = !item[kind];
+  // 노란 배경 자동 글자색 처리
+  if (kind === 'hl') {
+    if (item.hl) {
+      // 배경 켜기: 글자색이 기본 상태일 때만 자동으로 검정
+      if (!item.textColor) { item.textColor = 'black'; item._autoBlack = true; }
+    } else {
+      // 배경 끄기: 자동으로 넣은 검정이면 기본색으로 되돌림 (사용자가 고른 색은 유지)
+      if (item._autoBlack) { item.textColor = ''; item._autoBlack = false; }
+    }
+  }
+  reRenderDay(di);
+}
+
+// ── 글자색 선택 메뉴 펼치기/접기 ──
+function toggleTcMenu(di, ii) {
+  const items = parsedData.days[di].items;
+  const item = items[ii];
+  const willOpen = !item._tcOpen;
+  // 다른 행의 열린 메뉴는 모두 닫기
+  items.forEach(it => { it._tcOpen = false; });
+  item._tcOpen = willOpen;
+  reRenderDay(di);
+}
+
+// ── 글자색 적용 (선택 후 메뉴 접기) ──
+function setTextColor(di, ii, color) {
+  const item = parsedData.days[di].items[ii];
+  // 같은 색을 다시 누르면 색 해제
+  item.textColor = (item.textColor === color) ? '' : color;
+  item._autoBlack = false; // 사용자가 직접 고른 색이므로 자동검정 표시 해제
+  item._tcOpen = false;
+  reRenderDay(di);
+}
+
 function deleteRow(di, ii) {
   parsedData.days[di].items.splice(ii, 1);
   reRenderDay(di);
@@ -2353,6 +2544,375 @@ async function aiEstimateTimes(di) {
     if (btn) { btn.textContent = '❌ 오류'; btn.disabled = false; setTimeout(() => { btn.textContent = '🤖 이동시간 AI 추정'; }, 2000); }
     console.error(err);
   }
+}
+
+// ── 현지 날씨 확인 (Open-Meteo, 무료, API 키 불필요) ──
+// 사용자가 시작일을 직접 손댔는지 추적: 손대지 않은 동안만 일정표 출발일을 따라감
+let _weatherStartTouched = false;
+function onWeatherStartDateInput() { _weatherStartTouched = true; }
+function onWeatherCityInput() { /* 현재는 안내문구만 표시. 추후 자동완성 자리 */ }
+
+// 일정표 출발일이 바뀌면 (사용자가 손대지 않은 경우에 한해) 날씨 시작일에 반영
+function syncWeatherStartFromItinerary() {
+  if (_weatherStartTouched) return;
+  const src = document.getElementById('infoStartDate');
+  const dst = document.getElementById('weatherStartDate');
+  if (!src || !dst) return;
+  // infoStartDate 값은 "2026-07-06" 또는 "20260706" 형식이 섞일 수 있음
+  const raw = (src.value || '').trim();
+  const m = raw.match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/);
+  if (m) {
+    const iso = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+    dst.value = iso;
+    const picker = document.getElementById('weatherStartDatePicker');
+    if (picker) picker.value = iso;
+  }
+}
+
+// 도시명이 대마도/후쿠오카/오사카면 대한해협 파도 표시
+function shouldShowKoreaStraitWave(cityRaw) {
+  const c = (cityRaw || '').toLowerCase();
+  const triggers = ['대마도','対馬','つしま','tsushima', '후쿠오카','福岡','ふくおか','fukuoka', '오사카','大阪','おおさか','osaka'];
+  return triggers.some(t => c.includes(t.toLowerCase()));
+}
+
+// 날짜 yyyy-mm-dd 더하기 (시간대 영향 없이 안전하게)
+function addDaysISO(iso, days) {
+  // UTC 정오 기준으로 처리해 시간대 경계 문제를 피함
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+// 상태 표시
+function setWeatherStatus(msg, kind) {
+  const el = document.getElementById('weatherStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'weather-status' + (kind ? ' ' + kind : '');
+}
+
+async function fetchWeather() {
+  const cityEl = document.getElementById('weatherCity');
+  const startEl = document.getElementById('weatherStartDate');
+  const daysEl = document.getElementById('weatherDays');
+  const resultEl = document.getElementById('weatherResult');
+  const btn = document.getElementById('weatherFetchBtn');
+  resultEl.innerHTML = '';
+
+  const city = (cityEl.value || '').trim();
+  const startDate = (startEl.value || '').trim();
+  let days = parseInt(daysEl.value || '5', 10);
+  if (!city) { setWeatherStatus('도시를 입력해 주세요.', 'error'); return; }
+  if (!startDate) { setWeatherStatus('시작일을 입력해 주세요.', 'error'); return; }
+  if (!days || days < 1) days = 1;
+  if (days > 16) days = 16;
+
+  // 예보 범위 안내: 오늘로부터 16일을 넘어가면 가능 범위까지만 보여줌
+  // (모든 비교를 'YYYY-MM-DD' 문자열로 처리해 시간대 영향 제거)
+  const todayISO = (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  })();
+  const lastForecastableISO = addDaysISO(todayISO, 15);   // 오늘 포함 16일
+  const lastDateISO = addDaysISO(startDate, days - 1);    // 시작일 + (일수-1) = 종료일
+  let truncated = false;
+  let effectiveEnd = lastDateISO;
+  if (lastDateISO > lastForecastableISO) {
+    truncated = true;
+    effectiveEnd = lastForecastableISO;
+  }
+  // 시작일 자체가 예보 범위를 완전히 벗어난 경우
+  if (startDate > lastForecastableISO) {
+    setWeatherStatus(`예보는 오늘로부터 16일 뒤(${lastForecastableISO})까지만 가능해요. 시작일을 더 가깝게 맞춰 주세요.`, 'warn');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ 조회 중…';
+  setWeatherStatus('도시를 찾고 날씨를 가져오고 있어요…');
+
+  try {
+    // 1) 도시 → 좌표 (한국어/영어 모두 시도)
+    const geo = await geocodeCity(city);
+    if (!geo) {
+      setWeatherStatus('도시를 찾을 수 없어요. 영어 표기로 다시 시도해 보세요. (예: Osaka, Tsushima)', 'error');
+      return;
+    }
+
+    // 2) 날씨 예보
+    const wxParams = new URLSearchParams({
+      latitude: geo.lat, longitude: geo.lon, timezone: 'Asia/Tokyo',
+      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum',
+      start_date: startDate, end_date: effectiveEnd
+    });
+    const wxRes = await fetch('https://api.open-meteo.com/v1/forecast?' + wxParams.toString());
+    if (!wxRes.ok) throw new Error('날씨 API 응답 오류: ' + wxRes.status);
+    const wx = await wxRes.json();
+    if (!wx.daily || !wx.daily.time) throw new Error('날씨 데이터가 비어 있어요.');
+
+    // 3) 파도(해당 도시일 때만): 대한해championship 한 지점 고정 — 대마도 남쪽 부근
+    let wave = null;
+    const showWave = shouldShowKoreaStraitWave(city);
+    if (showWave) {
+      const wvParams = new URLSearchParams({
+        latitude: '34.3', longitude: '129.4', timezone: 'Asia/Tokyo',
+        daily: 'wave_height_max', start_date: startDate, end_date: effectiveEnd
+      });
+      try {
+        const wvRes = await fetch('https://marine-api.open-meteo.com/v1/marine?' + wvParams.toString());
+        if (wvRes.ok) {
+          const wvJson = await wvRes.json();
+          if (wvJson.daily && wvJson.daily.wave_height_max) wave = wvJson.daily;
+        }
+      } catch (e) { /* 파도는 실패해도 다른 정보는 보여줌 */ }
+    }
+
+    // 4) 표 그리기
+    renderWeatherTable(wx, wave, showWave, geo);
+
+    if (truncated) {
+      setWeatherStatus(`예보 가능 범위(오늘로부터 16일)까지만 표시했어요. ${effectiveEnd} 이후 날짜는 아직 예보가 나오지 않았어요.`, 'warn');
+    } else {
+      setWeatherStatus(`${geo.label} 기준 · ${startDate} ~ ${effectiveEnd}`);
+    }
+
+  } catch (err) {
+    console.error(err);
+    setWeatherStatus('날씨를 가져오는 중 문제가 발생했어요. 인터넷 연결을 확인하거나 잠시 후 다시 시도해 주세요.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 조회';
+  }
+}
+
+// 도시 → 좌표 변환 (Open-Meteo geocoding)
+// 가이드 자주 가는 도시 사전 등록 (정확한 좌표 + 한/일/영 이름)
+// 사용자가 어떤 표기로 입력해도 같은 좌표를 쓰도록 keys에 변형을 다 넣어둠
+const CITY_PRESETS = [
+  // 한일 항로 (파도 표시 트리거 도시)
+  { keys:['대마도','쓰시마','對馬','対馬','tsushima'], lat:34.5378, lon:129.3786, label:'대마도 (나가사키)' },
+  { keys:['후쿠오카','福岡','fukuoka'],               lat:33.5904, lon:130.4017, label:'후쿠오카' },
+  { keys:['오사카','大阪','osaka'],                   lat:34.6937, lon:135.5023, label:'오사카' },
+
+  // 그 외 자주 가는 곳
+  { keys:['오키나와','나하','沖縄','那覇','okinawa','naha'], lat:26.2124, lon:127.6809, label:'오키나와 (나하)' },
+  { keys:['마츠야마','마쓰야마','松山','matsuyama'],  lat:33.8392, lon:132.7657, label:'마쓰야마 (에히메)' },
+  { keys:['나고야','名古屋','nagoya'],                lat:35.1815, lon:136.9066, label:'나고야' },
+  { keys:['도쿄','東京','tokyo'],                     lat:35.6762, lon:139.6503, label:'도쿄' },
+  { keys:['도야마','富山','toyama'],                  lat:36.6953, lon:137.2113, label:'도야마' },
+  { keys:['요코하마','横浜','yokohama'],              lat:35.4437, lon:139.6380, label:'요코하마' },
+  { keys:['히로시마','広島','hiroshima'],             lat:34.3853, lon:132.4553, label:'히로시마' },
+  { keys:['야마구치','山口','yamaguchi'],             lat:34.1858, lon:131.4706, label:'야마구치' },
+  { keys:['가고시마','鹿児島','kagoshima'],           lat:31.5969, lon:130.5571, label:'가고시마' },
+  { keys:['나가사키','長崎','nagasaki'],              lat:32.7503, lon:129.8779, label:'나가사키' },
+  { keys:['구마모토','熊本','kumamoto'],              lat:32.8032, lon:130.7079, label:'구마모토' },
+  { keys:['유후인','由布院','湯布院','yufuin'],        lat:33.2647, lon:131.3556, label:'유후인 (오이타)' },
+  { keys:['벳부','벳푸','別府','beppu'],              lat:33.2846, lon:131.4910, label:'벳푸 (오이타)' },
+  { keys:['히타','日田','hita'],                      lat:33.3214, lon:130.9410, label:'히타 (오이타)' },
+
+  // 북해도
+  { keys:['삿포로','札幌','sapporo'],                 lat:43.0618, lon:141.3545, label:'삿포로 (홋카이도)' },
+  { keys:['도야','도야호','洞爺','洞爺湖','toya','lake toya'], lat:42.6090, lon:140.8580, label:'도야호 (홋카이도)' },
+  { keys:['노보리베츠','登別','noboribetsu'],         lat:42.4126, lon:141.1163, label:'노보리베츠 (홋카이도)' },
+  { keys:['오타루','小樽','otaru'],                   lat:43.1907, lon:140.9947, label:'오타루 (홋카이도)' },
+  { keys:['비에이','美瑛','biei'],                    lat:43.5882, lon:142.4669, label:'비에이 (홋카이도)' },
+  { keys:['후라노','富良野','furano'],                lat:43.3422, lon:142.3833, label:'후라노 (홋카이도)' },
+  { keys:['북해도','홋카이도','北海道','hokkaido'],    lat:43.0618, lon:141.3545, label:'홋카이도 (삿포로 기준)' },
+];
+
+function findCityPreset(input) {
+  const q = (input || '').trim().toLowerCase();
+  if (!q) return null;
+  return CITY_PRESETS.find(c => c.keys.some(k => k.toLowerCase() === q)) || null;
+}
+
+async function geocodeCity(name) {
+  // 1) 먼저 사전 등록 도시에서 찾기 (정확 매칭)
+  const preset = findCityPreset(name);
+  if (preset) return { lat: preset.lat, lon: preset.lon, label: preset.label };
+
+  // 2) 사전에 없으면 Open-Meteo 검색으로 떨어짐 (일본 결과 우선)
+  const tryLangs = ['ko', 'ja', 'en'];
+  let best = null;
+  for (const lang of tryLangs) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=${lang}&format=json`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (!j.results || !j.results.length) continue;
+      // 일본 결과만 추리고, 그중 인구가 가장 많은 것 우선 (자주 가는 큰 도시 잡힘)
+      const jpResults = j.results.filter(x => x.country_code === 'JP');
+      const pick = (jpResults.length ? jpResults : j.results)
+        .sort((a, b) => (b.population || 0) - (a.population || 0))[0];
+      if (pick) {
+        best = {
+          lat: pick.latitude, lon: pick.longitude,
+          label: `${pick.name}${pick.admin1 ? ', ' + pick.admin1 : ''}${pick.country ? ' (' + pick.country + ')' : ''}`
+        };
+        break;
+      }
+    } catch (e) { /* 다음 언어 시도 */ }
+  }
+  return best;
+}
+
+function renderWeatherTable(wx, wave, showWave, geo) {
+  const t = wx.daily.time;
+  const tmax = wx.daily.temperature_2m_max;
+  const tmin = wx.daily.temperature_2m_min;
+  const pprob = wx.daily.precipitation_probability_max;
+  const psum = wx.daily.precipitation_sum;
+  const ssum = wx.daily.snowfall_sum;
+  const waveMap = {};
+  if (wave && wave.time) {
+    wave.time.forEach((d, i) => { waveMap[d] = wave.wave_height_max[i]; });
+  }
+
+  const dow = ['일','월','화','수','목','금','토'];
+  let html = '<table><thead><tr>';
+  html += '<th>날짜</th><th>최고/최저</th><th>강수/강설확률</th><th>강수량/강설량</th>';
+  if (showWave) html += '<th>대한해협 파도</th>';
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < t.length; i++) {
+    // 시간대 영향 없이 요일 계산 (UTC 정오 기준)
+    const [yy, mm, dd] = t[i].split('-').map(Number);
+    const dt = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0));
+    const dateLabel = `${t[i].slice(5)} (${dow[dt.getUTCDay()]})`;
+    const avg = (tmax[i] + tmin[i]) / 2;
+    const isSnow = avg < 0; // 평균 영하면 강설 표시
+    const prob = (pprob[i] != null) ? pprob[i] + '%' : '-';
+    let amount;
+    if (isSnow) {
+      const sv = ssum[i];
+      amount = (sv != null) ? `<span class="snow-cell">❄️ ${sv} cm</span>` : '-';
+    } else {
+      const pv = psum[i];
+      amount = (pv != null) ? `🌧️ ${pv} mm` : '-';
+    }
+    let row = `<tr>
+      <td>${dateLabel}</td>
+      <td><span class="temp-high">${Math.round(tmax[i])}°</span> / <span class="temp-low">${Math.round(tmin[i])}°</span></td>
+      <td>${isSnow ? '❄️ ' : '🌧️ '}${prob}</td>
+      <td>${amount}</td>`;
+    if (showWave) {
+      const wv = waveMap[t[i]];
+      row += `<td class="wave-cell">${wv != null ? wv.toFixed(1) + ' m' : '-'}</td>`;
+    }
+    row += '</tr>';
+    html += row;
+  }
+  html += '</tbody></table>';
+  document.getElementById('weatherResult').innerHTML = html;
+}
+
+// ── 일정표 파일로 저장 ──
+async function saveItineraryFile() {
+  if (!parsedData) { showAlert('uploadAlert', 'error', '저장할 일정표가 없어요.'); return; }
+
+  // 화면 입력값을 parsedData에 반영 (지역 = 사용자가 직접 입력한 값)
+  const titleEl = document.getElementById('infoTitle');
+  const region = titleEl ? titleEl.value.trim() : '';
+  parsedData.region = region;
+
+  // 저장용 복사본 만들기: 임시 상태(_tcOpen 등 _로 시작하는 키)는 제외
+  const saveData = JSON.parse(JSON.stringify(parsedData, (key, value) =>
+    key.startsWith('_') ? undefined : value
+  ));
+  saveData._fileType = 'guide-itinerary'; // 불러올 때 형식 확인용
+  saveData._savedAt = new Date().toISOString();
+
+  // 파일 이름: 일정표_YYYYMMDD_지역 (날짜는 출발일자, 없으면 오늘 날짜)
+  let ymd = '';
+  const startRaw = (document.getElementById('infoStartDate').value || parsedData.startDate || '').trim();
+  const dm = startRaw.match(/(\d{4})\D?(\d{1,2})\D?(\d{1,2})/); // 20260706 / 2026-07-06 등
+  if (dm) {
+    ymd = dm[1] + String(dm[2]).padStart(2,'0') + String(dm[3]).padStart(2,'0');
+  } else {
+    const d = new Date();
+    ymd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  }
+  // 지역명: 파일명에 못 쓰는 문자 제거
+  const safeRegion = region.replace(/[\\/:*?"<>|]/g, '_');
+  const base = safeRegion ? `일정표_${ymd}_${safeRegion}` : `일정표_${ymd}`;
+  const fileName = base + '.itinerary';
+  const jsonText = JSON.stringify(saveData, null, 2);
+
+  // 1순위: 저장 위치 선택 창 지원 브라우저(크롬·엣지 등)
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: '일정표 파일', accept: { 'application/json': ['.itinerary'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(jsonText);
+      await writable.close();
+      showAlert('uploadAlert', 'success', `💾 일정표를 저장했어요: ${fileName}`);
+    } catch (err) {
+      // 사용자가 저장 창에서 취소한 경우는 조용히 넘어감
+      if (err && err.name === 'AbortError') return;
+      // 그 외 오류는 기존 다운로드 방식으로 대체
+      downloadAsFile(jsonText, fileName);
+      showAlert('uploadAlert', 'success', `💾 일정표를 저장했어요: ${fileName}`);
+    }
+    return;
+  }
+
+  // 2순위: 위치 선택을 지원하지 않는 브라우저 → 다운로드 폴더로 저장
+  downloadAsFile(jsonText, fileName);
+  showAlert('uploadAlert', 'success', `💾 일정표를 저장했어요: ${fileName} (다운로드 폴더)`);
+}
+
+// 파일 다운로드 (위치 선택 미지원 브라우저용)
+function downloadAsFile(text, fileName) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── 일정표 파일 불러오기 ──
+function loadItineraryFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  // 같은 파일을 다시 선택할 수 있도록 입력값 초기화
+  input.value = '';
+
+  // 현재 작업이 있으면 한 번 확인
+  if (parsedData && !confirm('지금 화면의 일정표가 사라지고 불러온 파일로 바뀝니다. 계속할까요?')) {
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    let data;
+    try {
+      data = JSON.parse(e.target.result);
+    } catch (err) {
+      showAlert('uploadAlert', 'error', '❌ 파일을 읽을 수 없어요. 올바른 일정표 파일인지 확인해 주세요.');
+      return;
+    }
+    // 형식 확인: 일정표 파일이 맞는지
+    if (!data || !Array.isArray(data.days)) {
+      showAlert('uploadAlert', 'error', '❌ 이 파일은 일정표 파일이 아니에요.');
+      return;
+    }
+    parsedData = data;
+    applyParsedData();
+    showAlert('uploadAlert', 'success', `📂 저장해 둔 일정표를 불러왔어요. (${data.days.length}일 일정)`);
+  };
+  reader.onerror = () => {
+    showAlert('uploadAlert', 'error', '❌ 파일을 읽는 중 문제가 발생했어요.');
+  };
+  reader.readAsText(file);
 }
 
 // ── 엑셀 다운로드 ──
@@ -2586,6 +3146,7 @@ function formatStartDate(input) {
   if (val.length >= 5) formatted = val.slice(0,4) + '-' + val.slice(4,6) + (val.length > 6 ? '-' + val.slice(6) : '');
   else if (val.length >= 4) formatted = val.slice(0,4) + (val.length > 4 ? '-' + val.slice(4) : '');
   input.value = formatted;
+  if (typeof syncWeatherStartFromItinerary === 'function') syncWeatherStartFromItinerary();
 }
 
 // blur 시 유효성 검증 + picker 동기화
@@ -2606,6 +3167,7 @@ function normalizeStartDate(input) {
   const picker = document.getElementById('infoStartDatePicker');
   if (picker) picker.value = input.value;
   if (typeof renderPreview === 'function') renderPreview();
+  if (typeof syncWeatherStartFromItinerary === 'function') syncWeatherStartFromItinerary();
 }
 
 function formatTime(raw) {
