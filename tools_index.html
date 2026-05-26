@@ -21,6 +21,8 @@
     --c-happycall-2: #14b8a6;
     --c-entry-1: #f59e0b;
     --c-entry-2: #f97316;
+    --c-settlement-1: #0ea5e9;
+    --c-settlement-2: #06b6d4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -104,9 +106,10 @@
   }
   .tool-card:hover::after { opacity: 0.18; }
 
-  .tool-card.c-itinerary { --c1: var(--c-itinerary-1); --c2: var(--c-itinerary-2); }
-  .tool-card.c-happycall { --c1: var(--c-happycall-1); --c2: var(--c-happycall-2); }
-  .tool-card.c-entry     { --c1: var(--c-entry-1);     --c2: var(--c-entry-2); }
+  .tool-card.c-itinerary  { --c1: var(--c-itinerary-1);  --c2: var(--c-itinerary-2); }
+  .tool-card.c-happycall  { --c1: var(--c-happycall-1);  --c2: var(--c-happycall-2); }
+  .tool-card.c-entry      { --c1: var(--c-entry-1);      --c2: var(--c-entry-2); }
+  .tool-card.c-settlement { --c1: var(--c-settlement-1); --c2: var(--c-settlement-2); }
 
   .tool-icon {
     width: 56px;
@@ -224,10 +227,29 @@
       <div class="tool-desc">입국신고서 · 세관신고서 한 번에~^^</div>
       <div class="tool-arrow">열기 <span class="arrow">→</span></div>
     </a>
+
+    <a class="tool-card c-settlement" href="settlement.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- 영수증 외곽 (지그재그 하단) -->
+          <path d="M6 3 L18 3 L18 19.5 L17 21 L16 19.5 L15 21 L14 19.5 L13 21 L12 19.5 L11 21 L10 19.5 L9 21 L8 19.5 L7 21 L6 19.5 Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" fill="none"/>
+          <!-- 항목 라인 -->
+          <line x1="8.5" y1="7" x2="15.5" y2="7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="8.5" y1="10" x2="13.5" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <!-- ¥ 표시 -->
+          <text x="8.5" y="15.5" font-family="-apple-system, sans-serif" font-size="5.5" font-weight="700" fill="currentColor">¥</text>
+          <line x1="12" y1="14" x2="15.5" y2="14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="tool-title">가이드 정산서</div>
+      <div class="tool-desc">영수증으로 정산서 작성, 4개 랜드사 양식으로 자동 변환</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
   </div>
 
   <div class="footer">
-    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0521_0135</span>
+    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0526_2230</span>
   </div>
 </div>
 </body>

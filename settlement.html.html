@@ -1,0 +1,3363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>가이드 정산서</title>
+<!-- ExcelJS (제팬트레블/이쯔모/티센터 양식용, ~800KB) -->
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<!-- 랜드사 양식 base64 데이터 -->
+<script src="landsa_templates.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "맑은 고딕", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: #eef1f6;
+    color: #1f2937;
+    margin: 0;
+    padding: 24px 12px;
+  }
+  .container {
+    max-width: 1280px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+    padding: 28px 32px;
+  }
+  h1.title {
+    font-size: 28px;
+    text-align: center;
+    letter-spacing: 12px;
+    margin: 0 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #374151;
+    color: #1f2937;
+    font-weight: 700;
+  }
+
+  /* 상단 두 영역 (정보 / 메모) */
+  .top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.05fr;
+    gap: 0;
+    border: 2px solid #1f2937;
+    align-items: stretch;
+  }
+  .info-box, .memo-box {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .info-box { border-right: 2px solid #1f2937; }
+
+  /* 정보 입력 영역 */
+  table.info {
+    width: 100%;
+    height: 100%;
+    border-collapse: collapse;
+  }
+  table.info td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #d1d5db;
+    font-size: 14px;
+  }
+  table.info tr:last-child td { border-bottom: none; }
+  table.info td.label {
+    width: 90px;
+    background: #f9fafb;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #374151;
+    border-right: 1px solid #d1d5db;
+    text-align: center;
+  }
+  table.info td.input-cell { padding: 0; }
+  table.info input[type="text"],
+  table.info input[type="number"],
+  table.info input[type="date"] {
+    width: 100%;
+    border: none;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    background: transparent;
+    outline: none;
+  }
+  table.info input:focus { background: #fef9c3; }
+  .date-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+  .date-range input[type="date"] {
+    width: auto !important;
+    flex: 1;
+    padding: 6px 8px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .date-sep {
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .day-count {
+    font-size: 12px;
+    color: #1e40af;
+    font-weight: 700;
+    background: #dbeafe;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  /* 메모 영역 */
+  .memo-box { background: #fff; }
+  .memo-header {
+    text-align: center;
+    background: #374151;
+    color: #fff;
+    padding: 8px 0;
+    font-weight: 700;
+    letter-spacing: 6px;
+    font-size: 14px;
+  }
+  table.memo {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.memo td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 13.5px;
+    vertical-align: middle;
+  }
+  table.memo .lbl {
+    font-weight: 700;
+    color: #374151;
+    width: 92px;
+    background: #f9fafb;
+    border-right: 1px solid #e5e7eb;
+  }
+  table.memo .yen-symbol {
+    width: 18px;
+    text-align: right;
+    color: #6b7280;
+    padding-right: 0;
+  }
+  table.memo .num-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    padding-right: 8px;
+  }
+  table.memo input[type="number"], table.memo input[type="text"] {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-size: 13.5px;
+    font-family: inherit;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  table.memo input:focus { background: #fef9c3; outline: 2px solid #f59e0b; outline-offset: -2px; }
+  table.memo .calc {
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 4px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid #d1d5db;
+  }
+  table.memo .nokori {
+    background: #f3f4f6;
+    color: #1f2937;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 4px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    border: 1px solid #94a3b8;
+  }
+  .formula-note {
+    font-size: 11.5px;
+    color: #6b7280;
+    margin-top: 4px;
+    white-space: nowrap;
+    display: block;
+  }
+  .tb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .tb-checkbox-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #374151;
+    font-weight: 600;
+  }
+  .tb-checkbox-wrap.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #e5e7eb;
+  }
+  .tb-checkbox-wrap.disabled input { cursor: not-allowed; }
+
+  /* TB 통화 셀렉트 */
+  .tb-cur-sel {
+    width: 100%;
+    height: 100%;
+    min-height: 24px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    text-align-last: center;
+    font-size: 13px;
+    color: #374151;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .tb-cur-sel:hover { background: #f3f4f6; }
+  .tb-cur-sel:focus { outline: 1px solid #94a3b8; }
+  .tb-checkbox-wrap input { cursor: pointer; }
+
+  /* 임시 영역 (아직 안 만든 부분 안내) */
+  .placeholder {
+    margin-top: 28px;
+    padding: 32px;
+    border: 2px dashed #9ca3af;
+    border-radius: 12px;
+    text-align: center;
+    background: #f9fafb;
+    color: #6b7280;
+  }
+  .placeholder h3 { margin: 0 0 8px; color: #4b5563; }
+
+  /* 지상경비 표 */
+  .section-title {
+    margin: 28px 0 10px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #374151;
+    padding-left: 10px;
+    border-left: 3px solid #94a3b8;
+  }
+  .table-wrap-scroll {
+    overflow-x: auto;
+    border: 1.5px solid #374151;
+    border-radius: 4px;
+  }
+  table.ground {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    background: #fff;
+  }
+  table.ground th, table.ground td {
+    border: 1px solid #374151;
+    padding: 4px 6px;
+    text-align: center;
+    vertical-align: middle;
+    background: #fff;
+  }
+  table.ground thead th {
+    background: #f3f4f6;
+    font-weight: 700;
+    color: #374151;
+    padding: 6px 4px;
+    border-bottom: 2.5px solid #374151;
+  }
+  table.ground th.cat-head {
+    background: #f9fafb;
+  }
+  table.ground .day-col {
+    min-width: 110px;
+  }
+  table.ground .day-date {
+    display: block;
+    font-size: 10.5px;
+    font-weight: normal;
+    color: #6b7280;
+    margin-top: 2px;
+  }
+  table.ground .total-col {
+    background: #f9fafb !important;
+    min-width: 90px;
+    font-weight: 700;
+    color: #374151;
+  }
+  table.ground td.cat-cell {
+    background: #f3f4f6;
+    font-weight: 700;
+    font-size: 13px;
+    color: #374151;
+    width: 38px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    letter-spacing: 4px;
+    /* 섹션 전체를 rowspan하므로, 아래쪽 테두리가 곧 섹션 사이 구분선이 됨 */
+    border-bottom: 2.5px solid #374151;
+  }
+  /* 섹션 종료 행 — 다음 섹션과의 경계에 진한 가로선 */
+  table.ground tr.section-end td {
+    border-bottom: 2.5px solid #374151;
+  }
+  table.ground td.sub-label {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    width: 110px;
+    min-width: 110px;
+    padding: 4px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  table.ground td.day-cell {
+    min-width: 110px;
+    text-align: left;
+    padding: 3px 6px;
+    height: 28px;
+  }
+  table.ground td.amt-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  /* 지불금액 행 셀 — 연한 그레이로 강조 */
+  table.ground td.day-cell.amt-cell {
+    background: #f3f4f6;
+  }
+  table.ground td.total-cell {
+    background: #fff;
+    text-align: right;
+    font-weight: 700;
+    color: #374151;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 지불금액 행의 TOTAL 셀만 연한 그레이 */
+  table.ground td.total-cell.amt-total {
+    background: #f3f4f6;
+  }
+  table.ground td[contenteditable] {
+    cursor: text;
+    min-height: 22px;
+  }
+  table.ground td[contenteditable]:hover { background: #fefce8; }
+  table.ground td[contenteditable]:focus {
+    background: #fef08a;
+    outline: 2px solid #f59e0b;
+    outline-offset: -2px;
+  }
+  .src-tag {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 9px;
+    padding: 1px 4px;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 3px;
+    vertical-align: middle;
+    cursor: help;
+  }
+  /* 슬롯 구분선 — 관광지 슬롯 사이 */
+  table.ground tr.slot-separator td {
+    border-top: 1px solid #9ca3af;
+  }
+  /* 청크 구분선 — 버스 섹션처럼 항목이 줄바꿈될 때 사용 (얇은 점선) */
+  table.ground tr.chunk-separator td {
+    border-top: 1px dashed #9ca3af;
+  }
+  /* 슬롯별 좌측 강조 바는 제거 — 다른 테두리와 굵기 통일 */
+
+  /* 단가 자동계산 셀 */
+  table.ground td.auto-calc {
+    background: #fff !important;
+    color: #6b7280;
+    font-style: italic;
+    cursor: not-allowed;
+    font-size: 11.5px;
+    text-align: center;
+  }
+  table.ground td.auto-calc::after {
+    content: "";
+  }
+  /* 모든 단가 셀(수동 포함) 가운데 정렬 */
+  table.ground td.day-cell[data-field="unitPrice"] {
+    text-align: center;
+  }
+
+  /* 사용자 추가 입력칸 (가이드 등) */
+  table.ground td.extra-item {
+    background: #fff;
+    text-align: center;
+    color: #374151;
+    font-weight: 600;
+    border-top: 1px dashed #cbd5e1 !important;
+  }
+  table.ground td.extra-item:empty::before {
+    content: "+ 항목명";
+    color: #cbd5e1;
+    font-weight: normal;
+    font-style: italic;
+  }
+  table.ground td.extra-data {
+    background: #fff;
+  }
+  table.ground td.extra-item:focus,
+  table.ground td.extra-data:focus {
+    background: #fef9c3;
+    outline: 1px solid #94a3b8;
+    outline-offset: -1px;
+  }
+
+  /* 슬롯 삭제 버튼 (sub-label 안에 작게) */
+  .slot-del-btn {
+    float: right;
+    background: none;
+    border: 1px solid #9ca3af;
+    color: #6b7280;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    border-radius: 50%;
+    font-size: 11px;
+    padding: 0;
+    font-weight: 700;
+  }
+  .slot-del-btn:hover { background: #6b7280; color: #fff; }
+
+  /* 표 아래 액션 버튼들 */
+  .table-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    justify-content: flex-end;
+  }
+  .table-actions button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #94a3b8;
+    background: #fff;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .table-actions button:hover { background: #374151; color: #fff; }
+
+  /* 랜드사 내보내기 영역 */
+  .landsa-export {
+    margin: 28px 0 10px;
+    padding: 18px 20px;
+    background: #f0f9ff;
+    border: 1.5px solid #93c5fd;
+    border-radius: 10px;
+  }
+  .landsa-export-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 4px;
+  }
+  .landsa-export-hint {
+    font-size: 12px;
+    color: #1e40af;
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+  .landsa-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .landsa-buttons button {
+    flex: 1;
+    min-width: 180px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid #2563eb;
+    color: #1e40af;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .landsa-buttons button:hover {
+    background: #2563eb;
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .landsa-buttons button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+
+  /* 위험 영역 (전체 삭제) */
+  .danger-zone {
+    margin: 30px 0 10px;
+    padding: 16px;
+    border: 1px dashed #fca5a5;
+    border-radius: 8px;
+    background: #fef2f2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .danger-zone-label {
+    font-size: 13px;
+    color: #991b1b;
+    font-weight: 600;
+  }
+  .danger-zone-hint {
+    font-size: 11.5px;
+    color: #b91c1c;
+    margin-top: 2px;
+  }
+  .btn-danger {
+    padding: 8px 18px;
+    background: #dc2626;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-danger:hover { background: #b91c1c; }
+
+  /* 도움말 */
+  .hint {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #f9fafb;
+    border-left: 3px solid #94a3b8;
+    color: #374151;
+    font-size: 13px;
+    border-radius: 4px;
+  }
+
+  /* ===== 영수증 업로드 영역 ===== */
+  .upload-area {
+    margin-top: 14px;
+    padding: 28px 18px;
+    border: 2px dashed #9ca3af;
+    border-radius: 10px;
+    text-align: center;
+    background: #fafbfc;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #6b7280;
+  }
+  .upload-area:hover { background: #f3f4f6; border-color: #4b5563; color: #374151; }
+  .upload-area.dragover {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #047857;
+  }
+  .upload-area .upload-icon { font-size: 32px; margin-bottom: 6px; }
+  .upload-area .upload-text { font-size: 14px; font-weight: 600; }
+  .upload-area .upload-hint { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+  .receipt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .receipt-card {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+  }
+  .receipt-thumb {
+    height: 140px;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-in;
+    overflow: hidden;
+    position: relative;
+  }
+  .receipt-thumb img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+  }
+  .receipt-thumb .pdf-icon {
+    font-size: 36px;
+    color: #6b7280;
+  }
+  .receipt-thumb .pdf-icon-label {
+    position: absolute;
+    bottom: 6px;
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .receipt-info {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .receipt-info .name {
+    font-size: 11px;
+    color: #6b7280;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .receipt-info input, .receipt-info select {
+    width: 100%;
+    padding: 3px 6px;
+    font-size: 11.5px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    font-family: inherit;
+  }
+  .receipt-info input:focus, .receipt-info select:focus {
+    outline: 1px solid #6b7280;
+    background: #fefce8;
+  }
+  .receipt-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .receipt-actions button {
+    flex: 1;
+    padding: 4px;
+    font-size: 11px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .receipt-actions button.delete {
+    color: #dc2626;
+    border-color: #fca5a5;
+  }
+  .receipt-actions button.delete:hover { background: #fee2e2; }
+  .receipt-actions button:hover { background: #f3f4f6; }
+  .receipt-actions button.analyze {
+    color: #1e40af;
+    border-color: #93c5fd;
+    font-weight: 700;
+  }
+  .receipt-actions button.analyze:hover { background: #dbeafe; }
+  .receipt-actions button.analyze:disabled { opacity: 0.6; cursor: wait; }
+
+  /* API 설정 영역 */
+  .api-settings {
+    margin: 14px 0;
+    padding: 12px 16px;
+    background: #f0f9ff;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+  }
+  .api-settings summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #1e40af;
+    font-size: 13px;
+    user-select: none;
+  }
+  .api-settings .api-body {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #93c5fd;
+  }
+  .api-settings input[type="password"], .api-settings select {
+    width: 100%;
+    padding: 6px 10px;
+    margin: 4px 0 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: monospace;
+  }
+  .api-settings label {
+    font-size: 12px;
+    color: #374151;
+    font-weight: 600;
+  }
+  .api-warning {
+    font-size: 11.5px;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+  .api-status {
+    font-size: 11.5px;
+    margin-top: 4px;
+  }
+  .api-status.ok { color: #047857; }
+  .api-status.error { color: #dc2626; }
+
+  .storage-info {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #6b7280;
+    text-align: right;
+  }
+
+  /* 모달 */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-content {
+    background: #fff;
+    border-radius: 10px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    padding: 16px;
+    position: relative;
+  }
+  .modal-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    display: block;
+    margin: 0 auto;
+  }
+  .modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+  }
+  .modal-close:hover { color: #1f2937; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1 class="title">가 이 드 정 산 서</h1>
+
+  <!-- 상단: 좌측 정보 입력 / 우측 메모 -->
+  <div class="top-grid">
+
+    <!-- 좌측: 정보 입력 -->
+    <div class="info-box">
+      <table class="info">
+        <tr>
+          <td class="label">랜드사</td>
+          <td class="input-cell"><input type="text" id="info-host" placeholder="랜드사 입력"></td>
+        </tr>
+        <tr>
+          <td class="label">여행사</td>
+          <td class="input-cell"><input type="text" id="info-agency" placeholder="여행사명 입력"></td>
+        </tr>
+        <tr>
+          <td class="label">단체명</td>
+          <td class="input-cell"><input type="text" id="info-group" placeholder="단체명 입력"></td>
+        </tr>
+        <tr>
+          <td class="label">행사일</td>
+          <td class="input-cell">
+            <div class="date-range">
+              <input type="date" id="info-date-start" onchange="updateDateRange()">
+              <span class="date-sep">~</span>
+              <input type="date" id="info-date-end" onchange="updateDateRange()">
+              <span class="day-count" id="info-day-count"></span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="label">인&nbsp;&nbsp;&nbsp;원</td>
+          <td class="input-cell"><input type="number" id="info-people" placeholder="인원 수" min="0"></td>
+        </tr>
+        <tr>
+          <td class="label">가이드</td>
+          <td class="input-cell"><input type="text" id="info-guide" placeholder="가이드 이름"></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 우측: 메모 -->
+    <div class="memo-box">
+      <div class="memo-header">메 모</div>
+      <table class="memo">
+        <!-- 전도금 -->
+        <tr>
+          <td class="lbl">엔화전도금</td>
+          <td class="yen-symbol">¥</td>
+          <td><input type="number" id="m-yen-advance" min="0" step="100" placeholder="0" oninput="recalcMemo()"></td>
+          <td class="lbl">원화전도금</td>
+          <td class="yen-symbol">₩</td>
+          <td><input type="number" id="m-won-advance" min="0" step="1000" placeholder="0" oninput="recalcMemo()"></td>
+        </tr>
+        <!-- 지출금 -->
+        <tr>
+          <td class="lbl">엔화지출금</td>
+          <td class="yen-symbol">¥</td>
+          <td><div class="calc" id="m-yen-spent">0</div></td>
+          <td class="lbl">원화지출금</td>
+          <td class="yen-symbol">₩</td>
+          <td><div class="calc" id="m-won-spent">0</div></td>
+        </tr>
+        <!-- 엔잔액 / 원잔액 (같은 행) -->
+        <tr>
+          <td class="lbl">엔 잔액</td>
+          <td class="yen-symbol">¥</td>
+          <td><div class="nokori" id="m-yen-nokori">0</div></td>
+          <td class="lbl">원 잔액</td>
+          <td class="yen-symbol">₩</td>
+          <td><div class="nokori" id="m-won-nokori">0</div></td>
+        </tr>
+        <!-- TB 옵션 / SP -->
+        <tr>
+          <td class="lbl">계산옵션</td>
+          <td colspan="2">
+            <label class="tb-checkbox-wrap" style="white-space:nowrap;">
+              <input type="checkbox" id="m-tb-use" onchange="recalcMemo()">
+              <span>TB포함</span>
+            </label>
+            <div class="formula-note" id="m-formula-note">엔잔액 = 엔화전도금 − 엔화지출금</div>
+          </td>
+          <td class="lbl">SP</td>
+          <td colspan="2"><input type="text" id="m-sp" placeholder="SP 메모"></td>
+        </tr>
+        <!-- 초과식대 / TB (제일 하단) -->
+        <tr>
+          <td class="lbl">초과식대</td>
+          <td class="yen-symbol">¥</td>
+          <td><input type="number" id="m-extra-meal" min="0" step="100" placeholder="0" oninput="recalcMemo()"></td>
+          <td class="lbl">TB</td>
+          <td class="yen-symbol" style="padding:0;">
+            <select id="m-tb-currency" class="tb-cur-sel" onchange="onTbCurrencyChange()">
+              <option value="yen">¥</option>
+              <option value="won">₩</option>
+            </select>
+          </td>
+          <td><input type="number" id="m-tb" min="0" step="100" placeholder="0" oninput="recalcMemo()"></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="hint">
+    💡 <b>엔화지출금</b>은 아래 <b>지상경비 표</b>의 모든 금액을 자동으로 합산합니다.<br>
+    💡 행사일 시작일을 입력하면 <b>제1일·제2일…</b> 컬럼에 실제 날짜(예: 5/24)가 표시되고, 영수증 데이터가 해당 날짜 칸에 자동으로 들어갑니다.<br>
+    💡 금액 옆 <span class="src-tag" style="background:#dbeafe;">인쇄</span> <span class="src-tag" style="background:#bbf7d0;">V표</span> <span class="src-tag" style="background:#fef08a;">포스트</span> 태그는 금액 출처를 표시합니다. <b>포스트잇 수기 &gt; V표시 &gt; 인쇄</b> 순으로 우선 적용됩니다.
+  </div>
+
+  <!-- 지상경비 표 (엔화) -->
+  <h3 class="section-title">지상경비 (엔화) — 일자별</h3>
+  <div class="table-wrap-scroll">
+    <table class="ground" id="ground-table">
+      <thead>
+        <!-- JS로 동적 생성 -->
+      </thead>
+      <tbody id="ground-body">
+        <!-- JS로 동적 생성 -->
+      </tbody>
+    </table>
+  </div>
+  <div class="table-actions">
+    <button onclick="addDayCol()">＋ 일자 추가</button>
+    <button onclick="removeDayCol()">－ 일자 삭제</button>
+    <button onclick="addTourSlot()">＋ 관광지 슬롯 추가</button>
+  </div>
+
+  <!-- 기타경비 표 (원화) -->
+  <h3 class="section-title">기타경비 (원화) — 항목별</h3>
+  <div class="table-wrap-scroll">
+    <table class="ground" id="etc-table">
+      <thead></thead>
+      <tbody id="etc-body"></tbody>
+    </table>
+  </div>
+
+  <!-- 영수증 업로드 -->
+  <h3 class="section-title" style="margin-top:32px;">📎 영수증 첨부 (스캔/사진)</h3>
+
+  <details class="api-settings" id="api-settings">
+    <summary>🤖 Claude API 자동 분석 설정 (선택 사항)</summary>
+    <div class="api-body">
+      <label>Anthropic API 키 (sk-ant-...)</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api-... (이 칸을 비우면 자동 분석 비활성)" autocomplete="off">
+      <label>모델</label>
+      <select id="api-model-input">
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (저렴, 영수증 1장 ~5원)</option>
+        <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 (정확, 영수증 1장 ~15원) — 추천</option>
+      </select>
+      <div class="api-warning">
+        ⚠️ API 키는 이 브라우저(localStorage)에만 저장되며 외부로 전송되지 않습니다.
+        단, HTML 파일을 다른 사람과 공유한다면 키도 함께 공유되니 주의하세요.
+        키를 빈 칸으로 만들면 자동 분석이 즉시 비활성화됩니다.
+      </div>
+      <div class="api-status" id="api-status">API 키 미설정 — 자동 분석 비활성</div>
+    </div>
+  </details>
+
+  <div class="upload-area" id="upload-area" onclick="document.getElementById('upload-file-input').click()">
+    <div class="upload-icon">📤</div>
+    <div class="upload-text">여기에 영수증 사진·스캔을 드래그하거나 클릭해서 업로드</div>
+    <div class="upload-hint">JPG, PNG, PDF 파일 지원 · 여러 장 한꺼번에 가능 · 이미지는 자동 압축됩니다</div>
+    <input type="file" id="upload-file-input" accept="image/*,application/pdf" multiple style="display:none">
+  </div>
+  <div class="receipt-grid" id="receipt-grid"></div>
+  <div class="storage-info" id="storage-info"></div>
+
+  <!-- 모달 (큰 이미지 보기) -->
+  <div class="modal-overlay" id="receipt-modal" onclick="closeReceiptModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeReceiptModal()">×</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- 랜드사로 내보내기 -->
+  <div class="landsa-export">
+    <div class="landsa-export-title">📤 랜드사 양식으로 내보내기</div>
+    <div class="landsa-export-hint">
+      현재 입력된 데이터를 각 랜드사 정산서 양식에 맞게 자동으로 채워 새 엑셀 파일로 저장합니다.
+      데이터가 없는 칸은 <b style="color:#dc2626;">빨간색 "확인"</b>으로 표시됩니다.
+    </div>
+    <div class="landsa-buttons">
+      <button onclick="exportToLandsa('japan_travel', this)">🇯🇵 제펜트레블</button>
+      <button onclick="exportToLandsa('itsumo', this)">🇯🇵 이쯔모</button>
+      <button onclick="exportToLandsa('tcenter', this)">🇯🇵 티센터</button>
+      <button onclick="exportToLandsa('hanasaku', this)">🇯🇵 하나사쿠</button>
+    </div>
+  </div>
+
+  <!-- 전체 입력 항목 삭제 -->
+  <div class="danger-zone">
+    <div>
+      <div class="danger-zone-label">⚠ 전체 입력 항목 삭제</div>
+      <div class="danger-zone-hint">새 정산서 작성을 시작할 때 사용합니다. 모든 입력값과 첨부 영수증이 초기화됩니다.</div>
+    </div>
+    <button class="btn-danger" onclick="clearAllEntries()">🗑 전체 항목 삭제</button>
+  </div>
+
+  <!-- 사용 안내 -->
+  <div class="hint" style="margin-top:24px;">
+    ⚠️ <b>인원 표기 방법</b> — 숫자만 적으면 손님만, 수식이면 자동으로 합산해서 단가를 계산합니다.<br>
+    예) <code>25</code> = 손님 25명 / <code>25+1</code> = 손님 25 + 가이드 1 (= 26명) / <code>25+2</code> = 손님 25 + 가이드 1 + 기사 1 (= 27명)<br>
+    ※ <b>중식·석식의 단가</b>는 (지불금액 ÷ 인원)으로 자동 계산됩니다. 인원 칸을 채우면 단가가 자동으로 표시돼요.
+  </div>
+
+</div>
+
+<script>
+// ===== 영수증에서 자동 추출한 데이터 =====
+// 각 영수증마다 3개의 금액 필드를 따로 저장하고, 우선순위로 자동 선택
+//   1순위 (최우선): amount_postit   — 포스트잇에 손으로 적은 금액
+//   2순위:         amount_v_mark   — 볼펜으로 V 체크된 금액
+//   3순위:         amount_printed  — 영수증에 인쇄된 금액
+// null이면 다음 순위로 넘어감
+function pickAmount(r) {
+  if (r.amount_postit != null)  return { value: r.amount_postit,  source: "포스트잇 수기" };
+  if (r.amount_v_mark != null)  return { value: r.amount_v_mark,  source: "V표시" };
+  if (r.amount_printed != null) return { value: r.amount_printed, source: "스캔금액" };
+  return { value: 0, source: "없음" };
+}
+
+const receipts = {
+  hotel: [
+    {
+      date: "2026-05-24",
+      name: "SOAR RESORT (対馬·美津島町)",
+      condition: "韓国단체 (土·特別日) 7+2명 + T/G 1명 · 朝食代 + 入湯代 (81점)",
+      amount_postit: null, amount_v_mark: null, amount_printed: 195050,
+      file: "img20260526_07550066.pdf"
+    }
+  ],
+  lunch: [
+    {
+      date: "2026-05-24", name: "どんぐり (厳原町)", people: "",
+      amount_postit: null, amount_v_mark: null, amount_printed: 59800,
+      file: "img20260526_07562295.pdf"
+    },
+    {
+      date: "2026-05-25", name: "OUTDOOR PARTNERS TOKISEN", people: "26",
+      amount_postit: null, amount_v_mark: null, amount_printed: 31200,
+      file: "img20260526_07562295.pdf"
+    }
+  ],
+  dinner: [
+    {
+      date: "2026-05-24", name: "焼肉研究所「和」 (上対馬町)", people: "",
+      amount_postit: null, amount_v_mark: null, amount_printed: 31200,
+      file: "img20260526_07562295.pdf"
+    }
+  ],
+  tour: [],
+  bus: {
+    "기사식대": {
+      unitPrice: "¥1,500 × 1식",
+      amount_postit: null, amount_v_mark: null, amount_printed: 1500,
+      file: "img20260526_07541621.pdf",
+      note: "夕食代 5/24분 — 宝観光バス 対馬営業所"
+    },
+    "오차다이": {
+      unitPrice: "5/24·5/25 2일분",
+      amount_postit: null, amount_v_mark: null, amount_printed: 4000,
+      file: "img20260526_07541621.pdf",
+      note: "お茶代 5/24+5/25분 — 宝観光バス 対馬営業所"
+    }
+  },
+  guide: {},
+  etcYen: {
+    "출국세": {
+      unitPrice: "¥1,000 × 27명",
+      amount_postit: null, amount_v_mark: null, amount_printed: 27000,
+      file: "img20260526_07554373.pdf",
+      note: "国際観光旅客税 — 27명"
+    },
+    "부두세": {
+      unitPrice: "¥500×24 + ¥250×2",
+      amount_postit: null, amount_v_mark: null, amount_printed: 12500,
+      file: "img20260526_07554373.pdf",
+      note: "국제터미널 사용료 — 성인 24명 + 소인 2명"
+    }
+  },
+  etc: {}
+};
+
+// ===== 섹션 정의 =====
+// 각 섹션마다 좌측 라벨 + 하위 행들 구성
+const sections = [
+  {
+    key: "hotel", label: "호 텔",
+    rows: [
+      { label: "호텔명",   field: "name" },
+      { label: "조건",     field: "condition" },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+  {
+    key: "lunch", label: "중 식",
+    rows: [
+      { label: "식당명",   field: "name" },
+      { label: "인원",     field: "people" },
+      { label: "단가",     field: "unitPrice", isAutoCalc: true },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+  {
+    key: "dinner", label: "석 식",
+    rows: [
+      { label: "식당명",   field: "name" },
+      { label: "인원",     field: "people" },
+      { label: "단가",     field: "unitPrice", isAutoCalc: true },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+  // 관광지: 하나의 큰 섹션 안에 슬롯 (개수 동적)
+  {
+    key: "tour", label: "관 광 지", slotted: true, dynamicSlots: true,
+    rows: [
+      { label: "관광지명", field: "name" },
+      { label: "단가",     field: "unitPrice" },
+      { label: "지불금액", isAmount: true },
+    ],
+    // slots는 TOUR_SLOTS 변수로 동적 관리
+  },
+  // 버스: 항목 기반 섹션 (날짜 X). 일자 컬럼 수에 맞춰 자동 줄바꿈
+  {
+    key: "bus", label: "버 스", type: "items",
+    items: ["버스비", "도로비", "오차다이", "회송대", "주차대", "기사식대", "기사 숙박", "기사 교통비", null, null, null],
+    rows: [
+      { label: "내역" },
+      { label: "단가",     field: "unitPrice" },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+  // 가이드: 항목 기반 섹션. 4개 고정 항목 + 3개 사용자 추가 입력칸 (null로 표시)
+  {
+    key: "guide", label: "가 이 드", type: "items",
+    items: ["출장비", "통신료", "식대", "교통비", null, null, null],
+    rows: [
+      { label: "내역" },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+  // 기타 (엔화): 지상경비 표의 가이드 아래 — 모든 항목이 사용자 입력
+  {
+    key: "etcYen", label: "기 타", type: "items",
+    items: [null, null, null, null, null, null, null],
+    rows: [
+      { label: "내역" },
+      { label: "단가",     field: "unitPrice" },
+      { label: "지불금액", isAmount: true },
+    ]
+  },
+];
+
+// 기타경비 (원화) 섹션 — 별도 표로 렌더링
+const etcSection = {
+  key: "etc", label: "기타경비", type: "items", currency: "won",
+  items: ["국제선", "TAX/유류", "여행자보험", "택시비", "기타 2", "기타 3", "기타 4"],
+  rows: [
+    { label: "내역" },
+    { label: "단가",     field: "unitPrice" },
+    { label: "지불금액", isAmount: true },
+  ]
+};
+
+// 관광지 슬롯 수 (사용자가 동적으로 추가/삭제)
+let TOUR_SLOTS = Number(localStorage.getItem("tourSlots")) || 3;
+
+// 일자 컬럼 수 (기본 4일, 최대 10일까지)
+let DAY_COLS = Number(localStorage.getItem("dayCols")) || 4;
+
+// 인원 표기 파싱: "25" → 25, "25+1" → 26, "25+2" → 27, "25+1+1" → 27
+function parsePersonCount(str) {
+  if (!str) return 0;
+  const s = String(str).trim().replace(/[명人 ]/g, '');
+  if (s === '') return 0;
+  if (/^\d+$/.test(s)) return Number(s);
+  if (/^\d+(\+\d+)+$/.test(s)) {
+    return s.split('+').reduce((sum, n) => sum + Number(n), 0);
+  }
+  return null;  // 잘못된 형식
+}
+
+const fmt = n => Number(n||0).toLocaleString("ko-KR");
+const val = id => Number(document.getElementById(id).value) || 0;
+
+// 날짜 유틸
+function addDaysISO(iso, n) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function formatShort(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// ===== 지상경비 표 렌더링 (일반화) =====
+function renderGroundTable() {
+  const start = document.getElementById("info-date-start").value;
+
+  // 동적 헤더 (일자 컬럼)
+  const thead = document.querySelector("#ground-table thead");
+  thead.innerHTML = "";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<th colspan="2" class="cat-head">지상경비</th>`;
+  for (let i = 1; i <= DAY_COLS; i++) {
+    const iso = addDaysISO(start, i - 1);
+    const dateStr = iso ? formatShort(iso) : "-";
+    tr.innerHTML += `<th class="day-col">제${i}일<span class="day-date">${dateStr}</span></th>`;
+  }
+  tr.innerHTML += `<th class="total-col">TOTAL(엔)</th>`;
+  thead.appendChild(tr);
+
+  const body = document.getElementById("ground-body");
+  body.innerHTML = "";
+
+  let grandTotal = 0;
+
+  sections.forEach(sec => {
+    // === 항목 기반 섹션 (버스) ===
+    if (sec.type === "items") {
+      grandTotal += renderItemSection(sec, body);
+      return;
+    }
+
+    const slotCount = sec.slotted ? (sec.dynamicSlots ? TOUR_SLOTS : sec.slots) : 1;
+    const totalRowsInSection = sec.rows.length * slotCount;
+
+    for (let slot = 0; slot < slotCount; slot++) {
+      sec.rows.forEach((r, ri) => {
+        const tr = document.createElement("tr");
+
+        // 카테고리 라벨 (섹션의 맨 첫 행에만)
+        if (slot === 0 && ri === 0) {
+          const catTd = document.createElement("td");
+          catTd.className = "cat-cell cat-" + sec.key;
+          catTd.rowSpan = totalRowsInSection;
+          catTd.textContent = sec.label;
+          tr.appendChild(catTd);
+        }
+
+        // 슬롯별 배경 클래스 (data 셀에 적용)
+        if (sec.slotted) {
+          const slotIdx = ((slot) % 6) + 1;
+          tr.classList.add("slot-" + slotIdx);
+        }
+
+        // 서브 라벨 (숫자 뱃지 없이, 슬롯 컬러는 좌측 보더로)
+        const subTd = document.createElement("td");
+        subTd.className = "sub-label";
+        if (sec.slotted) {
+          const slotClass = "slot-" + (((slot) % 6) + 1);
+          subTd.classList.add(slotClass);
+          subTd.textContent = r.label;
+          // 슬롯의 첫 행에 삭제 버튼 (동적 슬롯, 2개 이상일 때)
+          if (sec.dynamicSlots && ri === 0 && slotCount > 1) {
+            const btn = document.createElement("button");
+            btn.className = "slot-del-btn";
+            btn.title = "이 관광지 슬롯 삭제";
+            btn.textContent = "×";
+            btn.onclick = () => removeTourSlot(slot + 1);
+            subTd.appendChild(btn);
+          }
+        } else {
+          subTd.textContent = r.label;
+        }
+        // 슬롯 간 굵은 구분선
+        if (sec.slotted && ri === 0 && slot > 0) {
+          tr.classList.add("slot-separator");
+        }
+        tr.appendChild(subTd);
+
+        let rowTotal = 0;
+        for (let i = 0; i < DAY_COLS; i++) {
+          const iso = addDaysISO(start, i);
+          const td = document.createElement("td");
+          td.className = r.isAmount ? "day-cell amt-cell" : "day-cell";
+          if (r.isAutoCalc) {
+            td.classList.add("auto-calc");
+            td.contentEditable = "false";
+            td.title = "자동 계산 (지불금액 ÷ 인원)";
+          } else {
+            td.contentEditable = "true";
+          }
+          td.dataset.section = sec.key;
+          td.dataset.slot = slot + 1;
+          td.dataset.day = i + 1;
+          td.dataset.field = r.field || (r.isAmount ? "amount" : "");
+          if (!r.isAutoCalc) {
+            td.addEventListener("input", () => recalcGround());
+          }
+
+          // 해당 날짜/슬롯의 영수증 찾기
+          const list = receipts[sec.key] || [];
+          const items = sec.slotted
+            ? list.filter(x => x.date === iso && (x.slot || 1) === (slot + 1))
+            : list.filter(x => x.date === iso);
+          const item = items[0];
+
+          if (item) {
+            if (r.isAmount) {
+              const picked = pickAmount(item);
+              const tagColor = picked.source === "포스트잇 수기" ? "#fef08a"
+                             : picked.source === "V표시" ? "#bbf7d0"
+                             : "#dbeafe";
+              const tagLabel = picked.source === "포스트잇 수기" ? "포스트"
+                             : picked.source === "V표시" ? "V표"
+                             : "스캔";
+              td.innerHTML = fmt(picked.value) +
+                ` <span class="src-tag" style="background:${tagColor};" title="출처: ${picked.source}\n파일: ${item.file}">${tagLabel}</span>`;
+              rowTotal += picked.value;
+            } else if (!r.isAutoCalc) {
+              td.textContent = item[r.field] || "";
+            }
+          }
+          tr.appendChild(td);
+        }
+
+        // 합계 열
+        const totalTd = document.createElement("td");
+        totalTd.className = "total-cell";
+        if (r.isAmount) {
+          totalTd.classList.add("amt-total");
+          totalTd.textContent = fmt(rowTotal);
+          grandTotal += rowTotal;
+        } else {
+          totalTd.textContent = "";
+        }
+        tr.appendChild(totalTd);
+        body.appendChild(tr);
+      });
+    }
+    // 섹션의 마지막 행에 section-end 클래스 (다음 섹션과 진한 구분선)
+    if (body.lastElementChild) body.lastElementChild.classList.add("section-end");
+  });
+
+  // 단가 자동계산 (인원 + 지불금액 → 단가)
+  recalcUnitPrices();
+
+  return grandTotal;
+}
+
+// receipts에 있는데 sec.items에 없는 항목을 자동으로 items 리스트에 추가
+// (null 입력칸들보다 앞에 끼워넣음). 매 렌더마다 재계산하므로 receipts에서 제거하면 자동으로 사라짐
+function getEffectiveItems(sec) {
+  if (sec.type !== "items") return sec.items;
+  const items = [...sec.items];
+  const data = receipts[sec.key];
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    Object.keys(data).forEach(key => {
+      if (!items.includes(key)) {
+        const nullIdx = items.indexOf(null);
+        if (nullIdx >= 0) items.splice(nullIdx, 0, key);
+        else items.push(key);
+      }
+    });
+  }
+  return items;
+}
+
+// ===== 항목 기반 섹션 렌더 (버스 등) =====
+// 일자 컬럼 수(DAY_COLS)에 맞춰 항목들을 자동으로 줄바꿈
+function renderItemSection(sec, body) {
+  const items = getEffectiveItems(sec);
+  // DAY_COLS만큼 청크로 분할
+  const chunks = [];
+  for (let i = 0; i < items.length; i += DAY_COLS) {
+    chunks.push(items.slice(i, i + DAY_COLS));
+  }
+  const totalRowsInSection = sec.rows.length * chunks.length;
+  let sectionTotal = 0;
+
+  chunks.forEach((chunk, chunkIdx) => {
+    sec.rows.forEach((r, ri) => {
+      const tr = document.createElement("tr");
+
+      // 카테고리 라벨 (전체 첫 행에만)
+      if (chunkIdx === 0 && ri === 0) {
+        const catTd = document.createElement("td");
+        catTd.className = "cat-cell";
+        catTd.rowSpan = totalRowsInSection;
+        catTd.textContent = sec.label;
+        tr.appendChild(catTd);
+      }
+
+      // 청크 사이 구분선 (얇은 점선)
+      if (chunkIdx > 0 && ri === 0) {
+        tr.classList.add("chunk-separator");
+      }
+
+      // 서브 라벨
+      const subTd = document.createElement("td");
+      subTd.className = "sub-label";
+      subTd.textContent = r.label;
+      tr.appendChild(subTd);
+
+      let rowTotal = 0;
+      for (let i = 0; i < DAY_COLS; i++) {
+        const item = chunk[i];
+        const td = document.createElement("td");
+        td.className = r.isAmount ? "day-cell amt-cell" : "day-cell";
+
+        if (item === undefined) {
+          // 청크 끝 — 항목 자체가 없는 빈 칸 (지불금액이면 amt-cell 클래스 덕에 자동 그레이, 그 외엔 흰색)
+          td.style.cursor = "not-allowed";
+        } else if (item === null) {
+          // 사용자 추가 입력칸 — 모든 행이 편집 가능
+          td.contentEditable = "true";
+          td.classList.add(r.label === "내역" ? "extra-item" : "extra-data");
+          td.dataset.section = sec.key;
+          td.dataset.field = r.label === "내역" ? "extraName" : (r.isAmount ? "amount" : (r.field || ""));
+          td.addEventListener("input", () => recalcGround());
+          if (r.label === "내역") td.style.textAlign = "center";
+          else if (r.isAmount) td.classList.add("amt-cell");
+        } else if (r.label === "내역") {
+          // 고정 항목 — 라벨 표시 (편집 불가)
+          td.textContent = item;
+          td.style.background = "#fff";
+          td.style.color = "#374151";
+          td.style.fontWeight = "700";
+          td.style.cursor = "default";
+          td.style.textAlign = "center";
+        } else {
+          // 고정 항목의 단가/지불금액 (편집 가능)
+          td.contentEditable = "true";
+          td.dataset.section = sec.key;
+          td.dataset.item = item;
+          td.dataset.field = r.field || (r.isAmount ? "amount" : "");
+          td.addEventListener("input", () => recalcGround());
+
+          // 영수증 데이터 찾기
+          const itemData = (receipts[sec.key] || {})[item];
+          if (itemData) {
+            if (r.isAmount) {
+              const picked = pickAmount(itemData);
+              const tagColor = picked.source === "포스트잇 수기" ? "#fef08a"
+                             : picked.source === "V표시" ? "#bbf7d0"
+                             : "#dbeafe";
+              const tagLabel = picked.source === "포스트잇 수기" ? "포스트"
+                             : picked.source === "V표시" ? "V표"
+                             : "스캔";
+              td.innerHTML = fmt(picked.value) +
+                ` <span class="src-tag" style="background:${tagColor};" title="출처: ${picked.source}\n파일: ${itemData.file}${itemData.note ? '\n메모: ' + itemData.note : ''}">${tagLabel}</span>`;
+              rowTotal += picked.value;
+            } else if (r.field === "unitPrice") {
+              td.textContent = itemData.unitPrice || "";
+            }
+          }
+        }
+
+        // 사용자 입력한 추가 입력칸의 금액도 합산 (지불금액 행이고 숫자가 있으면)
+        if (item === null && r.isAmount && td.textContent.trim()) {
+          const v = Number(td.textContent.replace(/[^\d.-]/g, '')) || 0;
+          rowTotal += v;
+        }
+
+        tr.appendChild(td);
+      }
+
+      // 합계 열 (지불금액 행만)
+      const totalTd = document.createElement("td");
+      totalTd.className = "total-cell";
+      if (r.isAmount) {
+        totalTd.classList.add("amt-total");
+        totalTd.textContent = fmt(rowTotal);
+        sectionTotal += rowTotal;
+      } else {
+        totalTd.textContent = "";
+      }
+      tr.appendChild(totalTd);
+      body.appendChild(tr);
+    });
+  });
+
+  // 섹션의 마지막 행에 section-end 클래스
+  if (body.lastElementChild) body.lastElementChild.classList.add("section-end");
+
+  return sectionTotal;
+}
+
+// 단가 자동계산
+function recalcUnitPrices() {
+  document.querySelectorAll('td.auto-calc[data-field="unitPrice"]').forEach(td => {
+    const section = td.dataset.section;
+    const slot = td.dataset.slot;
+    const day = td.dataset.day;
+    const peopleCell = document.querySelector(
+      `td[data-section="${section}"][data-slot="${slot}"][data-day="${day}"][data-field="people"]`
+    );
+    const amountCell = document.querySelector(
+      `td[data-section="${section}"][data-slot="${slot}"][data-day="${day}"][data-field="amount"]`
+    );
+    if (!peopleCell || !amountCell) { td.textContent = ""; return; }
+
+    const peopleStr = peopleCell.textContent.trim();
+    const people = parsePersonCount(peopleStr);
+    // 금액 (src-tag 제외)
+    const clone = amountCell.cloneNode(true);
+    clone.querySelectorAll(".src-tag").forEach(e => e.remove());
+    const amount = Number(clone.textContent.replace(/[^\d.-]/g, '')) || 0;
+
+    if (people === null) {
+      td.innerHTML = `<span style="color:#dc2626;">형식 오류</span>`;
+    } else if (people > 0 && amount > 0) {
+      const unit = Math.round(amount / people);
+      td.textContent = `¥${fmt(unit)} / 명 (${people}명)`;
+    } else {
+      td.textContent = "";
+    }
+  });
+}
+
+// 메모만 업데이트 (리렌더 없음). yenSpent를 인자로 받거나 DOM에서 계산
+function updateMemoFromTotal(yenSpent, wonSpent) {
+  if (yenSpent === undefined) yenSpent = currentGrandTotal();
+  if (wonSpent === undefined) wonSpent = 0;
+  document.getElementById("m-yen-spent").textContent = fmt(yenSpent);
+  document.getElementById("m-won-spent").textContent = fmt(wonSpent);
+
+  const yenAdvance = val("m-yen-advance");
+  const wonAdvance = val("m-won-advance");
+  const tb = val("m-tb");
+  const tbCurrency = document.getElementById("m-tb-currency").value;
+  const useTB = document.getElementById("m-tb-use").checked;
+
+  // TB는 엔일 때만 엔잔액 계산에 사용. 원일 때는 체크박스 비활성이라 자동으로 useTB=false 처리됨
+  const yenNokori = (tbCurrency === "yen" && useTB)
+    ? (yenAdvance + tb - yenSpent)
+    : (yenAdvance - yenSpent);
+  const wonNokori = wonAdvance - wonSpent;
+
+  const yn = document.getElementById("m-yen-nokori");
+  yn.textContent = (yenNokori < 0 ? "▼ " : "") + fmt(yenNokori);
+  yn.style.background = yenNokori < 0 ? "#fecaca" : "#fef08a";
+  yn.style.color = yenNokori < 0 ? "#991b1b" : "#92400e";
+  yn.style.borderColor = yenNokori < 0 ? "#ef4444" : "#f59e0b";
+
+  document.getElementById("m-won-nokori").textContent = fmt(wonNokori);
+  document.getElementById("m-formula-note").textContent = (tbCurrency === "yen" && useTB)
+    ? "엔잔액 = 엔화전도금 + TB − 엔화지출금"
+    : "엔잔액 = 엔화전도금 − 엔화지출금";
+}
+
+// TB 통화 변경 시: 원 선택하면 체크박스 비활성+해제, 엔 선택하면 활성화
+function onTbCurrencyChange() {
+  const tbCurrency = document.getElementById("m-tb-currency").value;
+  const checkbox = document.getElementById("m-tb-use");
+  const wrap = checkbox.closest(".tb-checkbox-wrap");
+  if (tbCurrency === "won") {
+    checkbox.checked = false;
+    checkbox.disabled = true;
+    if (wrap) wrap.classList.add("disabled");
+  } else {
+    checkbox.disabled = false;
+    if (wrap) wrap.classList.remove("disabled");
+  }
+  recalcMemo();
+}
+
+// 현재 표의 총합을 DOM에서 합산해서 반환 (yen, won 각각)
+function currentTotalByBody(bodyId) {
+  let total = 0;
+  document.querySelectorAll(`#${bodyId} tr td.total-cell`).forEach(td => {
+    const v = Number(td.textContent.replace(/[^\d.-]/g, '')) || 0;
+    total += v;
+  });
+  return total;
+}
+
+// 메모 영역 입력 변경시 — 표는 그대로 두고 메모만 갱신 (포커스 유지)
+function recalcMemo() {
+  const yenTotal = currentTotalByBody('ground-body') + sumUploadedByCurrency("yen");
+  const wonTotal = currentTotalByBody('etc-body') + sumUploadedByCurrency("won");
+  updateMemoFromTotal(yenTotal, wonTotal);
+}
+
+// 전체 리렌더 (날짜/일자수/슬롯수 변경 시에만)
+function fullRender() {
+  const yenSpent = renderGroundTable() + sumUploadedByCurrency("yen");
+  const wonSpent = renderEtcTable() + sumUploadedByCurrency("won");
+  updateMemoFromTotal(yenSpent, wonSpent);
+}
+
+// 기타경비(원화) 표 렌더링
+function renderEtcTable() {
+  const thead = document.querySelector("#etc-table thead");
+  thead.innerHTML = "";
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<th colspan="2" class="cat-head">기타경비</th>`;
+  // etc는 항목 기반이라 헤더는 단순히 빈 컬럼 (항목 이름은 내역 행에 표시됨)
+  for (let i = 0; i < DAY_COLS; i++) {
+    tr.innerHTML += `<th class="day-col">　</th>`;
+  }
+  tr.innerHTML += `<th class="total-col">TOTAL(원)</th>`;
+  thead.appendChild(tr);
+
+  const body = document.getElementById("etc-body");
+  body.innerHTML = "";
+  return renderItemSection(etcSection, body);
+}
+
+// 행사일 기간 → 일수 자동계산
+function updateDateRange() {
+  const s = document.getElementById("info-date-start").value;
+  const e = document.getElementById("info-date-end").value;
+  const out = document.getElementById("info-day-count");
+  if (!s || !e) { out.textContent = ""; fullRender(); return; }
+  const d1 = new Date(s), d2 = new Date(e);
+  const diff = Math.round((d2 - d1) / (1000*60*60*24));
+  if (diff < 0) { out.textContent = "❗ 종료일이 시작일보다 빠릅니다"; out.style.background="#fecaca"; out.style.color="#991b1b"; fullRender(); return; }
+  out.style.background = "#dbeafe"; out.style.color = "#1e40af";
+  out.textContent = `${diff + 1}일`;
+  fullRender();  // 컬럼 헤더 날짜 갱신을 위해 전체 리렌더
+}
+
+// 표 1개의 합계를 DOM에서 재계산해서 반환 (리렌더 없음)
+function recalcTable(bodyId) {
+  let total = 0;
+  document.querySelectorAll(`#${bodyId} tr`).forEach(tr => {
+    const dayCells = tr.querySelectorAll('td.day-cell.amt-cell');
+    if (dayCells.length === 0) return;
+    let rowTotal = 0;
+    dayCells.forEach(td => {
+      const clone = td.cloneNode(true);
+      clone.querySelectorAll('.src-tag').forEach(e => e.remove());
+      const v = Number(clone.textContent.replace(/[^\d.-]/g, '')) || 0;
+      rowTotal += v;
+    });
+    const totalCell = tr.querySelector('td.total-cell');
+    if (totalCell) totalCell.textContent = fmt(rowTotal);
+    total += rowTotal;
+  });
+  return total;
+}
+
+// 입력 시 호출 — 리렌더 없이 단가 자동계산 + 행 합계 + 총합 + 메모 갱신만
+function recalcGround() {
+  recalcUnitPrices();
+  const yenTotal = recalcTable('ground-body') + sumUploadedByCurrency("yen");
+  const wonTotal = recalcTable('etc-body') + sumUploadedByCurrency("won");
+  updateMemoFromTotal(yenTotal, wonTotal);
+}
+
+// 관광지 슬롯 추가
+function addTourSlot() {
+  if (TOUR_SLOTS >= 10) { alert("관광지 슬롯은 최대 10개까지 추가할 수 있습니다."); return; }
+  TOUR_SLOTS++;
+  localStorage.setItem("tourSlots", TOUR_SLOTS);
+  fullRender();
+}
+
+// 일자 컬럼 추가/삭제
+function addDayCol() {
+  if (DAY_COLS >= 10) { alert("일자는 최대 10일까지 추가할 수 있습니다."); return; }
+  DAY_COLS++;
+  localStorage.setItem("dayCols", DAY_COLS);
+  fullRender();
+}
+function removeDayCol() {
+  if (DAY_COLS <= 1) { alert("일자는 최소 1일 이상이어야 합니다."); return; }
+  if (!confirm(`마지막 일자(제${DAY_COLS}일) 컬럼을 삭제하시겠습니까?\n해당 일자에 입력된 내용은 사라집니다.`)) return;
+  DAY_COLS--;
+  localStorage.setItem("dayCols", DAY_COLS);
+  fullRender();
+}
+
+// 관광지 슬롯 삭제 (해당 슬롯의 데이터도 제거, 뒷슬롯 번호 당김)
+function removeTourSlot(slotNum) {
+  if (TOUR_SLOTS <= 1) { alert("관광지 슬롯은 최소 1개 이상이어야 합니다."); return; }
+  // 화면에 표시된(편집 가능한) 셀의 데이터 캡처 (사용자 편집분 보존)
+  const editedTour = collectTourEdits();
+  const hasData = editedTour.some(t => (t.slot||1) === slotNum);
+  if (hasData && !confirm(`관광지 ${slotNum}번 슬롯에 입력된 내용이 있습니다.\n정말 삭제하시겠습니까?`)) return;
+
+  // 해당 슬롯의 데이터 제거 + 뒷 슬롯들을 한 칸씩 앞으로
+  receipts.tour = editedTour
+    .filter(t => (t.slot||1) !== slotNum)
+    .map(t => {
+      const s = t.slot || 1;
+      return s > slotNum ? { ...t, slot: s - 1 } : t;
+    });
+
+  TOUR_SLOTS--;
+  localStorage.setItem("tourSlots", TOUR_SLOTS);
+  fullRender();
+}
+
+// 현재 화면에서 관광지 셀의 사용자 편집 내용을 receipts.tour 구조로 수집
+function collectTourEdits() {
+  const cells = document.querySelectorAll('#ground-body td[data-section="tour"]');
+  const map = {}; // key: slot|day → { date, name, unitPrice, amount }
+  cells.forEach(td => {
+    const slot = Number(td.dataset.slot);
+    const day = Number(td.dataset.day);
+    const field = td.dataset.field;
+    const key = `${slot}|${day}`;
+    if (!map[key]) map[key] = { slot, day };
+    // 텍스트 추출 (src-tag 제외)
+    const clone = td.cloneNode(true);
+    clone.querySelectorAll(".src-tag").forEach(e => e.remove());
+    const txt = clone.textContent.trim();
+    if (field === "amount") {
+      const n = Number(txt.replace(/[^\d.-]/g, ""));
+      map[key].amount_printed = n || null;
+    } else if (field) {
+      map[key][field] = txt;
+    }
+  });
+  // day → date 변환 (행사일 시작일 기준)
+  const start = document.getElementById("info-date-start").value;
+  const out = [];
+  Object.values(map).forEach(r => {
+    const date = addDaysISO(start, r.day - 1);
+    // 비어있는 행은 제외
+    if (!r.name && !r.unitPrice && !r.amount_printed) return;
+    out.push({
+      date,
+      slot: r.slot,
+      name: r.name || "",
+      unitPrice: r.unitPrice || "",
+      amount_postit: null,
+      amount_v_mark: null,
+      amount_printed: r.amount_printed || null,
+      file: "수기 입력"
+    });
+  });
+  return out;
+}
+
+// 입력값 자동 저장/복원 (브라우저 localStorage)
+const SAVE_IDS = [
+  "info-agency","info-group","info-date-start","info-date-end","info-people","info-host","info-guide",
+  "m-yen-advance","m-won-advance","m-extra-meal","m-tb","m-tb-currency","m-sp"
+];
+function saveAll() {
+  const data = {};
+  SAVE_IDS.forEach(id => data[id] = document.getElementById(id).value);
+  data["m-tb-use"] = document.getElementById("m-tb-use").checked;
+  localStorage.setItem("guideSettlement", JSON.stringify(data));
+}
+function loadAll() {
+  try {
+    const data = JSON.parse(localStorage.getItem("guideSettlement") || "{}");
+    SAVE_IDS.forEach(id => { if (data[id] !== undefined) document.getElementById(id).value = data[id]; });
+    if (data["m-tb-use"]) document.getElementById("m-tb-use").checked = true;
+  } catch(e) {}
+}
+
+document.addEventListener("input", saveAll);
+document.addEventListener("change", saveAll);
+
+// 정산서 표 입력칸: Enter 키 누르면 커서 해제 (포커스 빠지고 줄바꿈 안 됨)
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.isContentEditable) {
+    e.preventDefault();
+    e.target.blur();
+  }
+});
+
+// ===== 영수증 업로드 =====
+let uploadedReceipts = [];
+try { uploadedReceipts = JSON.parse(localStorage.getItem("uploadedReceipts") || "[]"); } catch(e) {}
+
+// 업로드한 영수증의 금액 중 통화별 합계 (메모 지출금에 더해짐)
+const WON_CATEGORIES = ["기타경비"];
+function sumUploadedByCurrency(currency) {
+  return uploadedReceipts.reduce((sum, r) => {
+    if (!r.category) return sum;
+    const amt = Number(String(r.amount||"").replace(/[^\d.-]/g, "")) || 0;
+    if (amt <= 0) return sum;
+    const isWon = WON_CATEGORIES.includes(r.category);
+    if (currency === "won" && isWon) return sum + amt;
+    if (currency === "yen" && !isWon) return sum + amt;
+    return sum;
+  }, 0);
+}
+
+const uploadArea = document.getElementById("upload-area");
+const uploadInput = document.getElementById("upload-file-input");
+
+uploadArea.addEventListener("dragover", e => {
+  e.preventDefault();
+  uploadArea.classList.add("dragover");
+});
+uploadArea.addEventListener("dragleave", () => uploadArea.classList.remove("dragover"));
+uploadArea.addEventListener("drop", e => {
+  e.preventDefault();
+  uploadArea.classList.remove("dragover");
+  handleUploadFiles(Array.from(e.dataTransfer.files));
+});
+uploadInput.addEventListener("change", e => {
+  // FileList를 배열로 먼저 복사 (input.value 초기화 후에도 안전하게 처리)
+  const filesArr = Array.from(e.target.files);
+  e.target.value = "";  // 같은 파일 재선택 가능하도록 리셋
+  handleUploadFiles(filesArr);
+});
+
+async function handleUploadFiles(files) {
+  for (const file of files) {
+    try {
+      if (file.type.startsWith("image/")) {
+        const dataUrl = await compressImage(file);
+        uploadedReceipts.push({
+          id: "r_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          name: file.name,
+          date: "",
+          category: "",
+          amount: "",
+          note: "",
+          dataUrl,
+          isPdf: false
+        });
+      } else if (file.type === "application/pdf") {
+        const dataUrl = await readAsDataURL(file);
+        uploadedReceipts.push({
+          id: "r_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          name: file.name,
+          date: "",
+          category: "",
+          amount: "",
+          note: "",
+          dataUrl,
+          isPdf: true
+        });
+      } else {
+        alert(`지원하지 않는 파일 형식: ${file.name}`);
+      }
+    } catch(e) {
+      console.error(e);
+      alert(`업로드 실패: ${file.name}\n${e.message}`);
+    }
+  }
+  saveUploadedReceipts();
+  renderUploadedReceipts();
+  recalcGround();  // 업로드한 영수증의 금액(있다면) 즉시 합계 반영
+}
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxDim = 1400;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim/w, maxDim/h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function readAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderUploadedReceipts() {
+  const grid = document.getElementById("receipt-grid");
+  grid.innerHTML = "";
+
+  if (uploadedReceipts.length === 0) {
+    document.getElementById("storage-info").textContent = "";
+    return;
+  }
+
+  uploadedReceipts.forEach(r => {
+    const card = document.createElement("div");
+    card.className = "receipt-card";
+    const thumb = r.isPdf
+      ? `<div class="pdf-icon">📄</div><div class="pdf-icon-label">PDF</div>`
+      : `<img src="${r.dataUrl}" alt="${r.name}">`;
+    card.innerHTML = `
+      <div class="receipt-thumb" onclick="openReceiptModal('${r.id}')">${thumb}</div>
+      <div class="receipt-info">
+        <div class="name" title="${r.name}">${r.name}</div>
+        <input type="date" value="${r.date||''}" data-id="${r.id}" data-field="date" title="날짜">
+        <select data-id="${r.id}" data-field="category" title="카테고리">
+          <option value="">카테고리 선택</option>
+          <option value="호텔" ${r.category==='호텔'?'selected':''}>호텔</option>
+          <option value="중식" ${r.category==='중식'?'selected':''}>중식</option>
+          <option value="석식" ${r.category==='석식'?'selected':''}>석식</option>
+          <option value="관광지" ${r.category==='관광지'?'selected':''}>관광지</option>
+          <option value="기타" ${r.category==='기타'?'selected':''}>기타(엔화)</option>
+          <option value="버스" ${r.category==='버스'?'selected':''}>버스</option>
+          <option value="가이드" ${r.category==='가이드'?'selected':''}>가이드</option>
+          <option value="기타경비" ${r.category==='기타경비'?'selected':''}>기타경비(원화)</option>
+        </select>
+        <input type="text" value="${r.amount||''}" data-id="${r.id}" data-field="amount" placeholder="금액" title="금액">
+        <input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note" placeholder="메모" title="메모">
+        <div class="receipt-actions">
+          <button class="analyze" onclick="analyzeReceiptWithAI('${r.id}', this)" ${r.isPdf?'disabled title="PDF는 자동 분석 미지원"':''}>🤖 분석</button>
+          <button onclick="openReceiptModal('${r.id}')">크게</button>
+          <button class="delete" onclick="deleteUploadedReceipt('${r.id}')">삭제</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // 메타데이터 입력 변경 시 저장 + 합계 즉시 재계산
+  grid.querySelectorAll("input[data-id], select[data-id]").forEach(el => {
+    el.addEventListener("change", e => {
+      const id = e.target.dataset.id;
+      const field = e.target.dataset.field;
+      const item = uploadedReceipts.find(r => r.id === id);
+      if (item) {
+        item[field] = e.target.value;
+        saveUploadedReceipts();
+        // 카테고리/금액이 바뀌면 합계 갱신
+        if (field === "category" || field === "amount") {
+          recalcGround();
+        }
+      }
+    });
+  });
+
+  // 저장 공간 표시
+  const sizeMB = (JSON.stringify(uploadedReceipts).length / 1024 / 1024).toFixed(2);
+  document.getElementById("storage-info").textContent =
+    `📦 첨부 ${uploadedReceipts.length}건 · 약 ${sizeMB}MB (브라우저에 저장됨)`;
+}
+
+function saveUploadedReceipts() {
+  try {
+    localStorage.setItem("uploadedReceipts", JSON.stringify(uploadedReceipts));
+  } catch(e) {
+    alert("브라우저 저장 공간이 부족합니다 (보통 5MB 한도).\n오래된 영수증을 일부 삭제해 주세요.");
+  }
+}
+
+function deleteUploadedReceipt(id) {
+  const r = uploadedReceipts.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(`"${r.name}" 영수증을 삭제할까요?`)) return;
+  uploadedReceipts = uploadedReceipts.filter(x => x.id !== id);
+  saveUploadedReceipts();
+  renderUploadedReceipts();
+  recalcGround();  // 삭제된 영수증 금액도 합계에서 빠짐
+}
+
+function openReceiptModal(id) {
+  const r = uploadedReceipts.find(x => x.id === id);
+  if (!r) return;
+  const body = document.getElementById("modal-body");
+  if (r.isPdf) {
+    body.innerHTML = `
+      <h3 style="margin:0 0 12px;color:#374151;">${r.name}</h3>
+      <embed src="${r.dataUrl}" type="application/pdf" style="width:80vw;height:75vh;">
+    `;
+  } else {
+    body.innerHTML = `
+      <h3 style="margin:0 0 12px;color:#374151;">${r.name}</h3>
+      <img src="${r.dataUrl}" alt="${r.name}">
+    `;
+  }
+  document.getElementById("receipt-modal").classList.add("show");
+}
+
+function closeReceiptModal(e) {
+  if (e && e.target !== document.getElementById("receipt-modal")) return;
+  document.getElementById("receipt-modal").classList.remove("show");
+  document.getElementById("modal-body").innerHTML = "";
+}
+// Esc 키로 닫기
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeReceiptModal({target: document.getElementById("receipt-modal")});
+});
+
+// ===== Claude API 자동 분석 =====
+const apiKeyInput = document.getElementById("api-key-input");
+const apiModelInput = document.getElementById("api-model-input");
+const apiStatusEl = document.getElementById("api-status");
+
+// 저장된 키/모델 복원
+apiKeyInput.value = localStorage.getItem("apiKey") || "";
+apiModelInput.value = localStorage.getItem("apiModel") || "claude-sonnet-4-6";
+updateApiStatus();
+
+apiKeyInput.addEventListener("input", () => {
+  localStorage.setItem("apiKey", apiKeyInput.value);
+  updateApiStatus();
+});
+apiModelInput.addEventListener("change", () => {
+  localStorage.setItem("apiModel", apiModelInput.value);
+});
+
+function updateApiStatus() {
+  const key = apiKeyInput.value.trim();
+  if (!key) {
+    apiStatusEl.textContent = "API 키 미설정 — 자동 분석 비활성";
+    apiStatusEl.className = "api-status";
+  } else if (!key.startsWith("sk-ant-")) {
+    apiStatusEl.textContent = "⚠ Anthropic 키는 보통 sk-ant- 로 시작합니다. 확인해 주세요.";
+    apiStatusEl.className = "api-status error";
+  } else {
+    apiStatusEl.textContent = "✓ API 키 설정됨 — 자동 분석 사용 가능";
+    apiStatusEl.className = "api-status ok";
+  }
+}
+
+async function analyzeReceiptWithAI(id, btnEl) {
+  const key = apiKeyInput.value.trim();
+  if (!key) {
+    alert("먼저 위쪽 'Claude API 자동 분석 설정'에서 API 키를 입력해 주세요.");
+    document.getElementById("api-settings").open = true;
+    return;
+  }
+  const item = uploadedReceipts.find(r => r.id === id);
+  if (!item) return;
+  if (item.isPdf) { alert("PDF는 자동 분석을 지원하지 않습니다. JPG/PNG로 저장 후 업로드해 주세요."); return; }
+
+  // 버튼 비활성화 & 로딩 상태
+  const originalText = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "분석중…";
+
+  try {
+    // dataUrl → base64 (data:image/jpeg;base64,xxx 에서 xxx 부분)
+    const m = item.dataUrl.match(/^data:(image\/[a-z]+);base64,(.+)$/);
+    if (!m) throw new Error("이미지 형식을 인식할 수 없습니다.");
+    const mediaType = m[1];
+    const b64 = m[2];
+
+    const prompt =
+      "이 영수증을 분석해서 다음 정보를 JSON으로만 답변해주세요(다른 설명 X):\n" +
+      "{\n" +
+      '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
+      '  "category": "다음 중 하나: 호텔, 중식, 석식, 관광지, 기타, 버스, 가이드, 기타경비",\n' +
+      '  "amount": 금액 숫자만 (콤마/통화기호 없이),\n' +
+      '  "currency": "yen 또는 won",\n' +
+      '  "place": "사용처/상호명",\n' +
+      '  "note": "내용 요약 (메뉴/인원/특이사항 등)"\n' +
+      "}\n\n" +
+      "우선순위 규칙: 포스트잇에 손글씨 금액 > 볼펜으로 V 체크된 금액 > 인쇄된 금액. 가장 높은 우선순위 금액을 amount에 넣어주세요.\n" +
+      "카테고리 판단: 영수증 상단/주변에 손글씨로 적힌 텍스트(예: '호텔비', '식대', '기사식대', '오차대', '출국세')가 있으면 그것을 우선 참고하세요.\n" +
+      "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
+      "JSON 외 다른 텍스트는 절대 출력하지 마세요.";
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: apiModelInput.value,
+        max_tokens: 512,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+            { type: "text", text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`API 오류 (${res.status}): ${errText.slice(0, 200)}`);
+    }
+    const data = await res.json();
+    const text = data?.content?.[0]?.text || "";
+
+    // JSON 파싱 (모델이 코드블록으로 감싸도 처리)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("응답에서 JSON을 찾지 못했습니다.\n" + text);
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // 결과 반영
+    if (parsed.date) item.date = parsed.date;
+    if (parsed.category) item.category = parsed.category;
+    if (parsed.amount !== undefined && parsed.amount !== null) item.amount = String(parsed.amount);
+    const placeNote = [parsed.place, parsed.note].filter(Boolean).join(" / ");
+    if (placeNote) item.note = placeNote;
+
+    saveUploadedReceipts();
+    renderUploadedReceipts();
+    recalcGround();
+
+    // 사용량 정보 (있으면)
+    const usage = data?.usage;
+    if (usage) {
+      console.log("Token usage:", usage);
+    }
+  } catch(e) {
+    alert("분석 실패: " + e.message);
+    console.error(e);
+  } finally {
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+  }
+}
+
+// ===== 랜드사 양식으로 내보내기 (ExcelJS 사용) =====
+
+// 화면(셀)에서 사용자가 직접 입력한 내용까지 합쳐서 데이터를 수집
+function collectAllData() {
+  const start = document.getElementById("info-date-start").value;
+
+  // 1) 헤더 정보
+  const info = {
+    host:    document.getElementById("info-host").value,
+    agency:  document.getElementById("info-agency").value,
+    group:   document.getElementById("info-group").value,
+    dateStart: start,
+    dateEnd: document.getElementById("info-date-end").value,
+    people:  document.getElementById("info-people").value,
+    guide:   document.getElementById("info-guide").value,
+  };
+
+  // 2) 메모
+  const memo = {
+    yenAdvance: Number(val("m-yen-advance")) || 0,
+    wonAdvance: Number(val("m-won-advance")) || 0,
+    extraMeal:  Number(val("m-extra-meal")) || 0,
+    tb:         Number(val("m-tb")) || 0,
+    tbCurrency: document.getElementById("m-tb-currency").value,
+    useTB:      document.getElementById("m-tb-use").checked,
+    sp:         document.getElementById("m-sp").value,
+  };
+
+  // 3) 지상경비 표 (현재 DOM 기준 - 사용자 수정분 포함)
+  // 각 셀에서 값 추출. 날짜 기반(hotel/lunch/dinner/tour)은 day index 기준
+  const ground = {
+    hotel: [], lunch: [], dinner: [], tour: [], bus: [], guide: [], etcYen: []
+  };
+  document.querySelectorAll('#ground-body tr').forEach(tr => {
+    // 행을 모아서 처리하지 않고, 셀 단위로 카테고리·일자·필드를 식별해서 누적
+  });
+
+  // 더 간단하게: receipts 데이터 + DOM 사용자 입력을 머지하기보다,
+  // 각 카테고리별로 DOM의 셀들을 수집해서 객체로 만든다
+  const groundCells = {};
+  document.querySelectorAll('#ground-body td[data-section], #etc-body td[data-section]').forEach(td => {
+    const sec = td.dataset.section;
+    const day = td.dataset.day;
+    const slot = td.dataset.slot || "1";
+    const field = td.dataset.field;
+    const item = td.dataset.item;  // bus/guide/etcYen에서만 있음
+    const key = `${sec}|${day}|${slot}|${item||""}`;
+    if (!groundCells[key]) groundCells[key] = { section: sec, day, slot, item };
+    const clone = td.cloneNode(true);
+    clone.querySelectorAll(".src-tag").forEach(e => e.remove());
+    const txt = clone.textContent.trim();
+    if (field === "amount") {
+      groundCells[key].amount = Number(txt.replace(/[^\d.-]/g, '')) || 0;
+    } else if (field) {
+      groundCells[key][field] = txt;
+    }
+  });
+
+  // 카테고리별로 정리
+  Object.values(groundCells).forEach(cell => {
+    const sec = cell.section;
+    if (!ground[sec]) ground[sec] = [];
+    ground[sec].push(cell);
+  });
+
+  // 업로드한 영수증 (수동 메타데이터 입력분)
+  const uploaded = uploadedReceipts.filter(r => r.category && r.amount);
+
+  return { info, memo, ground, uploaded, start };
+}
+
+// 빈/0 값이면 undefined 반환 → 해당 셀에 아무것도 안 씀
+function v(val, allowZero = false) {
+  if (val === undefined || val === null || val === "") return undefined;
+  if (!allowZero && Number(val) === 0) return undefined;
+  return val;
+}
+
+// ExcelJS 셀에 값 설정. undefined/빈값이면 아무것도 안 씀 (원본 양식의 값/수식 유지)
+function setCell(ws, address, value) {
+  if (value === undefined || value === null || value === "") return;
+  const cell = ws.getCell(address);
+  cell.value = value;
+}
+
+// 명시적으로 빈 값을 쓰고 싶을 때 (수식 덮어쓰기 등)
+function setCellForce(ws, address, value) {
+  ws.getCell(address).value = (value === undefined || value === null) ? null : value;
+}
+
+// 일자(1~6) → 제펜트레블 컬럼 매핑 (B, C, D, F, H, I)
+const JP_DAY_COLS = { 1: "B", 2: "C", 3: "D", 4: "F", 5: "H", 6: "I" };
+
+// 같은 카테고리·일자에 여러 건 있을 때 합산
+function sumByDay(items, dayKey) {
+  return items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+}
+
+// =====[ 제펜트레블 매핑 ]=====
+async function mapJapanTravel(wb, data) {
+  const ws = wb.worksheets[0];
+
+  // 헤더
+  setCell(ws, "A2", "단체명 : " + (data.info.group || ""));
+  setCell(ws, "A3", "행사기간 : " + (data.info.dateStart || "") + (data.info.dateEnd ? " ~ " + data.info.dateEnd : ""));
+  setCell(ws, "A4", "인 원 : " + (data.info.people || ""));
+
+  // 일자별 데이터 매핑
+  const hotelByDay  = {}; data.ground.hotel .forEach(c => { (hotelByDay [c.day] = hotelByDay [c.day] || []).push(c); });
+  const lunchByDay  = {}; data.ground.lunch .forEach(c => { (lunchByDay [c.day] = lunchByDay [c.day] || []).push(c); });
+  const dinnerByDay = {}; data.ground.dinner.forEach(c => { (dinnerByDay[c.day] = dinnerByDay[c.day] || []).push(c); });
+  const tourByDay   = {}; data.ground.tour  .forEach(c => { (tourByDay  [c.day] = tourByDay  [c.day] || []).push(c); });
+
+  // 행별 합계 누적용 (B/C/D/F/H/I 컬럼별 daily 총합)
+  const dayTotals = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+
+  function addToDayTotal(day, amount) {
+    if (!amount) return;
+    dayTotals[day] = (dayTotals[day] || 0) + amount;
+  }
+
+  for (let d = 1; d <= 6; d++) {
+    const col = JP_DAY_COLS[d];
+
+    // 호텔
+    const hotelItems = hotelByDay[d] || [];
+    const hotelName = hotelItems.map(h => h.name).filter(Boolean).join(" / ");
+    const hotelAmt = hotelItems.reduce((s, h) => s + (h.amount||0), 0);
+    setCell(ws, col + "6", v(hotelName));
+    setCell(ws, col + "7", v(hotelAmt, false));
+    addToDayTotal(d, hotelAmt);
+
+    // 중식
+    const lunchItems = lunchByDay[d] || [];
+    const lunchAmt = lunchItems.reduce((s, h) => s + (h.amount||0), 0);
+    setCell(ws, col + "8", v(lunchItems.map(h => h.name).filter(Boolean).join(" / ")));
+    setCell(ws, col + "9", v(lunchAmt, false));
+    addToDayTotal(d, lunchAmt);
+
+    // 석식
+    const dinnerItems = dinnerByDay[d] || [];
+    const dinnerAmt = dinnerItems.reduce((s, h) => s + (h.amount||0), 0);
+    setCell(ws, col + "10", v(dinnerItems.map(h => h.name).filter(Boolean).join(" / ")));
+    setCell(ws, col + "11", v(dinnerAmt, false));
+    addToDayTotal(d, dinnerAmt);
+
+    // 관광지 슬롯 1/2/3 → rows 12-13, 14-15, 16-17
+    const tourItems = tourByDay[d] || [];
+    for (let slot = 1; slot <= 3; slot++) {
+      const item = tourItems.find(t => Number(t.slot) === slot);
+      const nameRow = 12 + (slot - 1) * 2;
+      const amtRow = nameRow + 1;
+      if (item) {
+        setCell(ws, col + nameRow, v(item.name));
+        setCell(ws, col + amtRow, v(item.amount, false));
+        addToDayTotal(d, item.amount || 0);
+      }
+    }
+  }
+
+  // 항목 기반 (bus/guide/etcYen) — 1일차 컬럼(B)에 합계로 입력
+  function busTotal  (n) { return data.ground.bus   .filter(b => b.item === n).reduce((s,b)=>s+(b.amount||0),0); }
+  function guideTotal(n) { return data.ground.guide .filter(g => g.item === n).reduce((s,g)=>s+(g.amount||0),0); }
+  function etcYenTotal(n){ return data.ground.etcYen.filter(e => e.item === n).reduce((s,e)=>s+(e.amount||0),0); }
+
+  const busBi        = busTotal("버스비");
+  const busDoro      = busTotal("도로비") + busTotal("회송대") + busTotal("주차대");
+  const guideJunhwa  = guideTotal("통신료");
+  // 일본 항만세 = 출국 관련 모든 세금 (출국세 + 부두세 + 항만세)
+  const japanHangman = etcYenTotal("부두세") + etcYenTotal("출국세") +
+                       etcYenTotal("일본 항만세") + etcYenTotal("항만세");
+  const japanYuryu   = etcYenTotal("유류세") + etcYenTotal("일본 유류세");
+  const guideMeal    = guideTotal("식대");
+  const dvMeal       = busTotal("기사식대");
+  const dvTip        = busTotal("오차다이");
+
+  setCell(ws, "B18", v(busBi,        false));
+  setCell(ws, "B19", v(busDoro,      false));
+  setCell(ws, "B20", v(guideJunhwa,  false));
+  setCell(ws, "B21", v(japanHangman, false));
+  setCell(ws, "B22", v(japanYuryu,   false));
+  setCell(ws, "B23", v(guideMeal,    false));
+  setCell(ws, "B24", v(dvMeal,       false));
+  setCell(ws, "B25", v(dvTip,        false));
+
+  // B21에 출국세 묶음 안내 (참고용)
+  if (etcYenTotal("출국세") > 0 || etcYenTotal("부두세") > 0) {
+    const parts = [];
+    if (etcYenTotal("출국세") > 0) parts.push(`출국세 ¥${etcYenTotal("출국세").toLocaleString()}`);
+    if (etcYenTotal("부두세") > 0) parts.push(`부두세 ¥${etcYenTotal("부두세").toLocaleString()}`);
+    setCell(ws, "L21", "포함: " + parts.join(" + "));
+  }
+
+  // 위 항목들도 1일차 누적
+  const day1ItemSum = busBi + busDoro + guideJunhwa + japanHangman + japanYuryu + guideMeal + dvMeal + dvTip;
+  addToDayTotal(1, day1ItemSum);
+
+  // 이미 매핑된 etcYen 항목들 (중복 카운트 방지용)
+  const MAPPED_ETCYEN = ["부두세","출국세","일본 항만세","항만세","유류세","일본 유류세"];
+  // 아직 매핑 안 된 etcYen 항목 → L36 비고에 표시 + 1일차 누적
+  const otherEtc = data.ground.etcYen.filter(e => e.item && !MAPPED_ETCYEN.includes(e.item) && (e.amount||0) > 0);
+  let otherTotal = 0;
+  if (otherEtc.length > 0) {
+    const note = otherEtc.map(e => `${e.item}:¥${(e.amount||0).toLocaleString()}`).join(" / ");
+    setCell(ws, "L36", "기타(미매핑): " + note);
+    otherTotal = otherEtc.reduce((s,e)=>s+(e.amount||0),0);
+    addToDayTotal(1, otherTotal);
+  }
+
+  // 일자별 합계 (row 29) — SUM 수식으로 입력 (사용자가 셀 수정시 자동 재계산)
+  // 행 7,9,11,13,15,17,18~27 (호텔비/중식비/석식비/입장료×3/버스/도로/전화/항만/유류/가이드식사/D식사/D팁/선물/금액)
+  for (let d = 1; d <= 6; d++) {
+    const col = JP_DAY_COLS[d];
+    const formula = `SUM(${col}7,${col}9,${col}11,${col}13,${col}15,${col}17,${col}18,${col}19,${col}20,${col}21,${col}22,${col}23,${col}24,${col}25,${col}26,${col}27)`;
+    ws.getCell(col + "29").value = { formula: formula, result: dayTotals[d] || 0 };
+  }
+
+  // 총합계 (모든 일자 합) — 캐시 결과용
+  const grandTotal = Object.values(dayTotals).reduce((s,x)=>s+x, 0);
+
+  // 메모 영역
+  setCell(ws, "B31", v(data.memo.yenAdvance, false));        // 엔화 전도금
+  setCell(ws, "C31", v(data.memo.wonAdvance, false));        // 원화 전도금
+  if (data.memo.tbCurrency === "yen") {
+    setCell(ws, "D31", v(data.memo.tb, false));              // 팁백(엔)
+  } else {
+    setCell(ws, "F31", v(data.memo.tb, false));              // 팁백(원)
+  }
+
+  // 총지출 B32 = SUM(모든 일자 합계 셀) — 수식
+  ws.getCell("B32").value = {
+    formula: "SUM(B29,C29,D29,F29,H29,I29)",
+    result: grandTotal
+  };
+
+  // 잔액 B33 = B31 - B32 — 수식 (원본 양식과 동일)
+  const balance = (data.memo.yenAdvance || 0) - grandTotal;
+  ws.getCell("B33").value = {
+    formula: "B31-B32",
+    result: balance
+  };
+
+  // 파일 열 때 Excel이 자동 재계산하도록 설정
+  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
+
+  // ===== 검증: 매핑된 데이터 합계 vs 가이드 정산서 총지출 (데이터 기반) =====
+  let mappedSum = 0;
+  data.ground.hotel .forEach(h => mappedSum += (h.amount || 0));
+  data.ground.lunch .forEach(l => mappedSum += (l.amount || 0));
+  data.ground.dinner.forEach(d => mappedSum += (d.amount || 0));
+  data.ground.tour  .forEach(t => mappedSum += (t.amount || 0));
+
+  const BUS_MAPPED = ["버스비","도로비","오차다이","회송대","주차대","기사식대"];
+  const busUnmapped = [];
+  data.ground.bus.forEach(b => {
+    if (BUS_MAPPED.includes(b.item)) mappedSum += (b.amount || 0);
+    else if ((b.amount || 0) > 0) busUnmapped.push(b);
+  });
+
+  const GUIDE_MAPPED = ["통신료","식대"];
+  const guideUnmapped = [];
+  data.ground.guide.forEach(g => {
+    if (GUIDE_MAPPED.includes(g.item)) mappedSum += (g.amount || 0);
+    else if ((g.amount || 0) > 0) guideUnmapped.push(g);
+  });
+
+  const ETCYEN_MAPPED = ["부두세","출국세","일본 항만세","항만세","유류세","일본 유류세"];
+  data.ground.etcYen.forEach(e => {
+    // 매핑된 항목은 B21/B22에, 미매핑은 L36에 들어감 — 둘 다 합계엔 포함됨
+    mappedSum += (e.amount || 0);
+  });
+
+  const diff = grandTotal - mappedSum;
+  const allUnmapped = [
+    ...busUnmapped.map(b => `버스 / ${b.item}: ¥${(b.amount||0).toLocaleString()}`),
+    ...guideUnmapped.map(g => `가이드 / ${g.item}: ¥${(g.amount||0).toLocaleString()}`)
+  ];
+
+  if (Math.abs(diff) > 0.5 || allUnmapped.length > 0) {
+    let msg =
+      "⚠️ 합계 불일치 경고 (제펜트레블 양식)\n\n" +
+      `· 가이드 정산서 총 지출:  ¥${grandTotal.toLocaleString()}\n` +
+      `· 제펜트레블 양식 내역 합:  ¥${mappedSum.toLocaleString()}\n` +
+      `· 차액 (양식에 들어가지 못함):  ¥${diff.toLocaleString()}\n\n`;
+    if (allUnmapped.length > 0) {
+      msg += "[양식에 자동 매핑되지 않은 항목]\n" +
+             allUnmapped.map(n => "  • " + n).join("\n") + "\n\n" +
+             "→ 다운로드된 엑셀을 열어 직접 추가/조정해 주세요.";
+    } else {
+      msg += "양식과 데이터 간 차이 확인 필요. 다운로드된 엑셀을 열어 확인해 주세요.";
+    }
+    alert(msg);
+  }
+}
+
+// =====[ 이쯔모 매핑 ]=====
+// 일자(1~7) → 이쯔모 컬럼 매핑 (D=1, F=2, H=3, J=4, L=5, N=6, P=7)
+const ITSUMO_DAY_COLS = { 1: "D", 2: "F", 3: "H", 4: "J", 5: "L", 6: "N", 7: "P" };
+
+async function mapItsumo(wb, data) {
+  const ws = wb.worksheets[0];
+
+  // ===== 헤더 =====
+  setCell(ws, "D2", data.info.agency || "");          // 여행사
+  setCell(ws, "D3", data.info.group  || "");          // 단체명
+  // 행사일: 시작 D4, 종료 G4 (F4에 "~")
+  setCell(ws, "D4", data.info.dateStart || "");
+  if (data.info.dateEnd) {
+    setCell(ws, "F4", "~");
+    setCell(ws, "G4", data.info.dateEnd);
+  }
+  setCell(ws, "D5", data.info.people || "");
+  setCell(ws, "D6", data.info.host   || "");          // 주관사(랜드사)
+  setCell(ws, "D7", data.info.guide  || "");
+
+  // ===== 메모 =====
+  // M4(엔화지출금), M6(엔화노코리)는 템플릿 수식 유지
+  setCell(ws, "M3", v(data.memo.yenAdvance, false));  // 엔화전도금
+  setCell(ws, "M5", v(data.memo.extraMeal, false));   // 초과식대
+
+  // TB 표시 (M7:N7 merged)
+  if (data.memo.useTB && (data.memo.tb||0) > 0) {
+    const symbol = data.memo.tbCurrency === "yen" ? "¥" : "₩";
+    setCell(ws, "M7", `TB ${symbol}${Number(data.memo.tb).toLocaleString()}`);
+  }
+  // SP (P7:S7 merged)
+  setCell(ws, "P7", data.memo.sp || "");
+
+  // 원화 메모
+  setCell(ws, "R3", v(data.memo.wonAdvance, false));  // 원화전도금
+  // R4 = R45(원화 총합), R5 = R3-R4 — 수식으로 입력
+  ws.getCell("R4").value = { formula: "R45", result: 0 };
+  ws.getCell("R5").value = { formula: "R3-R4", result: 0 };
+
+  // ===== 일자별 분류 (호텔/중식/석식/관광지) =====
+  const byDay = { hotel:{}, lunch:{}, dinner:{}, tour:{} };
+  data.ground.hotel .forEach(c => { (byDay.hotel [c.day] = byDay.hotel [c.day] || []).push(c); });
+  data.ground.lunch .forEach(c => { (byDay.lunch [c.day] = byDay.lunch [c.day] || []).push(c); });
+  data.ground.dinner.forEach(c => { (byDay.dinner[c.day] = byDay.dinner[c.day] || []).push(c); });
+  data.ground.tour  .forEach(c => { (byDay.tour  [c.day] = byDay.tour  [c.day] || []).push(c); });
+
+  const overflow = []; // 양식에 못 들어간 항목들
+
+  for (let d = 1; d <= 7; d++) {
+    const col = ITSUMO_DAY_COLS[d];
+
+    // 호텔 (row 10:호텔명, 11:조건, 12:금액)
+    const hotelItems = byDay.hotel[d] || [];
+    if (hotelItems.length > 0) {
+      setCell(ws, col + "10", hotelItems.map(h => h.name).filter(Boolean).join(" / "));
+      setCell(ws, col + "11", hotelItems.map(h => h.condition).filter(Boolean).join(" / "));
+      setCell(ws, col + "12", v(hotelItems.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+
+    // 중식 (row 13:식당명, 14:인원, 15:단가, 16:금액)
+    const lunchItems = byDay.lunch[d] || [];
+    if (lunchItems.length > 0) {
+      setCell(ws, col + "13", lunchItems.map(h => h.name).filter(Boolean).join(" / "));
+      setCell(ws, col + "14", lunchItems.map(h => h.people).filter(Boolean).join(" / "));
+      setCell(ws, col + "15", lunchItems.map(h => h.unitPrice).filter(Boolean).join(" / "));
+      setCell(ws, col + "16", v(lunchItems.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+
+    // 석식 (row 17:식당명, 18:인원, 19:단가, 20:금액)
+    const dinnerItems = byDay.dinner[d] || [];
+    if (dinnerItems.length > 0) {
+      setCell(ws, col + "17", dinnerItems.map(h => h.name).filter(Boolean).join(" / "));
+      setCell(ws, col + "18", dinnerItems.map(h => h.people).filter(Boolean).join(" / "));
+      setCell(ws, col + "19", dinnerItems.map(h => h.unitPrice).filter(Boolean).join(" / "));
+      setCell(ws, col + "20", v(dinnerItems.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+
+    // 관광지 (3 슬롯: rows 21-23, 24-26, 27-29)
+    const tourItems = (byDay.tour[d] || []).slice().sort((a,b) => Number(a.slot||1) - Number(b.slot||1));
+    for (let slot = 1; slot <= 3; slot++) {
+      const item = tourItems[slot - 1];
+      if (!item) continue;
+      const nameRow  = 21 + (slot - 1) * 3;
+      const priceRow = nameRow + 1;
+      const amtRow   = nameRow + 2;
+      setCell(ws, col + nameRow,  v(item.name));
+      setCell(ws, col + priceRow, v(item.unitPrice));
+      setCell(ws, col + amtRow,   v(item.amount, false));
+    }
+    if (tourItems.length > 3) {
+      tourItems.slice(3).forEach(t => {
+        overflow.push(`관광지 슬롯 초과 (${d}일차): ${t.name||""} ¥${(t.amount||0).toLocaleString()}`);
+      });
+    }
+  }
+
+  // 8일 이상 데이터 경고
+  ['hotel','lunch','dinner','tour'].forEach(sec => {
+    Object.keys(byDay[sec]).forEach(d => {
+      if (Number(d) > 7) {
+        byDay[sec][d].forEach(it => {
+          overflow.push(`${sec} ${d}일차 (이쯔모는 7일까지): ${it.name||""} ¥${(it.amount||0).toLocaleString()}`);
+        });
+      }
+    });
+  });
+
+  // ===== 기 타 (엔화, etcYen) =====
+  // 각 항목을 다른 일자 컬럼에 분산 (각 컬럼이 한 항목)
+  // 행 30:내역, 31:단가, 32:지불금액
+  const etcYenItems = (data.ground.etcYen || []).filter(e => e.item && (e.amount||0) > 0);
+  etcYenItems.forEach((e, idx) => {
+    if (idx >= 7) {
+      overflow.push(`기타(엔) 컬럼 초과: ${e.item} ¥${(e.amount||0).toLocaleString()}`);
+      return;
+    }
+    const col = ITSUMO_DAY_COLS[idx + 1];
+    setCell(ws, col + "30", e.item);
+    if (e.unitPrice) setCell(ws, col + "31", e.unitPrice);
+    setCell(ws, col + "32", v(e.amount, false));
+  });
+
+  // ===== 버 스 (subcategory 기반, row 35) =====
+  const BUS_COL = { "버스비":"D", "도로비":"F", "오차다이":"H", "회송대":"J", "주차대":"L", "기사식대":"N", "기사 숙박":"P" };
+  const busTotals = {};
+  data.ground.bus.forEach(b => {
+    if (!b.item) return;
+    busTotals[b.item] = (busTotals[b.item] || 0) + (b.amount || 0);
+  });
+  Object.entries(busTotals).forEach(([item, amt]) => {
+    if (!amt) return;
+    if (BUS_COL[item]) {
+      setCell(ws, BUS_COL[item] + "35", v(amt, false));
+    } else {
+      overflow.push(`버스 / ${item}: ¥${amt.toLocaleString()} (양식에 없음)`);
+    }
+  });
+
+  // ===== 가 이 드 (subcategory 기반, row 38) =====
+  const GUIDE_COL = { "출장비":"D", "통신료":"F", "식대":"H" };
+  const guideTotals = {};
+  data.ground.guide.forEach(g => {
+    if (!g.item) return;
+    guideTotals[g.item] = (guideTotals[g.item] || 0) + (g.amount || 0);
+  });
+  Object.entries(guideTotals).forEach(([item, amt]) => {
+    if (!amt) return;
+    if (GUIDE_COL[item]) {
+      setCell(ws, GUIDE_COL[item] + "38", v(amt, false));
+    } else {
+      overflow.push(`가이드 / ${item}: ¥${amt.toLocaleString()} (양식에 없음)`);
+    }
+  });
+
+  // ===== 기타경비 (원화, rows 41-44) =====
+  // D41~P41 라벨: 국제선/TAX·유류/여행자보험/택시비/기타2/기타3/기타4
+  const ETC_COL = {
+    "국제선":"D", "TAX/유류":"F", "여행자보험":"H",
+    "택시비":"J", "기타 2":"L", "기타 3":"N", "기타 4":"P"
+  };
+  const etcItems = ((data.ground.etc) || []).filter(e => e.item && (e.amount||0) > 0);
+  const etcByItem = {};
+  etcItems.forEach(e => {
+    if (!etcByItem[e.item]) etcByItem[e.item] = { name: e.item, amount: 0, unitPrice: e.unitPrice };
+    etcByItem[e.item].amount += (e.amount || 0);
+  });
+  Object.values(etcByItem).forEach(e => {
+    if (ETC_COL[e.name]) {
+      setCell(ws, ETC_COL[e.name] + "42", e.name);
+      if (e.unitPrice) setCell(ws, ETC_COL[e.name] + "43", e.unitPrice);
+      setCell(ws, ETC_COL[e.name] + "44", v(e.amount, false));
+    } else {
+      overflow.push(`기타경비(원) / ${e.name}: ₩${(e.amount||0).toLocaleString()} (양식에 없음)`);
+    }
+  });
+
+  // 파일 열때 자동 재계산
+  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
+
+  // ===== 검증: 가이드 정산서 합계 vs 이쯔모 양식 매핑 합계 =====
+  // 엔화
+  let totalYen = 0, mappedYen = 0;
+  data.ground.hotel.forEach (h => { totalYen += h.amount||0; if (h.day>=1 && h.day<=7) mappedYen += h.amount||0; });
+  data.ground.lunch.forEach (l => { totalYen += l.amount||0; if (l.day>=1 && l.day<=7) mappedYen += l.amount||0; });
+  data.ground.dinner.forEach(dn=> { totalYen += dn.amount||0; if (dn.day>=1 && dn.day<=7) mappedYen += dn.amount||0; });
+  data.ground.tour.forEach  (t => {
+    totalYen += t.amount||0;
+    if (t.day>=1 && t.day<=7 && (Number(t.slot)||1) <= 3) mappedYen += t.amount||0;
+  });
+  data.ground.bus.forEach(b => {
+    totalYen += b.amount||0;
+    if (BUS_COL[b.item]) mappedYen += b.amount||0;
+  });
+  data.ground.guide.forEach(g => {
+    totalYen += g.amount||0;
+    if (GUIDE_COL[g.item]) mappedYen += g.amount||0;
+  });
+  (data.ground.etcYen || []).forEach((e, idx) => {
+    totalYen += e.amount||0;
+    if (idx < 7 && e.item && (e.amount||0) > 0) mappedYen += e.amount||0;
+  });
+
+  // 원화
+  let totalWon = 0, mappedWon = 0;
+  ((data.ground.etc)||[]).forEach(e => {
+    totalWon += e.amount||0;
+    if (ETC_COL[e.item]) mappedWon += e.amount||0;
+  });
+
+  const diffYen = totalYen - mappedYen;
+  const diffWon = totalWon - mappedWon;
+
+  if (Math.abs(diffYen) > 0.5 || Math.abs(diffWon) > 0.5 || overflow.length > 0) {
+    let msg = "⚠️ 합계 불일치 / 매핑 누락 경고 (이쯔모 양식)\n\n";
+    if (Math.abs(diffYen) > 0.5) {
+      msg += `· 엔화 가이드 정산서 합계:  ¥${totalYen.toLocaleString()}\n`;
+      msg += `· 이쯔모 양식 매핑 엔화:    ¥${mappedYen.toLocaleString()}\n`;
+      msg += `· 차액:                    ¥${diffYen.toLocaleString()}\n\n`;
+    }
+    if (Math.abs(diffWon) > 0.5) {
+      msg += `· 원화 가이드 정산서 합계:  ₩${totalWon.toLocaleString()}\n`;
+      msg += `· 이쯔모 양식 매핑 원화:    ₩${mappedWon.toLocaleString()}\n`;
+      msg += `· 차액:                    ₩${diffWon.toLocaleString()}\n\n`;
+    }
+    if (overflow.length > 0) {
+      msg += "[양식에 자동 매핑되지 못한 항목]\n" +
+             overflow.map(s => "  • " + s).join("\n") + "\n\n" +
+             "→ 저장된 엑셀을 열어 직접 추가/조정해 주세요.";
+    }
+    alert(msg);
+  }
+}
+
+// =====[ 티센터 매핑 ]=====
+// Sheet "2" (현지 정산서) 사용
+// 데이터 위치:
+//   행 6: 상품명/인원/기간/투어가이드
+//   행 8: 면세점/투어피/기가팁/잔금
+//   호텔(17-23), 식사(24-30), 입장(31-37), 차량(38-45), 일비(46), 통신(47), 식대(48), 기타(49-50)
+//   N51 = SUM(N17:N50) — 합계 수식 (그대로 유지)
+function tcenterDate(dateStart, dayOffset) {
+  if (!dateStart || !dayOffset) return "";
+  const d = new Date(dateStart);
+  d.setDate(d.getDate() + (Number(dayOffset) - 1));
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+async function mapTcenter(wb, data) {
+  // Sheet 2 찾기
+  let ws = wb.getWorksheet("2");
+  if (!ws) ws = wb.worksheets[1];
+  if (!ws) { alert("티센터 양식에 Sheet '2'가 없습니다."); return; }
+
+  // ===== 헤더 (행 6) =====
+  setCell(ws, "C6", data.info.group || "");
+  const personCount = parsePersonCount(data.info.people);
+  setCell(ws, "G6", (personCount && personCount > 0) ? personCount : (data.info.people || ""));
+  // 기간: 2026.05.08~2026.05.11 형식
+  const fmtDot = iso => iso ? iso.replace(/-/g, ".") : "";
+  const period = fmtDot(data.info.dateStart) + (data.info.dateEnd ? "~" + fmtDot(data.info.dateEnd) : "");
+  setCell(ws, "J6", period);
+  setCell(ws, "N6", data.info.guide || "");
+
+  // ===== 행 8: 면세점/투어피/기가팁/잔금(수식) =====
+  // 면세점은 우리 데이터에 없음
+  setCell(ws, "G8", v(data.memo.yenAdvance, false));   // 투어피
+  if (data.memo.useTB && data.memo.tbCurrency === "yen") {
+    setCell(ws, "J8", v(data.memo.tb, false));         // 기가팁(엔)
+  }
+  // N8 잔금 = G8 - N51 (템플릿 수식 유지)
+
+  const overflow = [];
+
+  // ===== 호텔 (rows 17-23, 7행) =====
+  const HOTEL_ROWS = [17, 18, 19, 20, 21, 22, 23];
+  // 금액/이름이 모두 비어있는 행은 건너뜀 (입력 안 한 일자)
+  const hotelItems = data.ground.hotel
+    .filter(h => (h.amount||0) > 0 || (h.name||"").trim())
+    .sort((a,b) => (Number(a.day)||0) - (Number(b.day)||0));
+  hotelItems.forEach((h, idx) => {
+    if (idx >= HOTEL_ROWS.length) {
+      overflow.push(`호텔 행 초과: ${h.name||""} ¥${(h.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = HOTEL_ROWS[idx];
+    setCell(ws, "B" + r, tcenterDate(data.info.dateStart, h.day));
+    let nm = h.name || "";
+    if (h.condition) nm += ` (${h.condition})`;
+    setCell(ws, "D" + r, nm);
+    setCell(ws, "N" + r, v(h.amount, false));
+  });
+
+  // ===== 식사 (rows 24-30, 7행) — 중식+석식 통합, 일자 순 =====
+  const MEAL_ROWS = [24, 25, 26, 27, 28, 29, 30];
+  // 금액/이름이 모두 비어있는 행은 건너뜀 (입력 안 한 일자)
+  const meals = [
+    ...data.ground.lunch .filter(m => (m.amount||0) > 0 || (m.name||"").trim()).map(m => ({...m, _type: "중"})),
+    ...data.ground.dinner.filter(m => (m.amount||0) > 0 || (m.name||"").trim()).map(m => ({...m, _type: "석"}))
+  ].sort((a,b) => (Number(a.day)||0) - (Number(b.day)||0) || (a._type === "중" ? -1 : 1));
+  meals.forEach((m, idx) => {
+    if (idx >= MEAL_ROWS.length) {
+      overflow.push(`식사 행 초과 (${m._type}): ${m.name||""} ¥${(m.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = MEAL_ROWS[idx];
+    setCell(ws, "B" + r, tcenterDate(data.info.dateStart, m.day));
+    setCell(ws, "D" + r, `${m._type}식 ${m.name||""}`.trim());
+    setCell(ws, "J" + r, v(m.people));
+    setCell(ws, "L" + r, v(m.unitPrice));
+    setCell(ws, "N" + r, v(m.amount, false));
+  });
+
+  // ===== 입장 (rows 31-37, 7행) — 관광지 =====
+  const TOUR_ROWS = [31, 32, 33, 34, 35, 36, 37];
+  // 금액/이름이 모두 비어있는 행은 건너뜀
+  const tours = data.ground.tour
+    .filter(t => (t.amount||0) > 0 || (t.name||"").trim())
+    .sort((a,b) =>
+      (Number(a.day)||0) - (Number(b.day)||0) || (Number(a.slot)||1) - (Number(b.slot)||1)
+    );
+  tours.forEach((t, idx) => {
+    if (idx >= TOUR_ROWS.length) {
+      overflow.push(`입장(관광지) 행 초과: ${t.name||""} ¥${(t.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = TOUR_ROWS[idx];
+    setCell(ws, "B" + r, tcenterDate(data.info.dateStart, t.day));
+    setCell(ws, "D" + r, t.name || "");
+    setCell(ws, "L" + r, v(t.unitPrice));
+    setCell(ws, "N" + r, v(t.amount, false));
+  });
+
+  // ===== 차량 (rows 38-45, 8행) — 버스 항목들 =====
+  const BUS_ROWS = [38, 39, 40, 41, 42, 43, 44, 45];
+  const buses = data.ground.bus.filter(b => b.item && (b.amount||0) > 0);
+  buses.forEach((b, idx) => {
+    if (idx >= BUS_ROWS.length) {
+      overflow.push(`차량 행 초과: ${b.item} ¥${(b.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = BUS_ROWS[idx];
+    setCell(ws, "D" + r, b.item);
+    setCell(ws, "N" + r, v(b.amount, false));
+  });
+
+  // ===== 가이드: 일비(46)/통신(47)/식대(48) =====
+  const GUIDE_ROW = { "출장비": 46, "일비": 46, "통신료": 47, "식대": 48 };
+  const guideTotals = {};
+  data.ground.guide.forEach(g => {
+    if (!g.item) return;
+    guideTotals[g.item] = (guideTotals[g.item] || 0) + (g.amount || 0);
+  });
+  const guideMapped = new Set();
+  Object.entries(guideTotals).forEach(([item, amt]) => {
+    if (!amt) return;
+    if (GUIDE_ROW[item]) {
+      const r = GUIDE_ROW[item];
+      setCell(ws, "D" + r, item);
+      setCell(ws, "N" + r, v(amt, false));
+      guideMapped.add(item);
+    } else {
+      overflow.push(`가이드 / ${item}: ¥${amt.toLocaleString()} (양식에 없음)`);
+    }
+  });
+
+  // ===== 기타 (rows 49-50, 2행) — etcYen 항목들 =====
+  const ETC_ROWS = [49, 50];
+  const etcYenItems = (data.ground.etcYen || []).filter(e => e.item && (e.amount||0) > 0);
+  etcYenItems.forEach((e, idx) => {
+    if (idx >= ETC_ROWS.length) {
+      overflow.push(`기타 행 초과: ${e.item} ¥${(e.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = ETC_ROWS[idx];
+    setCell(ws, "D" + r, e.item);
+    setCell(ws, "N" + r, v(e.amount, false));
+  });
+
+  // 원화는 티센터 Sheet 2에 위치 없음
+  ((data.ground.etc) || []).forEach(e => {
+    if (e.item && (e.amount||0) > 0) {
+      overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (Sheet 2에 원화 항목 없음 — 직접 추가 필요)`);
+    }
+  });
+
+  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
+
+  // ===== 검증 (엔화 합계 vs 매핑된 엔화 합계) =====
+  let totalYen = 0, mappedYen = 0;
+  data.ground.hotel.forEach (h => totalYen += h.amount||0);
+  data.ground.lunch.forEach (l => totalYen += l.amount||0);
+  data.ground.dinner.forEach(d => totalYen += d.amount||0);
+  data.ground.tour.forEach  (t => totalYen += t.amount||0);
+  data.ground.bus.forEach   (b => totalYen += b.amount||0);
+  data.ground.guide.forEach (g => totalYen += g.amount||0);
+  (data.ground.etcYen||[]).forEach(e => totalYen += e.amount||0);
+
+  hotelItems.forEach  ((h, i) => { if (i < HOTEL_ROWS.length) mappedYen += h.amount||0; });
+  meals.forEach       ((m, i) => { if (i < MEAL_ROWS.length)  mappedYen += m.amount||0; });
+  tours.forEach       ((t, i) => { if (i < TOUR_ROWS.length)  mappedYen += t.amount||0; });
+  buses.forEach       ((b, i) => { if (i < BUS_ROWS.length)   mappedYen += b.amount||0; });
+  Object.entries(guideTotals).forEach(([item, amt]) => { if (guideMapped.has(item)) mappedYen += amt; });
+  etcYenItems.forEach ((e, i) => { if (i < ETC_ROWS.length)   mappedYen += e.amount||0; });
+
+  const diffYen = totalYen - mappedYen;
+
+  if (Math.abs(diffYen) > 0.5 || overflow.length > 0) {
+    let msg = "⚠️ 합계 불일치 / 매핑 누락 경고 (티센터 양식 - Sheet 2)\n\n";
+    if (Math.abs(diffYen) > 0.5) {
+      msg += `· 엔화 가이드 정산서 합계:  ¥${totalYen.toLocaleString()}\n`;
+      msg += `· 티센터 양식 매핑 엔화:    ¥${mappedYen.toLocaleString()}\n`;
+      msg += `· 차액:                    ¥${diffYen.toLocaleString()}\n\n`;
+    }
+    if (overflow.length > 0) {
+      msg += "[양식에 자동 매핑되지 못한 항목]\n" +
+             overflow.map(s => "  • " + s).join("\n") + "\n\n" +
+             "→ 저장된 엑셀을 열어 직접 추가/조정해 주세요.";
+    }
+    alert(msg);
+  }
+}
+
+// =====[ 하나사쿠 매핑 ]=====
+// Sheet "Sheet1 (2)" 사용 (실제 작업용 양식)
+//
+// 좌측 섹션 (월/일·내역·단가·인원·지출금액):
+//   호텔(7-13) / 식사(16-27) / 관광지(30-36) / 가이드비(39-42)
+//   소계 행: 14, 28, 37, 43 (수식 유지)
+// 우측 섹션:
+//   버스비(7-13): I=월/일, J=지역, K=단가, L=일수, M=금액. 소계 K14
+//   도로비&주차비(16-20): I/J/M. 소계 K21
+//   D/V(23-27): 고정 항목 [오차대,식대,버스대,회송대,숙박대]. M=금액. 소계 K28
+//   일본TAX(30-32): 터미널Fee/출국세 미리 정의. K=단가, L=일수, M=수식. 소계 K33
+//   한국TAX(35-36): K/L/M. 소계 K37 (원화)
+//   기타(39-42): I=월/일, J=내역, M=금액. 소계 K43
+// 총행사비:
+//   D44=투어피, D45=수식(소계 합), D46=수식(잔액)
+function hanasakuDate(dateStart, dayOffset) {
+  if (!dateStart || !dayOffset) return "";
+  const d = new Date(dateStart);
+  d.setDate(d.getDate() + (Number(dayOffset) - 1));
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+// 단가 셀의 텍스트("1,200 / 명 (26명)", "1200원" 등)에서 첫 숫자만 추출
+function parseNumericPrice(str) {
+  if (str === null || str === undefined || str === "") return 0;
+  if (typeof str === "number") return str;
+  const s = String(str).replace(/,/g, '').replace(/\s/g, '');
+  const m = s.match(/[\d.]+/);
+  return m ? Number(m[0]) : 0;
+}
+
+// 하나사쿠 sheet1.xml DOM 패처 (ExcelJS 우회 - styles 무손상)
+function makeHanasakuPatcher(sheetXmlStr) {
+  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  const doc = new DOMParser().parseFromString(sheetXmlStr, 'application/xml');
+  const sheetData = doc.getElementsByTagNameNS(NS, 'sheetData')[0];
+
+  function parseAddr(addr) {
+    const m = addr.match(/^([A-Z]+)(\d+)$/);
+    const colLetter = m[1], rowNum = parseInt(m[2]);
+    let colNum = 0;
+    for (const ch of colLetter) colNum = colNum * 26 + (ch.charCodeAt(0) - 64);
+    return { rowNum, colNum };
+  }
+  function getOrCreateRow(rowNum) {
+    const rows = sheetData.getElementsByTagNameNS(NS, 'row');
+    for (let i = 0; i < rows.length; i++) {
+      const r = parseInt(rows[i].getAttribute('r'));
+      if (r === rowNum) return rows[i];
+      if (r > rowNum) {
+        const nr = doc.createElementNS(NS, 'row');
+        nr.setAttribute('r', String(rowNum));
+        sheetData.insertBefore(nr, rows[i]);
+        return nr;
+      }
+    }
+    const nr = doc.createElementNS(NS, 'row');
+    nr.setAttribute('r', String(rowNum));
+    sheetData.appendChild(nr);
+    return nr;
+  }
+  function getOrCreateCell(addr) {
+    const { rowNum, colNum } = parseAddr(addr);
+    const row = getOrCreateRow(rowNum);
+    const cells = row.getElementsByTagNameNS(NS, 'c');
+    for (let i = 0; i < cells.length; i++) {
+      if (cells[i].getAttribute('r') === addr) return cells[i];
+      const otherCol = parseAddr(cells[i].getAttribute('r')).colNum;
+      if (otherCol > colNum) {
+        const nc = doc.createElementNS(NS, 'c');
+        nc.setAttribute('r', addr);
+        row.insertBefore(nc, cells[i]);
+        return nc;
+      }
+    }
+    const nc = doc.createElementNS(NS, 'c');
+    nc.setAttribute('r', addr);
+    row.appendChild(nc);
+    return nc;
+  }
+  function clearContent(cell) {
+    while (cell.firstChild) cell.removeChild(cell.firstChild);
+    cell.removeAttribute('t');
+  }
+
+  return {
+    setNum(addr, num) {
+      if (num === null || num === undefined || num === "" || isNaN(num)) return;
+      const cell = getOrCreateCell(addr);
+      clearContent(cell);
+      const v = doc.createElementNS(NS, 'v');
+      v.textContent = String(num);
+      cell.appendChild(v);
+    },
+    setStr(addr, str) {
+      if (str === null || str === undefined || str === "") return;
+      const cell = getOrCreateCell(addr);
+      clearContent(cell);
+      cell.setAttribute('t', 'inlineStr');
+      const is = doc.createElementNS(NS, 'is');
+      const t = doc.createElementNS(NS, 't');
+      t.textContent = String(str);
+      t.setAttribute('xml:space', 'preserve');
+      is.appendChild(t);
+      cell.appendChild(is);
+    },
+    setFormula(addr, formula, result) {
+      const cell = getOrCreateCell(addr);
+      clearContent(cell);
+      const f = doc.createElementNS(NS, 'f');
+      f.textContent = formula;
+      cell.appendChild(f);
+      if (result !== null && result !== undefined && !isNaN(result)) {
+        const v = doc.createElementNS(NS, 'v');
+        v.textContent = String(result);
+        cell.appendChild(v);
+      }
+    },
+    clearCell(addr) {
+      const { rowNum } = parseAddr(addr);
+      const rows = sheetData.getElementsByTagNameNS(NS, 'row');
+      for (let i = 0; i < rows.length; i++) {
+        if (parseInt(rows[i].getAttribute('r')) === rowNum) {
+          const cells = rows[i].getElementsByTagNameNS(NS, 'c');
+          for (let j = 0; j < cells.length; j++) {
+            if (cells[j].getAttribute('r') === addr) {
+              clearContent(cells[j]);
+              return;
+            }
+          }
+          return;
+        }
+      }
+    },
+    serialize() {
+      return new XMLSerializer().serializeToString(doc);
+    }
+  };
+}
+
+// 하나사쿠 매핑 - JSZip + DOM 직접 패치 방식
+async function exportHanasaku(data, filename) {
+  if (typeof JSZip === "undefined") {
+    alert("JSZip 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+    return false;
+  }
+  // base64 → ArrayBuffer
+  const b64 = LANDSA_TEMPLATES.hanasaku;
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+
+  // JSZip 로드 (ExcelJS 우회)
+  const zip = await JSZip.loadAsync(buf.buffer);
+  // 정산서 시트는 sheet1.xml (첫 번째 시트)
+  const sheetPath = 'xl/worksheets/sheet1.xml';
+  const sheetXml = await zip.file(sheetPath).async('string');
+  const p = makeHanasakuPatcher(sheetXml);
+
+  // ===== 매핑 로직 =====
+  const overflow = mapHanasakuCells(p, data);
+
+  // 패치된 sheet 다시 zip에
+  zip.file(sheetPath, p.serialize());
+
+  // blob 생성
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  // 저장
+  let saved = false;
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: "Excel 파일",
+          accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] }
+        }]
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      saved = true;
+    } catch(e) {
+      if (e.name !== "AbortError") console.warn("저장 위치 선택 실패:", e);
+    }
+  }
+  if (!saved) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  // 검증 알람
+  if (overflow.length > 0) {
+    alert("⚠️ 양식에 자동 매핑되지 못한 항목 (하나사쿠)\n\n" +
+          overflow.map(s => "  • " + s).join("\n") +
+          "\n\n→ 저장된 엑셀을 열어 직접 추가/조정해 주세요.");
+  }
+  return true;
+}
+
+// 하나사쿠 셀 매핑 로직 (sheet patcher 사용)
+function mapHanasakuCells(p, data) {
+  const overflow = [];
+
+  // ===== 헤더 (행 3, 5) =====
+  const today = new Date();
+  p.setStr("A3", `제출일 :       ${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`);
+  p.setStr("C5", data.info.group || "");
+  const personCount = parsePersonCount(data.info.people);
+  if (personCount && personCount > 0) p.setNum("G5", personCount);
+  else if (data.info.people) p.setStr("G5", data.info.people);
+  // 행사기간: 5/16~5/19 형태
+  let period = "";
+  if (data.info.dateStart) {
+    const s = new Date(data.info.dateStart);
+    period = `${s.getMonth()+1}/${s.getDate()}`;
+    if (data.info.dateEnd) {
+      const e = new Date(data.info.dateEnd);
+      period += `~${e.getMonth()+1}/${e.getDate()}`;
+    }
+  }
+  p.setStr("J5", period);
+  p.setStr("M5", data.info.guide || "");
+  // 투어피 (D44)
+  if ((data.memo.yenAdvance||0) > 0) p.setNum("D44", data.memo.yenAdvance);
+
+  // ===== 호텔 (rows 7-13, 7행) =====
+  const HOTEL_ROWS = [7, 8, 9, 10, 11, 12, 13];
+  const hotelItems = data.ground.hotel
+    .filter(h => (h.amount||0) > 0 || (h.name||"").trim())
+    .sort((a,b) => (Number(a.day)||0) - (Number(b.day)||0));
+  hotelItems.forEach((h, idx) => {
+    if (idx >= HOTEL_ROWS.length) {
+      overflow.push(`호텔 행 초과: ${h.name||""} ¥${(h.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = HOTEL_ROWS[idx];
+    p.setStr("B" + r, hanasakuDate(data.info.dateStart, h.day));
+    let nm = h.name || "";
+    if (h.condition) nm += ` (${h.condition})`;
+    p.setStr("C" + r, nm);
+    if ((h.amount||0) > 0) p.setNum("G" + r, h.amount);
+  });
+
+  // ===== 식사 (rows 16-27, 12행) — 중식+석식 통합, 일자 순 =====
+  const MEAL_ROWS = [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27];
+  const meals = [
+    ...data.ground.lunch .filter(m => (m.amount||0) > 0 || (m.name||"").trim()).map(m => ({...m, _type: "중"})),
+    ...data.ground.dinner.filter(m => (m.amount||0) > 0 || (m.name||"").trim()).map(m => ({...m, _type: "석"}))
+  ].sort((a,b) => (Number(a.day)||0) - (Number(b.day)||0) || (a._type === "중" ? -1 : 1));
+  meals.forEach((m, idx) => {
+    if (idx >= MEAL_ROWS.length) {
+      overflow.push(`식사 행 초과 (${m._type}): ${m.name||""} ¥${(m.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = MEAL_ROWS[idx];
+    p.setStr("B" + r, hanasakuDate(data.info.dateStart, m.day));
+    p.setStr("C" + r, `${m._type}식 ${m.name||""}`.trim());
+    const peopleNum = parsePersonCount(m.people);
+    const unitNum = parseNumericPrice(m.unitPrice);
+    if (unitNum > 0 && peopleNum && peopleNum > 0) {
+      p.setNum("E" + r, unitNum);
+      p.setNum("F" + r, peopleNum);
+      p.setFormula("G" + r, `E${r}*F${r}`, m.amount || (unitNum * peopleNum));
+    } else if ((m.amount||0) > 0) {
+      p.setNum("G" + r, m.amount);
+    }
+  });
+
+  // ===== 관광지 (rows 30-36, 7행) =====
+  const TOUR_ROWS = [30, 31, 32, 33, 34, 35, 36];
+  const tours = data.ground.tour
+    .filter(t => (t.amount||0) > 0 || (t.name||"").trim())
+    .sort((a,b) =>
+      (Number(a.day)||0) - (Number(b.day)||0) || (Number(a.slot)||1) - (Number(b.slot)||1)
+    );
+  tours.forEach((t, idx) => {
+    if (idx >= TOUR_ROWS.length) {
+      overflow.push(`관광지 행 초과: ${t.name||""} ¥${(t.amount||0).toLocaleString()}`);
+      return;
+    }
+    const r = TOUR_ROWS[idx];
+    p.setStr("B" + r, hanasakuDate(data.info.dateStart, t.day));
+    p.setStr("C" + r, t.name || "");
+    const tUnit = parseNumericPrice(t.unitPrice);
+    if (tUnit > 0 && personCount && personCount > 0) {
+      p.setNum("E" + r, tUnit);
+      p.setNum("F" + r, personCount);
+      p.setFormula("G" + r, `E${r}*F${r}`, t.amount || (tUnit * personCount));
+    } else if ((t.amount||0) > 0) {
+      // 원래 수식 덮어쓰기
+      p.setNum("G" + r, t.amount);
+    }
+  });
+
+  // ===== 가이드비 (rows 39-42) =====
+  const GUIDE_LABEL = { "출장비":"일비","일비":"일비","통신료":"통신비","통신비":"통신비","식대":"식대","교통비":"교통비" };
+  const GUIDE_ROW_FIXED = { "일비":39, "통신비":40, "식대":41 };
+  const guideTotals = {};
+  data.ground.guide.forEach(g => {
+    if (!g.item) return;
+    const label = GUIDE_LABEL[g.item] || g.item;
+    guideTotals[label] = (guideTotals[label] || 0) + (g.amount || 0);
+  });
+  const guideMapped = new Set();
+  let extraGuideRow = 42;
+  Object.entries(guideTotals).forEach(([label, amt]) => {
+    if (!amt) return;
+    let r = GUIDE_ROW_FIXED[label];
+    if (!r) {
+      if (extraGuideRow > 42) {
+        overflow.push(`가이드비 / ${label}: ¥${amt.toLocaleString()} (양식 행 부족)`);
+        return;
+      }
+      r = extraGuideRow++;
+    }
+    p.setStr("B" + r, label);
+    p.setNum("G" + r, amt);
+    guideMapped.add(label);
+  });
+
+  // ===== 버스 관련 =====
+  const BUS_TOTALS = {};
+  data.ground.bus.forEach(b => {
+    if (!b.item) return;
+    BUS_TOTALS[b.item] = (BUS_TOTALS[b.item] || 0) + (b.amount || 0);
+  });
+  const busMapped = new Set();
+
+  // 1) 버스비 우측 섹션 (rows 7-13)
+  let busRow = 7;
+  ["버스비", "버스대"].forEach(name => {
+    if (BUS_TOTALS[name]) {
+      p.setStr("J" + busRow, name);
+      p.setNum("M" + busRow, BUS_TOTALS[name]);
+      busMapped.add(name);
+      busRow++;
+    }
+  });
+
+  // 2) 도로비&주차비 (rows 16-20)
+  let roadRow = 16;
+  ["도로비", "주차대", "고속대"].forEach(name => {
+    if (BUS_TOTALS[name]) {
+      if (roadRow > 20) {
+        overflow.push(`도로비&주차비 / ${name}: ¥${BUS_TOTALS[name].toLocaleString()} (행 부족)`);
+        return;
+      }
+      p.setStr("J" + roadRow, name);
+      p.setNum("M" + roadRow, BUS_TOTALS[name]);
+      busMapped.add(name);
+      roadRow++;
+    }
+  });
+
+  // 3) D/V 섹션 (rows 23-27)
+  const DV_ROW = { "오차다이":23, "오차대":23, "기사식대":24, "기사 숙박":27, "회송대":26 };
+  Object.entries(BUS_TOTALS).forEach(([item, amt]) => {
+    if (!amt || busMapped.has(item)) return;
+    if (DV_ROW[item]) {
+      p.setNum("M" + DV_ROW[item], amt);
+      busMapped.add(item);
+    } else {
+      overflow.push(`버스(미매핑) / ${item}: ¥${amt.toLocaleString()}`);
+    }
+  });
+
+  // ===== 일본 TAX (rows 30-32) — 지출금액만 (M에 직접) =====
+  const etcYenMapped = new Set();
+  (data.ground.etcYen || []).forEach(e => {
+    if (!e.item || (e.amount||0) <= 0) return;
+    if (e.item === "출국세") {
+      p.clearCell("K31"); p.clearCell("L31");
+      p.setNum("M31", e.amount);
+      etcYenMapped.add("출국세");
+    } else if (e.item === "부두세" || e.item === "터미널 Fee" || e.item === "터미널Fee") {
+      if (e.item === "부두세") p.setStr("J30", "부두세");
+      p.clearCell("K30"); p.clearCell("L30");
+      p.setNum("M30", e.amount);
+      etcYenMapped.add(e.item);
+    }
+  });
+  // 추가 etcYen → row 32
+  let taxExtraUsed = false;
+  (data.ground.etcYen || []).forEach(e => {
+    if (!e.item || (e.amount||0) <= 0 || etcYenMapped.has(e.item)) return;
+    if (!taxExtraUsed) {
+      p.setStr("J32", e.item);
+      p.clearCell("K32"); p.clearCell("L32");
+      p.setNum("M32", e.amount);
+      etcYenMapped.add(e.item);
+      taxExtraUsed = true;
+    } else {
+      overflow.push(`기타(엔/일본TAX) / ${e.item}: ¥${(e.amount||0).toLocaleString()} (행 부족)`);
+    }
+  });
+
+  // ===== 원화 항목 — 양식에 자리 없음 =====
+  ((data.ground.etc) || []).forEach(e => {
+    if (e.item && (e.amount||0) > 0) {
+      overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (하나사쿠 정산서에 원화 자리 없음)`);
+    }
+  });
+
+  return overflow;
+}
+
+// 공통 내보내기 함수
+async function exportToLandsa(landsaKey, btnEl) {
+  if (typeof LANDSA_TEMPLATES === "undefined" || !LANDSA_TEMPLATES[landsaKey]) {
+    alert("랜드사 양식 파일이 없습니다: " + landsaKey);
+    return;
+  }
+
+  const originalText = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "변환중…";
+
+  try {
+    const data = collectAllData();
+    const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
+    const groupName = (data.info.group || "정산서").replace(/[\/\\:*?"<>|]/g, "");
+    const landsaName = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠" }[landsaKey];
+    const filename = `${landsaName}_${groupName}_${today}.xlsx`;
+
+    // 하나사쿠는 JSZip 직접 패치 방식 (ExcelJS 우회 - styles 무손상)
+    if (landsaKey === "hanasaku") {
+      await exportHanasaku(data, filename);
+      return;
+    }
+
+    if (typeof ExcelJS === "undefined") {
+      alert("ExcelJS 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+
+    // base64 → ArrayBuffer (다른 랜드사들은 ExcelJS 사용)
+    const b64 = LANDSA_TEMPLATES[landsaKey];
+    const bin = atob(b64);
+    const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf.buffer);
+
+    // 랜드사별 매핑
+    switch (landsaKey) {
+      case "japan_travel": await mapJapanTravel(wb, data); break;
+      case "itsumo":       await mapItsumo(wb, data); break;
+      case "tcenter":      await mapTcenter(wb, data); break;
+    }
+
+    // 파일 저장 — File System Access API (가능하면) → 사용자가 위치 선택, 아니면 다운로드 폴더
+    const out = await wb.xlsx.writeBuffer();
+    const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+    let saved = false;
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: "Excel 파일",
+            accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] }
+          }]
+        });
+        const w = await handle.createWritable();
+        await w.write(blob);
+        await w.close();
+        saved = true;
+      } catch(e) {
+        // 사용자가 취소한 경우 → 그냥 다운로드로 fallback
+        if (e.name !== "AbortError") console.warn("저장 위치 선택 실패:", e);
+      }
+    }
+
+    if (!saved) {
+      // 기존 방식: 다운로드 폴더로
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    }
+  } catch(e) {
+    console.error(e);
+    alert("내보내기 실패: " + e.message);
+  } finally {
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+  }
+}
+
+// ===== 전체 입력 항목 삭제 =====
+function clearAllEntries() {
+  const ok = confirm(
+    "정말로 모든 입력 내용을 삭제하시겠습니까?\n\n" +
+    "• 상단 정보 (랜드사/여행사/단체명/행사일/인원/가이드)\n" +
+    "• 메모 (전도금/지출금/잔액/TB/SP/초과식대)\n" +
+    "• 지상경비 및 기타경비 표의 모든 입력값\n" +
+    "• 자동 채워진 영수증 데이터 (호텔/식대 등)\n" +
+    "• 업로드한 모든 영수증\n\n" +
+    "이 작업은 되돌릴 수 없습니다."
+  );
+  if (!ok) return;
+
+  // 1. 상단 정보 입력 초기화
+  ["info-host","info-agency","info-group","info-date-start","info-date-end",
+   "info-people","info-guide"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  // 2. 메모 입력 초기화
+  ["m-yen-advance","m-won-advance","m-extra-meal","m-tb","m-sp"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const tbUse = document.getElementById("m-tb-use");
+  if (tbUse) tbUse.checked = false;
+
+  // 3. 자동 채워진 영수증 데이터 모두 비움
+  receipts.hotel = [];
+  receipts.lunch = [];
+  receipts.dinner = [];
+  receipts.tour = [];
+  receipts.bus = {};
+  receipts.guide = {};
+  receipts.etcYen = {};
+  receipts.etc = {};
+
+  // 4. 업로드한 영수증 모두 삭제
+  uploadedReceipts = [];
+  saveUploadedReceipts();
+
+  // 5. localStorage 정리 (입력값 저장본)
+  localStorage.removeItem("guideSettlement");
+
+  // 6. 전체 리렌더
+  fullRender();
+  renderUploadedReceipts();
+  updateDateRange();
+
+  alert("✓ 모든 입력 내용이 삭제되었습니다. 새 정산서를 작성하실 수 있습니다.");
+}
+
+loadAll();
+onTbCurrencyChange();  // 저장된 TB 통화 상태에 맞춰 체크박스 활성/비활성 적용
+fullRender();
+updateDateRange();
+renderUploadedReceipts();
+</script>
+</body>
+</html>
