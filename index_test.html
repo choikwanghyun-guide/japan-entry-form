@@ -650,9 +650,9 @@ function parseTxtRoster(text) {
   renderPreview();
   let msg = `✅ ${passengers.length}명의 승객 정보를 인식했어요!`;
   if (skipped.length > 0) {
-    msg += `\n\n⚠️ 주의: 다음 ${skipped.length}명이 제외되었습니다.`;
+    msg += `\n\n⚠️ 주의: 다음 ${skipped.length}명은 여권번호 형식 또는 주민번호 형식이 일반적이지 않습니다 (외국 여권 가능성). 확인 후 인쇄해주세요.`;
     skipped.forEach(s => {
-      msg += `\n  • ${s.korName || '(이름 없음)'} (${s.row}행): ${s.reason}`;
+      msg += `\n  • ${s.korName || '(이름 없음)'}${s.no ? ` (${s.no}번)` : ''}: ${s.reason}`;
     });
   }
   showAlert('uploadAlert', 'success', msg);
@@ -738,6 +738,7 @@ function parsePassengers(wb) {
           if (/여권번호/.test(c) || /passport.?no/i.test(c) || /^passport$/i.test(c)) colMap.passport = idx;
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
           if (/여권만료일|만료일|여권만료/.test(c)) colMap.expiry = idx;
+          if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
         });
 
         if (colMap.lastName !== undefined && colMap.firstName === undefined) {
@@ -803,19 +804,30 @@ function parsePassengers(wb) {
         firstName = parsed.first;
       }
 
+      // 빈 행 판별: 여권번호·한글이름·영문이름(성/이름/풀네임) 모두 비어 있으면
+      // NO 번호만 적힌 예비 행으로 보고 조용히 건너뜀 (콘솔에만 기록)
+      if (!korName && !lastName && !firstName && !fullName && !passport) {
+        console.log(`[엑셀] R${i+1} 스킵: 빈 행 (NO만 있음)`);
+        continue;
+      }
+
+      // 명부의 NO 컬럼 값 (알람 표시용). 없으면 빈 문자열.
+      const noVal = colMap.no !== undefined ? String(row[colMap.no] || '').trim() : '';
+
+      // 여권번호 형식 검사 → 명단에는 포함하되 가이드 확인용 경고에 기록
+      // (외국 여권은 형식이 다양해서 막으면 안 되고, 빈 칸이어도 손님이나
+      //  가이드가 종이에 직접 채울 수 있게 일단 인쇄는 가능해야 함)
       if (!passport || passport === '0' || !/[A-Z]/i.test(passport)) {
         const reason = !passport ? '여권번호 비어 있음'
                      : passport === '0' ? '여권번호 "0"'
-                     : `여권번호 형식 비정상 (${passport})`;
-        skipped.push({ row: i+1, korName, reason });
-        console.log(`[엑셀] R${i+1} 스킵: ${reason}`);
-        continue;
+                     : `여권번호 ${passport}`;
+        skipped.push({ no: noVal, korName, reason });
+        console.log(`[엑셀] R${i+1} 주의: ${reason}`);
       }
-      // 영문 성/이름도 없으면 스킵
+      // 영문 이름 비어 있음 → 명단에는 포함하되 경고에 기록
       if (!lastName && !firstName && !fullName) {
-        skipped.push({ row: i+1, korName, reason: '영문 이름 비어 있음' });
-        console.log(`[엑셀] R${i+1} 스킵: 영문 이름 비어 있음`);
-        continue;
+        skipped.push({ no: noVal, korName, reason: '영문 이름 비어 있음' });
+        console.log(`[엑셀] R${i+1} 주의: 영문 이름 비어 있음`);
       }
 
       const expiryInPassport = passport.match(/\((\d{4}-\d{2}-\d{2})\)/);
@@ -827,7 +839,9 @@ function parsePassengers(wb) {
         ? inferGenderFromBirthRaw(birthRaw)
         : normalizeGender(gender);
 
-      if (lastName && firstName && passport) {
+      // 명단 추가: 이름이나 여권번호 중 하나라도 있으면 일단 추가
+      // (외국 여권·미입력 손님도 일단 인쇄 가능하도록. 빈 행은 이미 위쪽에서 걸러짐)
+      if (lastName || firstName || passport || korName) {
         passengers.push({
           no: passengers.length + 1,
           korName,
@@ -1367,9 +1381,9 @@ function renderPreview() {
   document.getElementById('passengerCount').textContent = passengers.length + '명';
   let _msg = `✅ ${passengers.length}명의 승객 정보를 인식했어요!`;
   if (skippedPassengers && skippedPassengers.length > 0) {
-    _msg += `\n\n⚠️ 주의: 다음 ${skippedPassengers.length}명이 제외되었습니다.`;
+    _msg += `\n\n⚠️ 주의: 다음 ${skippedPassengers.length}명은 여권번호 형식 또는 주민번호 형식이 일반적이지 않습니다 (외국 여권 가능성). 확인 후 인쇄해주세요.`;
     skippedPassengers.forEach(s => {
-      _msg += `\n  • ${s.korName || '(이름 없음)'} (${s.row}행): ${s.reason}`;
+      _msg += `\n  • ${s.korName || '(이름 없음)'}${s.no ? ` (${s.no}번)` : ''}: ${s.reason}`;
     });
   }
   showAlert('uploadAlert', 'success', _msg);
@@ -1820,7 +1834,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_1800</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_2000</span>
 </div>
 
 </body></html>
