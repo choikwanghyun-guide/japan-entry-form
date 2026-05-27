@@ -734,12 +734,19 @@ function parsePassengers(wb) {
             if (colMap.korName === undefined) colMap.korName = idx;
             else if (colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           }
-          if (/생년월일|주민번호|주민/.test(c) || /^birth$/i.test(c) || /^dob$/i.test(c)) colMap.birth = idx;
+          if (/생년월일/.test(c) || /^birth$/i.test(c) || /^dob$/i.test(c)) colMap.birth = idx;
+          if (/주민/.test(c) && !/영문/.test(c)) colMap.ssn = idx;
           if (/여권번호/.test(c) || /passport.?no/i.test(c) || /^passport$/i.test(c)) colMap.passport = idx;
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
           if (/여권만료일|만료일|여권만료/.test(c)) colMap.expiry = idx;
           if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
         });
+
+        // 생년월일 컬럼이 없고 주민번호 컬럼만 있는 명부 대비:
+        // 주민번호 컬럼을 생년월일 파싱 소스로도 사용
+        if (colMap.birth === undefined && colMap.ssn !== undefined) {
+          colMap.birth = colMap.ssn;
+        }
 
         if (colMap.lastName !== undefined && colMap.firstName === undefined) {
           const headerCell = row[colMap.lastName];
@@ -828,6 +835,15 @@ function parsePassengers(wb) {
       if (!lastName && !firstName && !fullName) {
         skipped.push({ no: noVal, korName, reason: '영문 이름 비어 있음' });
         console.log(`[엑셀] R${i+1} 주의: 영문 이름 비어 있음`);
+      }
+      // 주민번호 비어 있음 → 명단에는 포함하되 경고에 기록
+      // (입국신고서에 생년월일 기재가 필요하므로 가이드가 사전 인지해야 함)
+      if (colMap.ssn !== undefined) {
+        const ssnRaw = String(row[colMap.ssn] || '').trim();
+        if (!ssnRaw) {
+          skipped.push({ no: noVal, korName, reason: '주민번호 비어 있음' });
+          console.log(`[엑셀] R${i+1} 주의: 주민번호 비어 있음`);
+        }
       }
 
       const expiryInPassport = passport.match(/\((\d{4}-\d{2}-\d{2})\)/);
@@ -1834,7 +1850,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_2000</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_2100</span>
 </div>
 
 </body></html>
