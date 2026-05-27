@@ -723,7 +723,7 @@ function parsePassengers(wb) {
           if (/^영문$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문\s*이름$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           // 한글이름
-          if (/한글이름|한글성명|한글명/.test(c) && !/영문/.test(c)) colMap.korName = idx;
+          if (/한글이름|한글성명|한글명|성명/.test(c) && !/영문/.test(c)) colMap.korName = idx;
           if ((/^이름$/.test(c) || /^한글$/.test(c)) && colMap.korName === undefined) colMap.korName = idx;
           // 영문명 (이름 헤더가 영문인 경우)
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
@@ -1820,7 +1820,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_1730</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_1800</span>
 </div>
 
 </body></html>
