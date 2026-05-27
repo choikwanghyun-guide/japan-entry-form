@@ -722,6 +722,16 @@
     line-height: 1.5;
   }
 
+  .archive-card-aliases {
+    color: var(--accent-blue);
+    font-size: 11px;
+    line-height: 1.6;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    word-break: break-word;
+    opacity: 0.8;
+  }
+
   .archive-card-date {
     color: var(--text-dim);
     font-size: 11px;
@@ -1076,21 +1086,12 @@
       <div class="section-num">1</div>
       <h2 class="section-title">호텔 기본 정보</h2>
     </div>
-    <p class="section-desc">새로 가는 호텔에 대한 기본 정보를 입력해주세요.</p>
+    <p class="section-desc">호텔명을 입력해주세요. 다른 표기법은 <strong>#</strong>으로 구분해서 추가할 수 있어요.</p>
 
-    <div class="form-row">
-      <div class="field">
-        <label>호텔명</label>
-        <input type="text" id="hotelName" placeholder="예: 벳부 풍월 호텔">
-      </div>
-      <div class="field">
-        <label>방문 일정</label>
-        <input type="text" id="schedule" placeholder="예: 10/8-10/9">
-      </div>
-      <div class="field">
-        <label>여행사 / 팀명</label>
-        <input type="text" id="agency" placeholder="예: 하나투어 재팬">
-      </div>
+    <div class="field">
+      <label>호텔명 (별칭은 # 으로 구분)</label>
+      <input type="text" id="hotelName" placeholder="예: 리버 호텔 오사카 #LIBER HOTEL OSAKA #리베르 호텔 #リバーホテル">
+      <div class="textarea-helper">첫 번째 이름이 메인 이름이 되고, # 뒤의 이름들은 별칭으로 검색·표시됩니다</div>
     </div>
   </section>
 
@@ -1098,11 +1099,10 @@
   <section>
     <div class="section-header">
       <div class="section-num">2</div>
-      <h2 class="section-title">일가방 게시글 붙여넣기</h2>
+      <h2 class="section-title">호텔 정보 입력</h2>
     </div>
     <p class="section-desc">
-      네이버 밴드 "일본가이드방"에서 해당 호텔로 검색한 게시글을 복사해서 붙여넣어 주세요.
-      여러 가이드의 후기를 한꺼번에 넣어도 좋아요 — 서로 다른 정보는 자동으로 비교 정리됩니다.
+      일가방 게시글 링크를 추가하고, 클로드 채팅에서 받은 JSON을 붙여넣어 주세요.
     </p>
 
     <!-- 일가방 링크 -->
@@ -1115,6 +1115,7 @@
       <div class="link-list" id="linkList"></div>
     </div>
 
+    <!-- ⬇⬇ 당분간 비활성화 - 크레딧 충전 후 다시 사용 ⬇⬇
     <div class="field" style="margin-top: 18px;">
       <label>게시글 본문</label>
       <textarea id="bandPosts" placeholder="여기에 일가방에서 복사한 게시글 내용을 붙여넣어 주세요.&#10;&#10;여러 게시글을 한꺼번에 붙여넣어도 됩니다."></textarea>
@@ -1137,15 +1138,22 @@
       </div>
       <div class="api-saved" id="apiSaved">✓ 저장됨</div>
     </details>
+    ⬆⬆ 당분간 비활성화 ⬆⬆ -->
 
-    <details class="api-section">
-      <summary>JSON 직접 붙여넣기 (테스트용)</summary>
-      <p style="margin-top: 10px; line-height: 1.6;">
-        Claude와 채팅한 결과 JSON을 여기에 붙여넣으면 API 키 없이도 결과를 볼 수 있어요.
-      </p>
-      <textarea id="jsonInput" placeholder='{"fields": [...], "insights": "..."}' style="margin-top: 12px; min-height: 100px; font-family: monospace; font-size: 12px;"></textarea>
-      <button class="btn-secondary" onclick="loadFromJson()" style="margin-top: 10px;">JSON으로 결과 보기</button>
-    </details>
+    <!-- 숨겨진 데이터 입력 필드 (코드 호환용) -->
+    <textarea id="bandPosts" style="display: none;"></textarea>
+    <input type="password" id="apiKey" style="display: none;">
+    <span id="apiSaved" style="display: none;"></span>
+
+    <div class="field" style="margin-top: 18px;">
+      <label>📋 클로드에서 받은 JSON 붙여넣기</label>
+      <textarea id="jsonInput" placeholder='클로드 채팅에서 받은 JSON을 여기에 붙여넣어 주세요.&#10;&#10;{"fields": [...], "insights": "..."}' style="min-height: 200px; font-family: monospace; font-size: 12px;"></textarea>
+      <div class="textarea-helper">팁 — 중괄호 { 부터 } 까지 전체를 복사해서 붙여넣어 주세요</div>
+    </div>
+
+    <button class="btn-primary" onclick="loadFromJson()">
+      ✨ JSON으로 결과 보기
+    </button>
 
     <div class="status" id="status"></div>
   </section>
@@ -1179,12 +1187,15 @@
 
     <div class="download-bar">
       <div class="download-info">
-        <strong>💾 보관함 저장</strong>: 메모리에 저장 (드라이브에 자동 업로드 안 됨)<br>
-        <strong>☁ 동기화</strong>: 작업 다 끝난 뒤 상단 버튼으로 드라이브에 한꺼번에 업로드
+        검토가 끝나면 아래 버튼들로 저장하세요.<br>
+        <strong>💾 보관함 저장</strong>: 메모리에 보관 · <strong>☁ 드라이브 동기화</strong>: 어디서나 접근 가능
       </div>
       <div>
         <button class="btn-save" onclick="saveToArchive()">
           💾 보관함에 저장
+        </button>
+        <button class="btn-save" onclick="saveAndSyncToCloud()" style="border-color: var(--accent-green); color: var(--accent-green);">
+          ☁ 드라이브 동기화
         </button>
         <button class="btn-download" onclick="downloadExcel()">
           ⬇ 엑셀로 다운로드
@@ -1194,7 +1205,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0822</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0858</span></p>
   </footer>
 
 </div>
@@ -1645,18 +1656,22 @@
     contentEl.innerHTML = '<div class="archive-list">' + archive.map(item => {
       const date = new Date(item.savedAt || Date.now());
       const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      const meta = [];
-      if (item.schedule) meta.push(item.schedule);
-      if (item.agency) meta.push(item.agency);
-      const metaStr = meta.length ? meta.join(' · ') : '';
       const linkCount = (item.links || []).length;
-      const linkStr = linkCount > 0 ? ` · 🔗 ${linkCount}` : '';
+
+      // 호텔명 파싱: 메인 이름 + 별칭들
+      const parsed = parseHotelName(item.hotelName || '');
+      const aliasesStr = parsed.aliases.length > 0
+        ? `<div class="archive-card-aliases">${parsed.aliases.map(a => `#${escapeHtml(a)}`).join(' ')}</div>`
+        : '';
+
+      const metaStr = linkCount > 0 ? `🔗 ${linkCount}개 링크` : '';
 
       return `
         <div class="archive-card" onclick="loadFromArchive('${item.id}')">
           <button class="archive-card-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">✕</button>
-          <div class="archive-card-name">${escapeHtml(item.hotelName)}</div>
-          ${metaStr ? `<div class="archive-card-meta">${escapeHtml(metaStr)}${linkStr}</div>` : (linkCount > 0 ? `<div class="archive-card-meta">🔗 ${linkCount}개 링크</div>` : '')}
+          <div class="archive-card-name">${escapeHtml(parsed.main)}</div>
+          ${aliasesStr}
+          ${metaStr ? `<div class="archive-card-meta">${escapeHtml(metaStr)}</div>` : ''}
           <div class="archive-card-date">${dateStr}</div>
         </div>
       `;
@@ -1679,13 +1694,31 @@
     if (insightsEl) currentData.insights = insightsEl.innerText;
 
     const archive = loadArchive();
-    const id = editingHotelId || ('hotel_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+
+    // editingHotelId가 없을 때 — 같은 호텔명이 이미 있는지 확인
+    let id = editingHotelId;
+    if (!id) {
+      const newMain = parseHotelName(currentData.hotelName).main;
+      const sameName = archive.find(h => parseHotelName(h.hotelName || '').main === newMain);
+      if (sameName) {
+        const choice = confirm(
+          `"${newMain}" 호텔이 이미 보관함에 있어요.\n\n` +
+          `[확인] = 기존 정보를 새 내용으로 덮어쓰기\n` +
+          `[취소] = 별도 호텔로 새로 저장 (이름 동일)`
+        );
+        if (choice) {
+          id = sameName.id;
+        } else {
+          id = 'hotel_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        }
+      } else {
+        id = 'hotel_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      }
+    }
 
     const entry = {
       id: id,
       hotelName: currentData.hotelName,
-      schedule: currentData.schedule,
-      agency: currentData.agency,
       fields: currentData.fields,
       insights: currentData.insights,
       links: [...currentLinks],
@@ -1704,7 +1737,27 @@
     editingHotelId = id;
     renderArchive();
 
-    showStatus(`✓ "${currentData.hotelName}" 보관함에 저장됐어요. "☁ 드라이브에 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+    const displayName = parseHotelName(currentData.hotelName).main;
+    showStatus(`✓ "${displayName}" 보관함에 저장됐어요. "☁ 드라이브 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+  }
+
+  // 보관함 저장 + 드라이브 동기화를 한 번에
+  async function saveAndSyncToCloud() {
+    if (!currentData) {
+      alert('먼저 호텔 정보를 정리해주세요.');
+      return;
+    }
+
+    if (!googleUser) {
+      alert('먼저 위에서 구글 로그인을 해주세요.');
+      return;
+    }
+
+    // 1. 먼저 보관함에 저장
+    saveToArchive();
+
+    // 2. 곧바로 드라이브에 동기화
+    await syncToCloud();
   }
 
   function loadFromArchive(id) {
@@ -1714,8 +1767,6 @@
 
     // 입력란 채우기
     document.getElementById('hotelName').value = item.hotelName || '';
-    document.getElementById('schedule').value = item.schedule || '';
-    document.getElementById('agency').value = item.agency || '';
     document.getElementById('bandPosts').value = item.posts || '';
 
     // 링크 복원
@@ -1725,8 +1776,6 @@
     // 결과 데이터 복원
     currentData = {
       hotelName: item.hotelName,
-      schedule: item.schedule,
-      agency: item.agency,
       fields: item.fields,
       insights: item.insights || ''
     };
@@ -1736,7 +1785,7 @@
 
     // 스크롤
     document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    showStatus(`📂 "${item.hotelName}" 불러왔어요. 수정 후 다시 저장하면 업데이트됩니다.`, 'success');
+    showStatus(`📂 "${parseHotelName(item.hotelName).main}" 불러왔어요. 수정 후 다시 저장하면 업데이트됩니다.`, 'success');
   }
 
   function deleteFromArchive(id) {
@@ -1744,7 +1793,7 @@
     const item = archive.find(h => h.id === id);
     if (!item) return;
 
-    if (!confirm(`"${item.hotelName}" 정보를 보관함에서 삭제할까요?\n삭제 후 "☁ 드라이브에 동기화"를 눌러야 드라이브에서도 사라져요.`)) return;
+    if (!confirm(`"${parseHotelName(item.hotelName).main}" 정보를 보관함에서 삭제할까요?\n삭제 후 "☁ 드라이브에 동기화"를 눌러야 드라이브에서도 사라져요.`)) return;
 
     const updated = archive.filter(h => h.id !== id);
     saveArchive(updated);
@@ -1757,8 +1806,6 @@
 
     // 모든 입력 초기화
     document.getElementById('hotelName').value = '';
-    document.getElementById('schedule').value = '';
-    document.getElementById('agency').value = '';
     document.getElementById('bandPosts').value = '';
     document.getElementById('linkInput').value = '';
     currentLinks = [];
@@ -1797,8 +1844,6 @@
   async function analyzePosts() {
     const apiKey = document.getElementById('apiKey').value.trim() || localStorage.getItem('anthropic_api_key');
     const hotelName = document.getElementById('hotelName').value.trim();
-    const schedule = document.getElementById('schedule').value.trim();
-    const agency = document.getElementById('agency').value.trim();
     const posts = document.getElementById('bandPosts').value.trim();
 
     if (!apiKey) { showStatus('먼저 Anthropic API 키를 설정해주세요.', 'error'); return; }
@@ -1813,8 +1858,6 @@
     const prompt = `너는 큐슈 지역을 잘 아는 한국인 일본 여행 가이드의 동료야. 한국 단체손님을 모시고 일본 호텔에 가는 가이드가 처음 가는 호텔 정보를 "일본가이드방(일가방)"이라는 네이버 밴드에서 다른 가이드들의 게시글로 수집했어. 그 게시글들을 읽고 표준 양식에 맞춰 JSON 형식으로 정리해줘.
 
 [호텔명] ${hotelName}
-[방문 일정] ${schedule || '미정'}
-[여행사/팀] ${agency || '미정'}
 
 [일가방에서 수집한 게시글들]
 ${posts}
@@ -1877,7 +1920,8 @@ ${posts}
       text = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
       const parsed = JSON.parse(text);
-      currentData = { hotelName, schedule, agency, fields: parsed.fields, insights: parsed.insights || '' };
+      currentData = { hotelName, fields: parsed.fields, insights: parsed.insights || '' };
+      editingHotelId = null;  // 새 호텔로 인식 (덮어쓰기 방지)
 
       renderResults(currentData);
       hideStatus();
@@ -1895,8 +1939,6 @@ ${posts}
   function loadFromJson() {
     const jsonText = document.getElementById('jsonInput').value.trim();
     const hotelName = document.getElementById('hotelName').value.trim() || '호텔';
-    const schedule = document.getElementById('schedule').value.trim();
-    const agency = document.getElementById('agency').value.trim();
 
     if (!jsonText) { showStatus('JSON 내용을 붙여넣어 주세요.', 'error'); return; }
 
@@ -1905,7 +1947,8 @@ ${posts}
       const parsed = JSON.parse(cleaned);
       if (!parsed.fields || !Array.isArray(parsed.fields)) throw new Error('JSON에 "fields" 배열이 없어요.');
 
-      currentData = { hotelName, schedule, agency, fields: parsed.fields, insights: parsed.insights || '' };
+      currentData = { hotelName, fields: parsed.fields, insights: parsed.insights || '' };
+      editingHotelId = null;  // 새 호텔로 인식 (덮어쓰기 방지)
       renderResults(currentData);
       showStatus('✓ JSON 불러오기 완료!', 'success');
       document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1916,11 +1959,12 @@ ${posts}
 
   function renderResults(data) {
     const meta = document.getElementById('hotelMeta');
-    meta.innerHTML = `
-      <span class="meta-item">호텔<strong>${escapeHtml(data.hotelName)}</strong></span>
-      ${data.schedule ? `<span class="meta-item">일정<strong>${escapeHtml(data.schedule)}</strong></span>` : ''}
-      ${data.agency ? `<span class="meta-item">여행사<strong>${escapeHtml(data.agency)}</strong></span>` : ''}
-    `;
+    const parsedName = parseHotelName(data.hotelName || '');
+    let metaHtml = `<span class="meta-item">호텔<strong>${escapeHtml(parsedName.main)}</strong></span>`;
+    if (parsedName.aliases.length > 0) {
+      metaHtml += `<span class="meta-item" style="color: var(--accent-blue); opacity: 0.8;">별칭<strong style="color: var(--accent-blue);">${parsedName.aliases.map(a => '#' + escapeHtml(a)).join(' ')}</strong></span>`;
+    }
+    meta.innerHTML = metaHtml;
 
     const tbody = document.getElementById('resultsBody');
     tbody.innerHTML = '';
@@ -1961,12 +2005,15 @@ ${posts}
     const insightsEl = document.getElementById('insightsContent');
     if (insightsEl) currentData.insights = insightsEl.innerText;
 
+    // 호텔명 파싱
+    const parsedName = parseHotelName(currentData.hotelName || '');
+    const titleText = parsedName.aliases.length > 0
+      ? `${parsedName.main} (${parsedName.aliases.join(' / ')})`
+      : parsedName.main;
+
     const wb = XLSX.utils.book_new();
     const rows = [];
-    const titleParts = [currentData.hotelName];
-    if (currentData.schedule) titleParts.push(currentData.schedule);
-    if (currentData.agency) titleParts.push(currentData.agency);
-    rows.push([titleParts.join(' / '), '']);
+    rows.push([titleText, '']);
 
     currentData.fields.forEach(f => rows.push([f.label, f.value]));
     rows.push(['', '']);
@@ -1990,7 +2037,7 @@ ${posts}
     }
     if (ws['B21']) ws['B21'].s = wrapStyle;
 
-    let sheetName = (currentData.hotelName || '호텔정보').substring(0, 31).replace(/[\\/?*\[\]:]/g, '_');
+    let sheetName = (parsedName.main || '호텔정보').substring(0, 31).replace(/[\\/?*\[\]:]/g, '_');
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
     if (currentData.insights) {
@@ -2015,11 +2062,31 @@ ${posts}
       XLSX.utils.book_append_sheet(wb, ws3, '일가방링크');
     }
 
-    XLSX.writeFile(wb, `${currentData.hotelName || '호텔정보'}.xlsx`);
+    XLSX.writeFile(wb, `${parsedName.main || '호텔정보'}.xlsx`);
   }
 
   function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  // 호텔명 파싱 — "메인이름 #별칭1 #별칭2" → { main, aliases, all }
+  function parseHotelName(fullName) {
+    if (!fullName) return { main: '', aliases: [], all: [] };
+    const parts = fullName.split('#').map(s => s.trim()).filter(s => s.length > 0);
+    if (parts.length === 0) return { main: '', aliases: [], all: [] };
+    return {
+      main: parts[0],
+      aliases: parts.slice(1),
+      all: parts
+    };
+  }
+
+  // 호텔이 검색어와 매치되는지 (메인 이름 + 모든 별칭 검사)
+  function matchesHotelName(hotel, query) {
+    if (!query) return true;
+    const q = query.toLowerCase().trim();
+    const parsed = parseHotelName(hotel.hotelName || '');
+    return parsed.all.some(name => name.toLowerCase().includes(q));
   }
 </script>
 
