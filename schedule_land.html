@@ -68,8 +68,8 @@
   .saved-msg.show{display:block;}
 
   /* 랜드사 화면 */
-  .comment-box{background:var(--no-soft);border:1px solid #efc9d4;border-radius:14px;padding:16px 18px;margin-bottom:12px;font-size:17px;color:#8f3450;line-height:1.7;white-space:pre-line;}
-  .comment-box b{font-family:'Binggrae',sans-serif;font-weight:700;}
+  .comment-box{background:var(--no-soft);border:1px solid #efc9d4;border-radius:14px;padding:16px 18px;margin-bottom:12px;font-size:17px;color:#8f3450;line-height:1.7;white-space:pre-line;text-align:center;}
+  .comment-box b{font-family:'Binggrae',sans-serif;font-weight:700;font-size:21px;}
   .comment-box.empty{display:none;}
 
   .monthbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0 14px;}
@@ -172,7 +172,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2128</span>
+  <span class="rev">rev_2026_0528_2132</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -258,7 +258,7 @@ $('customRegion').oninput=()=>{ if(startSel)refreshPreview(); };
 function applyCommentView(){
   const c=settings.comment;
   const box=$('commentView');
-  if(c){box.classList.remove('empty');box.innerHTML=`<b style="display:block;text-align:center;">가이드 조건</b>${c.replace(/</g,'&lt;')}`;}
+  if(c){box.classList.remove('empty');box.innerHTML=`<b style="display:block;margin-bottom:6px;">가이드 조건</b>${c.replace(/</g,'&lt;')}`;}
   else box.classList.add('empty');
 }
 
