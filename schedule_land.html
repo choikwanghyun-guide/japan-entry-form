@@ -81,7 +81,7 @@
   .dow span{text-align:center;font-size:16px;color:var(--muted);padding:6px 0;}
   .dow span:first-child{color:var(--no);}
   .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;}
-  .cell{aspect-ratio:1/1;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;position:relative;border:1px solid transparent;transition:.12s;}
+  .cell{aspect-ratio:1/1;min-width:0;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;position:relative;border:1px solid transparent;transition:.12s;}
   .cell.empty{background:transparent;}
   .cell .dot{font-size:11px;margin-top:3px;letter-spacing:.3px;}
   .cell.ok{background:var(--ok-soft);color:var(--ok);border-color:#bfe0d2;cursor:pointer;}
@@ -98,6 +98,22 @@
   .note{margin-top:22px;font-size:16px;color:var(--muted);text-align:center;line-height:1.8;border-top:1px dashed var(--line);padding-top:18px;}
   .site-footer{max-width:580px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted);line-height:1.7;opacity:.8;}
   .site-footer .rev{font-family:monospace;font-size:12px;letter-spacing:.3px;}
+
+  /* 좁은 화면(폰)에서 달력이 넘치지 않도록 축소 */
+  @media (max-width:430px){
+    body{padding:18px 10px 100px;}
+    .cal{padding:10px;border-radius:16px;}
+    .grid{gap:4px;}
+    .cell{font-size:16px;border-radius:10px;}
+    .cell .dot{font-size:9px;margin-top:1px;}
+    .dow span{font-size:13px;padding:4px 0;}
+  }
+  @media (max-width:360px){
+    .cal{padding:7px;}
+    .grid{gap:3px;}
+    .cell{font-size:14px;border-radius:8px;}
+    .cell .dot{font-size:8px;}
+  }
 
   .selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--paper2);border-top:1px solid var(--line);padding:14px 16px calc(14px + env(safe-area-inset-bottom));display:none;box-shadow:0 -8px 24px -16px rgba(31,61,54,.5);}
   .selbar.show{display:block;}
@@ -172,7 +188,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2236</span>
+  <span class="rev">rev_2026_0528_2258</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -208,8 +224,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
