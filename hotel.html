@@ -1526,86 +1526,8 @@
       left: 0;
       top: 0;
       width: 100%;
-      padding: 0;
-      background: white !important;
-      color: black !important;
-      font-size: 12px;
     }
-    #printArea table {
-      background: white !important;
-      border: 1.5px solid #333;
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-    #printArea th, #printArea td {
-      background: white !important;
-      color: #000000 !important;
-      border: 1px solid #888;
-      padding: 2px 8px !important;
-      font-size: 12px !important;
-      line-height: 1.25 !important;
-      vertical-align: middle !important;
-      text-align: center !important;
-      white-space: normal !important;
-      word-break: break-word;
-    }
-    #printArea th {
-      background: #f2f2f2 !important;
-      color: #000000 !important;
-      font-weight: bold;
-      width: 38%;
-    }
-    #printArea thead th {
-      background: #e0e0e0 !important;
-      color: #000000 !important;
-      font-size: 13px !important;
-    }
-    #printArea .editable, #printArea .editable-label {
-      color: #000000 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      text-align: center !important;
-      display: inline;
-      font-size: 12px !important;
-      background: transparent !important;
-      line-height: 1.25 !important;
-    }
-    #printArea .th-num { color: #555; }
-    #printArea .empty-value {
-      color: #c2410c !important;
-      font-style: normal;
-    }
-    #printArea .insights-box {
-      background: #f7f7f7 !important;
-      border: 1px solid #999;
-      page-break-inside: avoid;
-      padding: 8px 12px !important;
-      margin-top: 10px !important;
-    }
-    #printArea .insights-title {
-      font-size: 13px !important;
-      margin-bottom: 5px !important;
-    }
-    #printArea .insights-content {
-      color: black !important;
-      font-size: 11px !important;
-      line-height: 1.5 !important;
-    }
-    #printArea .print-title {
-      font-size: 20px;
-      font-weight: bold;
-      color: black !important;
-      margin-bottom: 6px;
-      text-align: center;
-    }
-    #printArea .print-meta {
-      font-size: 12px;
-      color: #444 !important;
-      margin-bottom: 12px;
-      text-align: center;
-    }
-    @page { margin: 1cm; size: A4 portrait; }
+    @page { margin: 1.2cm; size: A4 portrait; }
   }
 
   .print-title, .print-meta { display: none; }
@@ -1702,7 +1624,6 @@
 
     <!-- JSON 파일 / 엑셀 파일에서 복구 -->
     <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-      <span style="font-size: 13px; color: var(--text-dim);">백업에서 복구:</span>
       <button class="btn-backup" onclick="document.getElementById('importFileInput').click()">
         📥 JSON 파일에서 불러오기
       </button>
@@ -1853,7 +1774,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1446</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1455</span></p>
   </footer>
 
 </div>
@@ -3291,47 +3212,56 @@ ${posts}
     const parsedName = parseHotelName(currentData.hotelName || '');
     const infoDateVal = document.getElementById('infoDate').value.trim();
 
-    // 인쇄용 영역 생성
+    // 인쇄용 영역 생성 (이미지 저장과 동일한 깔끔한 레이아웃)
     let printArea = document.getElementById('printArea');
     if (printArea) printArea.remove();
 
     printArea = document.createElement('div');
     printArea.id = 'printArea';
+    printArea.style.cssText = '-webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;';
 
     // 제목
-    let titleHtml = `<div class="print-title">${escapeHtml(parsedName.main)}`;
-    if (parsedName.aliases.length > 0) {
-      titleHtml += ` <span style="font-size: 15px; font-weight: normal;">(${parsedName.aliases.map(a => escapeHtml(a)).join(' / ')})</span>`;
+    let titleAliases = parsedName.aliases.length > 0
+      ? `<span style="font-size: 16px; font-weight: normal; color: #666;"> (${parsedName.aliases.map(a => escapeHtml(a)).join(' / ')})</span>`
+      : '';
+    let html = `<div style="font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 8px; color: #000;">${escapeHtml(parsedName.main)}${titleAliases}</div>`;
+    if (infoDateVal) {
+      html += `<div style="text-align: center; font-size: 13px; color: #c2410c; margin-bottom: 14px;">📅 정보 기준: ${escapeHtml(infoDateVal)}</div>`;
+    } else {
+      html += `<div style="margin-bottom: 14px;"></div>`;
     }
-    titleHtml += `</div>`;
 
-    let metaHtml = '<div class="print-meta">';
-    if (infoDateVal) metaHtml += `📅 정보 기준: ${escapeHtml(infoDateVal)}`;
-    metaHtml += `</div>`;
-
-    // 표 생성
-    let tableHtml = '<table><thead><tr><th style="width:38%;">항목</th><th>내용</th></tr></thead><tbody>';
+    // 표 — 이미지와 동일
+    html += `<table style="width: 100%; border-collapse: collapse; border: 2px solid #333; table-layout: fixed;">`;
+    html += `<tr>
+      <th style="width: 38%; background: #e0e0e0; border: 1px solid #888; padding: 5px 10px; font-size: 14px; font-weight: 700; text-align: center; color: #000;">항목</th>
+      <th style="background: #e0e0e0; border: 1px solid #888; padding: 5px 10px; font-size: 14px; font-weight: 700; text-align: center; color: #000;">내용</th>
+    </tr>`;
     currentData.fields.forEach((field, i) => {
       const valueStr = String(field.value || '');
       const isEmpty = valueStr.includes('정보없음') || valueStr.includes('확인 필요');
-      tableHtml += `<tr><th>${i + 1}. ${escapeHtml(field.label)}</th><td><div class="editable ${isEmpty ? 'empty-value' : ''}">${escapeHtml(valueStr).replace(/\n/g, '<br>')}</div></td></tr>`;
+      const valColor = isEmpty ? '#c2410c' : '#000000';
+      html += `<tr>
+        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
+        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${escapeHtml(valueStr).replace(/\n/g, '<br>')}</td>
+      </tr>`;
     });
-    tableHtml += '</tbody></table>';
+    html += `</table>`;
 
     // 인사이트
-    let insightsHtml = '';
     if (currentData.insights) {
-      insightsHtml = `<div class="insights-box"><div class="insights-title" style="color:#7c5cf0; font-weight:bold; margin-bottom:8px;">✦ 가이드용 핵심 포인트</div><div class="insights-content">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div></div>`;
+      html += `<div style="background: #f7f7f7; border: 1px solid #999; border-radius: 8px; padding: 12px 14px; margin-top: 12px; page-break-inside: avoid;">
+        <div style="color: #7c5cf0; font-weight: 700; font-size: 14px; margin-bottom: 6px;">✦ 가이드용 핵심 포인트</div>
+        <div style="font-size: 12px; line-height: 1.5; color: #000;">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div>
+      </div>`;
     }
 
-    // 가이드 연락처 (하단)
-    const contactHtml = `<div style="text-align: right; margin-top: 14px; font-size: 12px; color: #333; line-height: 1.6;">
-      최광현 가이드<br>
-      한국폰 : 010-2620-8072<br>
-      <strong style="text-decoration: underline;">일본폰 : 090-7555-7489</strong>
+    // 연락처
+    html += `<div style="text-align: right; margin-top: 14px; font-size: 12px; color: #333; line-height: 1.6;">
+      최광현 가이드<br>한국폰 : 010-2620-8072<br><strong style="text-decoration: underline;">일본폰 : 090-7555-7489</strong>
     </div>`;
 
-    printArea.innerHTML = titleHtml + metaHtml + tableHtml + insightsHtml + contactHtml;
+    printArea.innerHTML = html;
     document.body.appendChild(printArea);
 
     // 인쇄 후 정리
