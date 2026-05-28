@@ -172,7 +172,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2232</span>
+  <span class="rev">rev_2026_0528_2236</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -208,8 +208,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
@@ -463,13 +463,17 @@ loadFromCloud();
 
 /* iframe(가이드 미리보기) 안에서 열렸을 때, 부모에게 내 높이를 알려 스크롤 없이 보이게 함 */
 if(window.parent!==window){
+  let lastH=0;
   const sendHeight=()=>{
     const h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
-    try{window.parent.postMessage({type:'landHeight',height:h},'*');}catch(e){}
+    if(Math.abs(h-lastH)>2){           // 실제로 바뀐 경우에만 전송 (루프 방지)
+      lastH=h;
+      try{window.parent.postMessage({type:'landHeight',height:h},'*');}catch(e){}
+    }
   };
   window.addEventListener('load',sendHeight);
   window.addEventListener('resize',sendHeight);
-  setInterval(sendHeight,1000);
+  setInterval(sendHeight,1500);
   setTimeout(sendHeight,300);
 }
 </script>
