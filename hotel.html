@@ -1078,6 +1078,15 @@
     <div id="archiveContent">
       <p class="archive-empty">저장된 호텔이 없어요. 호텔 정보를 정리한 뒤 "저장하기"를 누르면 여기에 보관됩니다.</p>
     </div>
+
+    <!-- JSON 파일에서 복구 -->
+    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <span style="font-size: 12px; color: var(--text-dim);">백업에서 복구:</span>
+      <button class="btn-backup" onclick="document.getElementById('importFileInput').click()">
+        📥 JSON 파일에서 불러오기
+      </button>
+      <input type="file" id="importFileInput" class="hidden-file-input" accept=".json,application/json" onchange="importFromJsonFile(event)">
+    </div>
   </div>
 
   <!-- Section 1: 호텔 기본 정보 -->
@@ -1205,7 +1214,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0927</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0934</span></p>
   </footer>
 
 </div>
@@ -1821,6 +1830,81 @@
     saveArchive(updated);
     if (editingHotelId === id) editingHotelId = null;
     renderArchive();
+  }
+
+  // === JSON 파일에서 보관함 복구 ===
+  function importFromJsonFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.hotels || !Array.isArray(data.hotels)) {
+          alert('올바른 백업 파일이 아니에요. hotel-archive.json 파일을 선택해주세요.');
+          event.target.value = '';
+          return;
+        }
+
+        if (data.hotels.length === 0) {
+          alert('파일에 호텔 정보가 없어요.');
+          event.target.value = '';
+          return;
+        }
+
+        // 현재 보관함이 비어있으면 그냥 불러오기
+        if (archiveData.length === 0) {
+          archiveData = data.hotels;
+          hasUnsavedChanges = true;
+          updateLastSyncDisplay();
+          renderArchive();
+          alert(`✓ ${data.hotels.length}개 호텔 정보를 불러왔어요!\n\n이제 "☁ 드라이브에 동기화"를 누르면 드라이브에도 저장됩니다.`);
+          event.target.value = '';
+          return;
+        }
+
+        // 기존 데이터 있으면 합칠지 물어봄
+        const choice = confirm(
+          `현재 보관함에 ${archiveData.length}개 호텔이 있어요.\n` +
+          `불러올 파일에는 ${data.hotels.length}개가 있어요.\n\n` +
+          `[확인] = 합치기 (같은 호텔은 최신 정보로)\n` +
+          `[취소] = 그만두기`
+        );
+        if (!choice) {
+          event.target.value = '';
+          return;
+        }
+
+        // ID 기준으로 합치기
+        const merged = {};
+        archiveData.forEach(h => { if (h.id) merged[h.id] = h; });
+
+        let added = 0, updated = 0;
+        data.hotels.forEach(h => {
+          if (!h.id) return;
+          const existing = merged[h.id];
+          if (!existing) {
+            merged[h.id] = h;
+            added++;
+          } else if ((h.savedAt || 0) > (existing.savedAt || 0)) {
+            merged[h.id] = h;
+            updated++;
+          }
+        });
+
+        archiveData = Object.values(merged);
+        hasUnsavedChanges = true;
+        updateLastSyncDisplay();
+        renderArchive();
+        alert(`✓ 복구 완료!\n새로 ${added}개 추가, ${updated}개 업데이트\n총 ${archiveData.length}개 호텔\n\n"☁ 드라이브에 동기화"로 드라이브에도 반영하세요.`);
+        event.target.value = '';
+      } catch (err) {
+        alert(`파일을 읽을 수 없어요: ${err.message}`);
+        event.target.value = '';
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
   }
 
   function startNew() {
