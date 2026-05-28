@@ -135,6 +135,7 @@
   .btn{display:block;width:100%;text-align:center;text-decoration:none;font-family:inherit;font-size:18px;font-weight:bold;padding:16px;border-radius:15px;border:none;cursor:pointer;}
   .btn-kakao{background:#FEE500;color:#3a1d1d;}
   .btn-copy{background:var(--ok-soft);color:var(--ok);margin-top:10px;}
+  .btn-copy.copied{background:var(--ok);color:#fff;}
   .btn-close{background:transparent;color:var(--muted);margin-top:12px;font-size:15px;border:none;width:100%;cursor:pointer;font-family:inherit;padding:8px;}
 </style>
 </head>
@@ -188,7 +189,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2258</span>
+  <span class="rev">rev_2026_0528_2317</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -203,9 +204,9 @@
   <h3>섭외 문의</h3>
   <p class="d">아래 내용으로 문의를 보냅니다</p>
   <div class="preview" id="sheetPreview"></div>
-  <p class="copyhint"><b>① 문구 복사 → ② 카카오톡 열기 → 채팅방에 붙여넣기</b></p>
+  <p class="copyhint"><b>① 문구 복사 → ② 카카오톡 열기 → 최광현 가이드님과의 채팅방에 붙여넣기</b></p>
   <button class="btn btn-copy" id="copyBtn" style="margin-top:0;">문구 복사하기</button>
-  <a class="btn btn-kakao" id="kakaoBtn" target="_blank" rel="noopener" style="margin-top:10px;">카카오톡 열기</a>
+  <a class="btn btn-kakao" id="kakaoBtn" rel="noopener" style="margin-top:10px;font-size:15px;padding:11px;opacity:.9;">카카오톡 열기 (이미 켜져 있으면 안 눌러도 돼요)</a>
   <button class="btn-close" id="closeBtn">닫기</button>
 </div></div>
 
@@ -217,15 +218,17 @@
 
    ▼ 본인이 직접 채워야 하는 값 ▼
    1) GUIDE_NAME   : 가이드 이름
-   2) KAKAO_LINK   : 카카오톡 오픈채팅 링크
-   3) BIN_ID       : JSONBin Bin ID (가이드 페이지와 동일한 값)
-   4) ACCESS_KEY   : JSONBin X-Access-Key (★읽기 전용 키★. Master-Key 넣지 말 것)
+   2) BIN_ID       : JSONBin Bin ID (가이드 페이지와 동일한 값)
+   3) ACCESS_KEY   : JSONBin X-Access-Key (★읽기 전용 키★. Master-Key 넣지 말 것)
+   ※ '카카오톡 열기'는 (특정 방이 아니라) 카카오톡 앱을 엽니다.
+     담당자가 복사한 문구를, 평소 쓰던 대화방에 직접 붙여넣는 방식입니다.
 =================================================================== */
 const GUIDE_NAME="최광현 가이드";
-const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
+// 카카오톡 앱만 여는 링크 (특정 방으로 가지 않음). 그대로 두세요.
+const KAKAO_LINK="kakaotalk://";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
@@ -419,7 +422,22 @@ $('askBtn').onclick=()=>{
 };
 $('copyBtn').onclick=function(){
   const t=this.dataset.msg||'';
-  navigator.clipboard?.writeText(t).then(()=>{this.textContent='복사됐어요! 카톡에 붙여넣으세요';setTimeout(()=>this.textContent='문구 복사하기',1800);},()=>{this.textContent='복사 실패 — 길게 눌러 복사하세요';});
+  const done=()=>{
+    this.classList.add('copied');
+    this.textContent='✓ 복사됐어요! 카톡에 붙여넣고 보내주세요 ^^';
+    setTimeout(()=>{this.classList.remove('copied');this.textContent='문구 복사하기';},2500);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done,()=>{
+      this.textContent='복사 실패 — 아래 글을 직접 선택해 복사하세요';
+    });
+  }else{
+    // 구형 브라우저 대비
+    try{
+      const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+      document.execCommand('copy');document.body.removeChild(ta);done();
+    }catch(e){ this.textContent='복사 실패 — 아래 글을 직접 선택해 복사하세요'; }
+  }
 };
 $('closeBtn').onclick=()=>ov.classList.remove('on');
 ov.onclick=e=>{if(e.target===ov)ov.classList.remove('on');};
