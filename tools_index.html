@@ -25,6 +25,8 @@
     --c-settlement-2: #06b6d4;
     --c-hotel-1: #ec4899;
     --c-hotel-2: #f43f5e;
+    --c-schedule-1: #a855f7;
+    --c-schedule-2: #7c3aed;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -67,14 +69,14 @@
   }
   .tool-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 18px;
   }
-  @media (max-width: 1180px) {
-    .tool-grid { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) {
+    .tool-grid { grid-template-columns: repeat(2, 1fr); }
   }
-  @media (max-width: 760px) {
-    .tool-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  @media (max-width: 600px) {
+    .tool-grid { grid-template-columns: 1fr; }
   }
   .tool-card {
     position: relative;
@@ -117,6 +119,7 @@
   .tool-card.c-entry      { --c1: var(--c-entry-1);      --c2: var(--c-entry-2); }
   .tool-card.c-settlement { --c1: var(--c-settlement-1); --c2: var(--c-settlement-2); }
   .tool-card.c-hotel      { --c1: var(--c-hotel-1);      --c2: var(--c-hotel-2); }
+  .tool-card.c-schedule   { --c1: var(--c-schedule-1);   --c2: var(--c-schedule-2); }
 
   .tool-icon {
     width: 56px;
@@ -276,10 +279,27 @@
       <div class="tool-desc">일가방 게시글을 표준 양식으로 자동 정리, 구글 드라이브 동기화</div>
       <div class="tool-arrow">열기 <span class="arrow">→</span></div>
     </a>
+
+    <a class="tool-card c-schedule" href="schedule_guide.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <line x1="3.5" y1="9" x2="20.5" y2="9" stroke="currentColor" stroke-width="1.8"></line>
+          <line x1="8" y1="3" x2="8" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line>
+          <line x1="16" y1="3" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line>
+          <circle cx="8" cy="13" r="1.2" fill="currentColor"></circle>
+          <circle cx="12" cy="13" r="1.2" fill="currentColor"></circle>
+          <circle cx="16" cy="16.5" r="1.2" fill="currentColor"></circle>
+        </svg>
+      </div>
+      <div class="tool-title">일정 공유</div>
+      <div class="tool-desc">구글 캘린더와 연동해 가능한 날짜를 랜드사에게 공유해요</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
   </div>
 
   <div class="footer">
-    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0829</span>
+    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_2337</span>
   </div>
 </div>
 
