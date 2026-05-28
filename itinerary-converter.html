@@ -6,6 +6,8 @@
 <title>확정서 → 가이드 일정표 변환기</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
   // PDF.js worker 설정
   if (window['pdfjsLib']) {
@@ -414,6 +416,124 @@
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ===== 구글 드라이브 동기화 ===== */
+  #syncCard { border-left: 3px solid var(--accent); }
+
+  .sync-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--text3); flex-shrink: 0;
+  }
+  .sync-dot.connected { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+  .sync-dot.syncing { background: var(--accent3); animation: syncpulse 1s infinite; }
+  @keyframes syncpulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .sync-btn-google {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; color: #3c4043; border: none;
+    border-radius: 8px; padding: 10px 18px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .sync-btn-google:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+  .sync-btn-action {
+    border: none; border-radius: 8px; padding: 10px 16px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; color: #fff;
+  }
+  .sync-up { background: linear-gradient(135deg, var(--accent), #2563eb); }
+  .sync-down { background: linear-gradient(135deg, var(--accent2), #2eb87a); }
+  .sync-btn-action:hover { transform: translateY(-1px); }
+
+  .sync-btn-logout {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 14px; font-size: 13px; cursor: pointer;
+    font-family: inherit;
+  }
+  .sync-btn-logout:hover { border-color: #f87171; color: #f87171; }
+
+  .sync-status-msg { margin-top: 10px; font-size: 13px; }
+  .sync-status-msg.success { color: var(--accent2); }
+  .sync-status-msg.error { color: #f87171; }
+
+  .unsaved-mark {
+    color: var(--accent3); margin-left: 6px; font-weight: 600;
+  }
+
+  /* ===== 보관함 ===== */
+  .archive-count {
+    background: var(--accent); color: #fff;
+    border-radius: 999px; padding: 2px 10px;
+    font-size: 12px; font-weight: 700;
+  }
+  .search-result-count {
+    background: var(--bg3); color: var(--text2);
+    border-radius: 999px; padding: 3px 10px; font-size: 11px;
+  }
+  .collapse-btn {
+    background: transparent; border: none; color: var(--text2);
+    font-size: 16px; cursor: pointer; padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .collapse-btn:hover { background: var(--bg3); color: var(--text); }
+
+  #archiveContent.collapsed { display: none; }
+
+  .archive-search { position: relative; }
+  .archive-search input {
+    width: 100%; padding: 10px 36px 10px 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: inherit; font-size: 13px; outline: none;
+    box-sizing: border-box;
+  }
+  .archive-search input:focus { border-color: var(--accent); }
+  .archive-search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: transparent; border: none; color: var(--text2);
+    cursor: pointer; font-size: 15px; padding: 4px 8px; display: none;
+  }
+  .archive-search-clear.show { display: block; }
+
+  .archive-empty {
+    color: var(--text3); font-size: 13px; font-style: italic;
+    padding: 8px 0; text-align: center;
+  }
+
+  .archive-list-rows {
+    border: 1px solid var(--border); border-radius: 8px;
+    overflow: hidden; background: var(--bg3);
+  }
+  .archive-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .archive-row:last-child { border-bottom: none; }
+  .archive-row:hover { background: var(--bg2); }
+  .archive-row-name {
+    color: var(--text); font-weight: 600; font-size: 13px;
+    flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .archive-row-meta {
+    color: var(--text2); font-size: 11px; white-space: nowrap;
+  }
+  .archive-row-date {
+    color: var(--text3); font-size: 11px; font-family: monospace;
+    white-space: nowrap;
+  }
+  .archive-row-delete {
+    background: transparent; border: none; color: var(--text3);
+    cursor: pointer; font-size: 14px; padding: 3px 8px; border-radius: 4px;
+  }
+  .archive-row-delete:hover { background: rgba(248,113,113,0.15); color: #f87171; }
+
+  .search-no-result {
+    text-align: center; padding: 24px; color: var(--text3);
+    font-size: 13px; font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -421,6 +541,60 @@
 <div class="header">
   <h1>✈️ 확정서 → 일정표 변환기</h1>
   <p>여행사 확정서를 업로드하면 가이드 일정표로 자동 변환해요</p>
+</div>
+
+<!-- 구글 드라이브 동기화 -->
+<div class="card" id="syncCard">
+  <!-- 로그인 안 된 상태 -->
+  <div id="syncInfoLoggedOut" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span class="sync-dot"></span>
+    <div style="flex:1; min-width:200px; font-size:14px; color:var(--text2); line-height:1.6;">
+      <strong style="color:var(--text);">구글 드라이브에 일정표가 저장됩니다.</strong><br>
+      구글 계정으로 로그인하면 어떤 기기에서든 같은 일정표를 볼 수 있어요.
+    </div>
+    <button id="btnGoogleLogin" class="sync-btn-google" onclick="handleGoogleLogin()">
+      <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6c-2 1.5-4.6 2.4-7.7 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4 5.6l6.6 5.6c-.5.4 7.1-5.2 7.1-15.2 0-1.3-.1-2.3-.4-3.5z"/></svg>
+      구글 로그인
+    </button>
+  </div>
+  <!-- 로그인 된 상태 -->
+  <div id="syncInfoLoggedIn" style="display:none; align-items:center; gap:14px; flex-wrap:wrap;">
+    <span class="sync-dot connected" id="syncStatusDot"></span>
+    <div style="flex:1; min-width:160px;">
+      <div id="syncUserName" style="font-weight:600; color:var(--text); font-size:14px;">사용자명</div>
+      <div id="syncUserMeta" style="font-size:12px; color:var(--text2);">user@gmail.com</div>
+      <div id="lastSyncTime" style="font-size:11px; color:var(--text3); margin-top:2px;"></div>
+    </div>
+    <button id="btnSyncUpload" class="sync-btn-action sync-up" onclick="syncToCloud()" style="display:none;">☁ 드라이브에 동기화</button>
+    <button id="btnSyncDownload" class="sync-btn-action sync-down" onclick="syncFromCloud(false)" style="display:none;">🔄 불러오기</button>
+    <button id="btnLogout" class="sync-btn-logout" onclick="handleLogout()" style="display:none;">로그아웃</button>
+  </div>
+  <div id="syncStatus" class="sync-status-msg"></div>
+</div>
+
+<!-- 저장된 일정표 보관함 -->
+<div class="card" id="archiveCard">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:18px;">🗂️</span>
+      <span style="font-weight:700; font-size:16px;">저장된 일정표</span>
+      <span class="archive-count" id="archiveCount">0</span>
+      <span class="search-result-count" id="searchResultCount" style="display:none;"></span>
+    </div>
+    <button class="collapse-btn" id="collapseBtn" onclick="toggleArchiveCollapse()" title="접기/펼치기">▶</button>
+  </div>
+
+  <!-- 검색창 (항상 보임) -->
+  <div id="archiveSearchWrap" style="margin-top:12px;">
+    <div class="archive-search">
+      <input type="text" id="archiveSearchInput" placeholder="일정표 제목·지역으로 검색 (예: 대마다, 후쿠오카)" oninput="filterArchive()">
+      <button class="archive-search-clear" id="searchClearBtn" onclick="clearSearch()" title="검색어 지우기">✕</button>
+    </div>
+  </div>
+
+  <div id="archiveContent" class="collapsed" style="margin-top:12px;">
+    <p class="archive-empty">저장된 일정표가 없어요. 일정표를 만든 뒤 "보관함에 저장"을 누르면 여기에 보관됩니다.</p>
+  </div>
 </div>
 
 <!-- STEP 1: 파일 업로드 -->
@@ -590,6 +764,9 @@
     <button class="btn btn-print" onclick="printItinerary()">
       🖨️ 인쇄용 보기 <span style="font-size:11px;opacity:0.8">(출력 후 휴대)</span>
     </button>
+    <button class="btn btn-print" onclick="saveItineraryToArchive()" style="background:linear-gradient(135deg,var(--accent2),#2eb87a);color:#fff;">
+      🗂️ 보관함에 저장 <span style="font-size:11px;opacity:0.8">(구글 드라이브)</span>
+    </button>
     <button class="btn btn-print" onclick="saveItineraryFile()">
       💾 일정표 저장 <span style="font-size:11px;opacity:0.8">(파일로 보관)</span>
     </button>
@@ -638,11 +815,415 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0520_2330</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1521</span></div>
 
 <script>
 // ── 전역 상태 ──
-let parsedData = null; // { format, title, startDate, nights, flights, transport, pax, days: [{date, dayNo, items:[{time,transport,place,desc,meal,type}]}] }
+let parsedData = null; // { format, title, startDate, nights, flights, transport, pax, days: [...] }
+
+// ===== 구글 드라이브 동기화 =====
+const GOOGLE_CLIENT_ID = '12813919900-1bkc0ce3q32126efepta5b182mpru4ea.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+const ARCHIVE_FILENAME = 'itinerary-archive.json';
+
+let gapiInited = false;
+let gisInited = false;
+let tokenClient = null;
+let googleUser = null;       // { name, email, token, fileId }
+let archiveData = [];        // 보관된 일정표 목록
+let lastSyncTime = null;
+let hasUnsavedChanges = false;
+let editingItineraryId = null;
+
+// 보관함 보기 상태
+let archiveCollapsed = true;
+let searchQuery = '';
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderArchive();
+  initGoogleApis();
+});
+
+function initGoogleApis() {
+  const gapiInterval = setInterval(() => {
+    if (typeof gapi !== 'undefined') {
+      clearInterval(gapiInterval);
+      gapi.load('client', async () => {
+        await gapi.client.init({
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
+        });
+        gapiInited = true;
+      });
+    }
+  }, 100);
+
+  const gisInterval = setInterval(() => {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+      clearInterval(gisInterval);
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_SCOPES,
+        callback: ''
+      });
+      gisInited = true;
+    }
+  }, 100);
+}
+
+async function handleGoogleLogin() {
+  if (!tokenClient) {
+    alert('구글 API가 아직 준비 중이에요. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+  tokenClient.callback = async (resp) => {
+    if (resp.error) {
+      console.error(resp);
+      alert('로그인 실패: ' + (resp.error_description || resp.error));
+      return;
+    }
+    if (resp.scope && !resp.scope.includes('drive.file')) {
+      alert('드라이브 권한이 부여되지 않았어요. 로그인 시 드라이브 권한에 동의해주세요.');
+      return;
+    }
+    const token = resp.access_token;
+    try {
+      let userInfo = { name: '사용자', email: '' };
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (r.ok) userInfo = await r.json();
+      } catch (e) { console.warn('사용자 정보 조회 실패', e); }
+
+      googleUser = { name: userInfo.name || userInfo.email || '사용자', email: userInfo.email || '', token, fileId: null };
+      updateLoginUI(true);
+      await syncFromCloud(true);
+    } catch (err) {
+      console.error(err);
+      alert('드라이브 연결 실패: ' + err.message);
+    }
+  };
+  tokenClient.requestAccessToken({ prompt: 'consent', include_granted_scopes: false });
+}
+
+function handleLogout() {
+  if (hasUnsavedChanges && !confirm('저장하지 않은 변경 사항이 있어요. 로그아웃하면 잃어버려요. 계속할까요?')) return;
+  if (googleUser && googleUser.token) google.accounts.oauth2.revoke(googleUser.token, () => {});
+  googleUser = null;
+  archiveData = [];
+  lastSyncTime = null;
+  hasUnsavedChanges = false;
+  updateLoginUI(false);
+  renderArchive();
+}
+
+function updateLoginUI(loggedIn) {
+  document.getElementById('syncInfoLoggedOut').style.display = loggedIn ? 'none' : 'flex';
+  document.getElementById('syncInfoLoggedIn').style.display = loggedIn ? 'flex' : 'none';
+  document.getElementById('btnGoogleLogin').style.display = loggedIn ? 'none' : 'inline-flex';
+  document.getElementById('btnSyncUpload').style.display = loggedIn ? 'inline-flex' : 'none';
+  document.getElementById('btnSyncDownload').style.display = loggedIn ? 'inline-flex' : 'none';
+  document.getElementById('btnLogout').style.display = loggedIn ? 'inline-block' : 'none';
+  if (loggedIn && googleUser) {
+    document.getElementById('syncUserName').textContent = googleUser.name;
+    document.getElementById('syncUserMeta').textContent = googleUser.email;
+  }
+}
+
+// ── 드라이브 파일 입출력 (호텔 도구 검증된 fetch 방식) ──
+async function findArchiveFile() {
+  if (!googleUser) return null;
+  const q = encodeURIComponent(`name='${ARCHIVE_FILENAME}' and trashed=false`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${googleUser.token}`, 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`파일찾기 실패 (${res.status})`);
+  const data = await res.json();
+  const files = data.files || [];
+  return files.length > 0 ? files[0] : null;
+}
+
+async function createArchiveFile(content) {
+  const metadata = { name: ARCHIVE_FILENAME, mimeType: 'application/json' };
+  const boundary = '-------314159265358979323846';
+  const delimiter = "\r\n--" + boundary + "\r\n";
+  const closeDelim = "\r\n--" + boundary + "--";
+  const body = delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) +
+    delimiter + 'Content-Type: application/json\r\n\r\n' + content + closeDelim;
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${googleUser.token}`, 'Content-Type': 'multipart/related; boundary="' + boundary + '"' },
+    body
+  });
+  if (!res.ok) throw new Error(`파일생성 실패 (${res.status})`);
+  const data = await res.json();
+  return data.id;
+}
+
+async function updateArchiveFile(fileId, content) {
+  const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { 'Authorization': `Bearer ${googleUser.token}`, 'Content-Type': 'application/json' },
+    body: content
+  });
+  if (!res.ok) throw new Error(`파일수정 실패 (${res.status})`);
+  return await res.json();
+}
+
+async function downloadArchiveFile(fileId) {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { 'Authorization': `Bearer ${googleUser.token}`, 'Accept': 'application/json' }
+  });
+  if (!res.ok) throw new Error(`다운로드 실패 (${res.status})`);
+  return await res.json();
+}
+
+// ── 동기화 (업로드) ──
+async function syncToCloud() {
+  if (!googleUser) { alert('먼저 구글 로그인 해주세요.'); return; }
+  setSyncStatus('syncing');
+  const btn = document.getElementById('btnSyncUpload');
+  btn.disabled = true; btn.textContent = '동기화 중...';
+  try {
+    const backup = {
+      type: 'itinerary_archive_backup', version: 1,
+      lastModified: new Date().toISOString(),
+      itineraryCount: archiveData.length,
+      itineraries: archiveData
+    };
+    const content = JSON.stringify(backup, null, 2);
+    let fileId = googleUser.fileId;
+    if (!fileId) {
+      const existing = await findArchiveFile();
+      if (existing) { fileId = existing.id; googleUser.fileId = fileId; }
+    }
+    if (fileId) await updateArchiveFile(fileId, content);
+    else { fileId = await createArchiveFile(content); googleUser.fileId = fileId; }
+    lastSyncTime = new Date();
+    hasUnsavedChanges = false;
+    updateLastSyncDisplay();
+    setSyncStatus('connected');
+    showSyncStatus(`✓ ${archiveData.length}개 일정표를 구글 드라이브에 저장했어요!`, 'success');
+  } catch (err) {
+    console.error('동기화 오류:', err);
+    setSyncStatus('connected');
+    showSyncStatus(`동기화 실패: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '☁ 드라이브에 동기화';
+  }
+}
+
+// ── 동기화 (다운로드) ──
+async function syncFromCloud(silent) {
+  if (!googleUser) { alert('먼저 구글 로그인 해주세요.'); return; }
+  if (!silent && hasUnsavedChanges && !confirm('저장하지 않은 변경 사항이 있어요. 불러오면 사라집니다. 계속할까요?')) return;
+  setSyncStatus('syncing');
+  const btn = document.getElementById('btnSyncDownload');
+  btn.disabled = true; btn.textContent = '불러오는 중...';
+  try {
+    const file = await findArchiveFile();
+    if (!file) {
+      archiveData = [];
+      googleUser.fileId = null;
+      renderArchive();
+      setSyncStatus('connected');
+      if (!silent) showSyncStatus('구글 드라이브에 저장된 일정표가 아직 없어요. 일정표를 만들어 저장해보세요!', 'success');
+      return;
+    }
+    googleUser.fileId = file.id;
+    const data = await downloadArchiveFile(file.id);
+    if (data && Array.isArray(data.itineraries)) {
+      archiveData = data.itineraries;
+      lastSyncTime = new Date();
+      hasUnsavedChanges = false;
+      renderArchive();
+      updateLastSyncDisplay();
+      setSyncStatus('connected');
+      if (!silent) showSyncStatus(`✓ 구글 드라이브에서 ${archiveData.length}개 일정표를 불러왔어요!`, 'success');
+      else showSyncStatus(`✓ ${googleUser.name}님 환영합니다! ${archiveData.length}개 일정표를 불러왔어요.`, 'success');
+    } else {
+      throw new Error('파일 형식이 올바르지 않아요.');
+    }
+  } catch (err) {
+    console.error('[동기화] 오류:', err);
+    setSyncStatus('connected');
+    showSyncStatus(`불러오기 실패: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔄 불러오기';
+  }
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('syncStatusDot');
+  if (!dot) return;
+  dot.classList.remove('connected', 'syncing');
+  if (status === 'connected') dot.classList.add('connected');
+  else if (status === 'syncing') dot.classList.add('syncing');
+}
+
+function updateLastSyncDisplay() {
+  const el = document.getElementById('lastSyncTime');
+  if (!el) return;
+  if (lastSyncTime) {
+    const t = lastSyncTime;
+    const s = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+    el.innerHTML = `마지막 동기화: ${s}` + (hasUnsavedChanges ? '<span class="unsaved-mark">미저장</span>' : '');
+  } else el.textContent = '';
+}
+
+function showSyncStatus(msg, type) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status-msg ' + (type || '');
+  if (type === 'success') setTimeout(() => { if (el.textContent === msg) { el.textContent = ''; el.className = 'sync-status-msg'; } }, 6000);
+}
+
+// ── 일정표 제목 만들기 (보관함 표시용) ──
+function makeItineraryTitle(data) {
+  if (!data) return '일정표';
+  const region = (data.region || '').trim();
+  const title = (data.title || '').trim();
+  const start = (data.startDate || '').trim();
+  let name = region || title || '일정표';
+  if (start) name += ` (${start})`;
+  return name;
+}
+
+// ── 보관함에 저장 ──
+function saveItineraryToArchive() {
+  if (!parsedData) { showSyncStatus('저장할 일정표가 없어요. 먼저 확정서를 변환해주세요.', 'error'); return; }
+  if (!googleUser) { alert('먼저 위에서 구글 로그인을 해주세요.'); return; }
+
+  // 화면 입력값 반영
+  const titleEl = document.getElementById('infoTitle');
+  if (titleEl) parsedData.region = titleEl.value.trim();
+
+  // 임시 키(_로 시작) 제외하고 복사
+  const saveData = JSON.parse(JSON.stringify(parsedData, (k, v) => k.startsWith('_') ? undefined : v));
+
+  const displayTitle = makeItineraryTitle(saveData);
+  const archive = archiveData;
+
+  let id = editingItineraryId;
+  if (!id) {
+    const sameName = archive.find(it => makeItineraryTitle(it.data) === displayTitle);
+    if (sameName) {
+      const choice = confirm(`"${displayTitle}" 일정표가 이미 있어요.\n\n[확인] = 기존 일정표 덮어쓰기\n[취소] = 새 일정표로 저장`);
+      id = choice ? sameName.id : ('itin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8));
+    } else {
+      id = 'itin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    }
+  }
+
+  const entry = { id, title: displayTitle, data: saveData, savedAt: Date.now() };
+  const idx = archive.findIndex(it => it.id === id);
+  if (idx >= 0) archive[idx] = entry;
+  else archive.push(entry);
+
+  editingItineraryId = id;
+  hasUnsavedChanges = true;
+  updateLastSyncDisplay();
+  renderArchive();
+  showSyncStatus(`✓ "${displayTitle}" 보관함에 저장됐어요. "☁ 드라이브에 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+}
+
+// ── 보관함에서 일정표 열기 ──
+function loadFromArchive(id) {
+  const item = archiveData.find(it => it.id === id);
+  if (!item) return;
+  if (parsedData && !confirm('지금 화면의 일정표가 사라지고 저장된 일정표로 바뀝니다. 계속할까요?')) return;
+  parsedData = JSON.parse(JSON.stringify(item.data));
+  editingItineraryId = id;
+  applyParsedData();
+  showSyncStatus(`📂 "${item.title}" 불러왔어요. 수정 후 다시 저장하면 업데이트됩니다.`, 'success');
+  document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 보관함에서 삭제 ──
+function deleteFromArchive(id) {
+  const item = archiveData.find(it => it.id === id);
+  if (!item) return;
+  if (!confirm(`"${item.title}" 일정표를 보관함에서 삭제할까요?\n삭제 후 "☁ 드라이브에 동기화"를 눌러야 드라이브에서도 사라져요.`)) return;
+  archiveData = archiveData.filter(it => it.id !== id);
+  if (editingItineraryId === id) editingItineraryId = null;
+  hasUnsavedChanges = true;
+  updateLastSyncDisplay();
+  renderArchive();
+}
+
+// ── 검색 / 접기 ──
+function toggleArchiveCollapse() {
+  archiveCollapsed = !archiveCollapsed;
+  document.getElementById('archiveContent').classList.toggle('collapsed', archiveCollapsed);
+  document.getElementById('collapseBtn').textContent = archiveCollapsed ? '▶' : '▼';
+}
+function filterArchive() {
+  const input = document.getElementById('archiveSearchInput');
+  searchQuery = input.value.trim().toLowerCase();
+  document.getElementById('searchClearBtn').classList.toggle('show', searchQuery.length > 0);
+  if (searchQuery && archiveCollapsed) toggleArchiveCollapse();
+  renderArchive();
+}
+function clearSearch() {
+  document.getElementById('archiveSearchInput').value = '';
+  searchQuery = '';
+  document.getElementById('searchClearBtn').classList.remove('show');
+  renderArchive();
+}
+
+// ── 보관함 렌더링 ──
+function renderArchive() {
+  const archive = archiveData;
+  document.getElementById('archiveCount').textContent = archive.length;
+  const contentEl = document.getElementById('archiveContent');
+  const searchWrapEl = document.getElementById('archiveSearchWrap');
+  const resultCountEl = document.getElementById('searchResultCount');
+
+  if (archive.length === 0) {
+    searchWrapEl.style.display = 'none';
+    resultCountEl.style.display = 'none';
+    contentEl.innerHTML = googleUser
+      ? '<p class="archive-empty">저장된 일정표가 없어요. 일정표를 만든 뒤 "보관함에 저장"을 누르세요.</p>'
+      : '<p class="archive-empty">먼저 위에서 <strong>구글 로그인</strong>하세요. 그러면 저장된 일정표가 여기에 나타납니다.</p>';
+    return;
+  }
+
+  searchWrapEl.style.display = '';
+
+  let filtered = archive;
+  if (searchQuery) {
+    filtered = archive.filter(it => (it.title || '').toLowerCase().includes(searchQuery));
+    resultCountEl.style.display = '';
+    resultCountEl.textContent = `검색 결과 ${filtered.length}개`;
+  } else {
+    resultCountEl.style.display = 'none';
+  }
+
+  if (filtered.length === 0) {
+    contentEl.innerHTML = '<div class="search-no-result">🔍 검색 결과가 없어요.</div>';
+    return;
+  }
+
+  filtered = filtered.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+
+  contentEl.innerHTML = '<div class="archive-list-rows">' + filtered.map(item => {
+    const d = new Date(item.savedAt || Date.now());
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dayCount = (item.data && Array.isArray(item.data.days)) ? item.data.days.length : 0;
+    const metaStr = dayCount > 0 ? `${dayCount}일` : '';
+    return `
+      <div class="archive-row" onclick="loadFromArchive('${item.id}')">
+        <div class="archive-row-name">${escapeHtmlItin(item.title)}</div>
+        ${metaStr ? `<div class="archive-row-meta">${metaStr}</div>` : ''}
+        <div class="archive-row-date">💾 ${dateStr}</div>
+        <button class="archive-row-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">✕</button>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+function escapeHtmlItin(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 // ── 파일 업로드 처리 ──
 function handleConfirmFile(input) {
