@@ -238,24 +238,25 @@
     /* 헤더 행 숨김 (각 칸에 라벨이 붙으므로 불필요) */
     .sched-table thead { display: none; }
 
-    /* 각 행(tr) = 카드 */
+    /* 각 행(tr) = 카드 — padding 0으로 해서 색이 카드 끝까지 꽉 차게 */
     .sched-table tr {
       border: 1px solid var(--border);
       border-radius: 10px;
       margin-bottom: 12px;
-      padding: 6px 10px 10px;
+      padding: 0;
       background: var(--bg3);
+      overflow: hidden;
     }
     .sched-table tr.hotel-row { background: rgba(247,184,79,0.10); }
     .sched-table tr.flight-row { background: rgba(79,142,247,0.10); }
     .sched-table tr.meal-row { background: rgba(62,207,142,0.10); }
 
-    /* 각 칸(td) = 라벨 + 값 한 줄 */
+    /* 각 칸(td) = 라벨 + 값 한 줄, 좌우 안쪽 여백으로 글자가 끝에 안 붙게 */
     .sched-table td {
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      padding: 6px 0 !important;
+      padding: 8px 14px !important;
       border-bottom: 1px solid rgba(48,54,61,0.4);
       overflow: visible !important;
     }
@@ -301,9 +302,27 @@
     }
     .sched-table td[data-label="비고"]::before { color: var(--accent3); }
 
-    /* 위치조정 버튼들 한 줄 정리 */
+    /* 위치조정 버튼들 한 줄 정리 — 이동/색상 버튼 모두 가로로 */
+    .sched-table td[data-label="위치조정"] {
+      justify-content: center;
+      padding: 4px 0 8px !important;
+    }
     .sched-table td[data-label="위치조정"] .rowtool-wrap {
-      display: flex; flex-direction: row; gap: 14px; align-items: center; width: 100%;
+      display: flex; flex-direction: row; gap: 8px; align-items: center;
+      justify-content: center; width: 100%; flex-wrap: nowrap;
+    }
+    /* ▲✕▼ 세로 → 가로 */
+    .sched-table td[data-label="위치조정"] .row-btns {
+      flex-direction: row; gap: 4px;
+    }
+    /* 색상 버튼(배경/글자색/굵게) 세로 → 가로 */
+    .sched-table td[data-label="위치조정"] .color-btns {
+      flex-direction: row; gap: 6px;
+    }
+    /* 모바일에서 버튼 살짝 키워 누르기 쉽게 */
+    .sched-table td[data-label="위치조정"] .row-btn,
+    .sched-table td[data-label="위치조정"] .color-btn {
+      width: 28px; height: 28px;
     }
 
     /* 지도 버튼 모바일에서 크게 */
@@ -968,7 +987,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1626</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1641</span></div>
 
 <script>
 // ── 전역 상태 ──
