@@ -294,13 +294,19 @@
       flex: 0 0 100px;
     }
 
-    /* 내용·비고는 큼직하게 */
+    /* 내용·비고는 큼직하게, 높이는 내용에 따라 자동 확장 */
     .sched-table td[data-label="내용"] textarea,
     .sched-table td[data-label="비고"] textarea {
       font-size: 15px;
       min-height: 28px;
+      height: auto !important;
+      overflow: visible !important;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .sched-table td[data-label="비고"]::before { color: var(--accent3); }
+    /* 카드(tr)와 td가 내용에 따라 높이가 늘어나도록 (고정 높이 방지) */
+    .sched-table tr, .sched-table td { height: auto !important; }
 
     /* 위치조정 버튼들 한 줄 정리 — 이동/색상 버튼 모두 가로로 */
     .sched-table td[data-label="위치조정"] {
@@ -358,6 +364,10 @@
 
   /* 행 색상 강조 */
   tr.row-hl > td { background: #f7e96b !important; }
+  /* 노란 배경일 때 B(볼드)·가(글자색) 버튼이 흰색이면 안 보이므로 검정으로 */
+  tr.row-hl .color-btn.bold-btn { color: #1a1a1a !important; border-color: #c9bb3d; }
+  tr.row-hl .row-btn { color: #5a5320; }
+  tr.row-hl .row-btn:hover { background: rgba(0,0,0,0.12); color: #1a1a1a; }
   tr.row-bold .sched-input,
   tr.row-bold td { font-weight: 700 !important; }
   /* 글자색 (색상별) */
@@ -987,7 +997,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1641</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1654</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3142,6 +3152,17 @@ function autoResizeAllTextareas() {
     });
   });
 }
+
+// 화면 크기 변경(회전, 창 크기 조절) 시 textarea 높이 다시 계산
+// — 데스크탑↔모바일 카드 전환 시 비고/내용이 잘리지 않게
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(autoResizeAllTextareas, 150);
+});
+window.addEventListener('orientationchange', () => {
+  setTimeout(autoResizeAllTextareas, 300);
+});
 
 function renderRow(di, ii, item) {
   const rowCls = item.type === 'hotel' ? 'hotel-row' : item.type === 'flight' ? 'flight-row' : item.type === 'meal' ? 'meal-row' : '';
