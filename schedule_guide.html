@@ -226,8 +226,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";        // ← 예: "65a1b2c3..." (비워두면 저장 안 되고 데모로만 동작)
-const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장 안 되고 데모로만 동작)
+const MASTER_KEY="";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
 
 const BUSY_DATES=["2026-06-10","2026-06-11","2026-06-18","2026-06-25","2026-06-26"];
 
@@ -362,10 +362,11 @@ function applyCommentView(){
 function dayState(date){
   if(date<new Date(today.getFullYear(),today.getMonth(),today.getDate()))return 'past';
   const k=key(date);
-  if(settings.excludeRegions.includes(selectedRegion))return 'no';
-  for(const p of settings.excludePeriods){
+  const exRegions=settings.excludeRegions||[];
+  const exPeriods=settings.excludePeriods||[];
+  if(exRegions.includes(selectedRegion))return 'no';
+  for(const p of exPeriods){
     if(k>=p.start&&k<=p.end){
-      // regions가 비어있으면 전체 적용, 아니면 해당 지역에만 적용
       if(!p.regions||p.regions.length===0||p.regions.includes(selectedRegion))return 'no';
     }
   }
@@ -473,10 +474,14 @@ async function loadFromCloud(){
     const data=await res.json();
     const rec=data.record||data;
     if(rec.settings){
-      settings=rec.settings;
+      settings={
+        comment: rec.settings.comment||"",
+        excludeRegions: Array.isArray(rec.settings.excludeRegions)?rec.settings.excludeRegions:[],
+        excludePeriods: Array.isArray(rec.settings.excludePeriods)?rec.settings.excludePeriods:[]
+      };
       // 화면 복원
       $('commentInput').value=settings.comment||'';
-      [...$('excludeRegionChips').children].forEach(c=>c.classList.toggle('on',(settings.excludeRegions||[]).includes(c.dataset.region)));
+      [...$('excludeRegionChips').children].forEach(c=>c.classList.toggle('on',settings.excludeRegions.includes(c.dataset.region)));
       renderExcludeList();
       applyCommentView();
       render();

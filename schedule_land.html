@@ -187,8 +187,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 let BUSY_DATES=["2026-06-10","2026-06-11","2026-06-18","2026-06-25","2026-06-26"];
 
@@ -238,10 +238,11 @@ function applyCommentView(){
 function dayState(date){
   if(date<new Date(today.getFullYear(),today.getMonth(),today.getDate()))return 'past';
   const k=key(date);
-  if(settings.excludeRegions.includes(selectedRegion))return 'no';
-  for(const p of settings.excludePeriods){
+  const exRegions=settings.excludeRegions||[];
+  const exPeriods=settings.excludePeriods||[];
+  if(exRegions.includes(selectedRegion))return 'no';
+  for(const p of exPeriods){
     if(k>=p.start&&k<=p.end){
-      // regions가 비어있으면 전체 적용, 아니면 해당 지역에만 적용
       if(!p.regions||p.regions.length===0||p.regions.includes(selectedRegion))return 'no';
     }
   }
@@ -348,7 +349,14 @@ async function loadFromCloud(){
     if(!res.ok)throw new Error('HTTP '+res.status);
     const data=await res.json();
     const rec=data.record||data;
-    if(rec.settings)settings=rec.settings;
+    if(rec.settings){
+      // 빠진 항목이 있어도 안전하도록 기본값으로 채움
+      settings={
+        comment: rec.settings.comment||"",
+        excludeRegions: Array.isArray(rec.settings.excludeRegions)?rec.settings.excludeRegions:[],
+        excludePeriods: Array.isArray(rec.settings.excludePeriods)?rec.settings.excludePeriods:[]
+      };
+    }
     if(Array.isArray(rec.busyDates))BUSY_DATES=rec.busyDates;
   }catch(e){
     console.warn('설정 불러오기 실패, 데모값 사용:',e.message);
