@@ -413,7 +413,7 @@
   table th {
     background: var(--bg-hover);
     color: var(--text);
-    text-align: center;
+    text-align: left;
     padding: 14px 14px;
     font-weight: 600;
     font-size: 15px;
@@ -463,6 +463,32 @@
     background: var(--bg-card);
     border-color: var(--accent-purple);
     box-shadow: 0 0 0 3px rgba(139, 124, 246, 0.15);
+  }
+
+  .editable-label {
+    display: inline;
+    padding: 2px 6px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    transition: all 0.15s;
+    cursor: text;
+    outline: none;
+  }
+
+  .editable-label:hover {
+    background: rgba(139, 124, 246, 0.12);
+    border-color: var(--border-soft);
+  }
+
+  .editable-label:focus {
+    background: var(--bg-card);
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 0 2px rgba(139, 124, 246, 0.15);
+  }
+
+  .th-num {
+    color: var(--text-dim);
+    font-weight: 700;
   }
 
   .empty-value {
@@ -1581,7 +1607,7 @@
       <h2 class="section-title">정리된 호텔 정보</h2>
     </div>
     <p class="section-desc">
-      각 칸을 클릭하면 직접 수정할 수 있어요. 정보가 부족한 항목은 주황색으로 표시됩니다.
+      <strong>항목 이름과 내용 모두</strong> 클릭하면 직접 수정할 수 있어요. 정보가 부족한 항목은 주황색으로 표시됩니다.
     </p>
 
     <div class="hotel-meta" id="hotelMeta"></div>
@@ -1589,7 +1615,7 @@
     <table id="resultsTable">
       <thead>
         <tr>
-          <th>항목</th>
+          <th>항목 (클릭하여 수정)</th>
           <th>내용 (클릭하여 수정)</th>
         </tr>
       </thead>
@@ -1621,7 +1647,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1209</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1220</span></p>
   </footer>
 
 </div>
@@ -2997,12 +3023,13 @@ ${posts}
       const isEmpty = valueStr.includes('정보없음') || valueStr.includes('확인 필요') ||
                       valueStr.includes('확인필요') || valueStr.trim() === '' || valueStr.trim() === '-';
       tr.innerHTML = `
-        <th>${i + 1}. ${escapeHtml(field.label)}</th>
+        <th><span class="th-num">${i + 1}.</span> <span class="editable-label" contenteditable="true" data-label-index="${i}">${escapeHtml(field.label)}</span></th>
         <td><div class="editable ${isEmpty ? 'empty-value' : ''}" contenteditable="true" data-index="${i}">${escapeHtml(valueStr)}</div></td>
       `;
       tbody.appendChild(tr);
     });
 
+    // 값 편집
     tbody.querySelectorAll('.editable').forEach(el => {
       el.addEventListener('blur', (e) => {
         const idx = parseInt(e.target.dataset.index);
@@ -3012,6 +3039,27 @@ ${posts}
                              text.includes('확인필요') || text.trim() === '' || text.trim() === '-';
         if (isStillEmpty) e.target.classList.add('empty-value');
         else e.target.classList.remove('empty-value');
+      });
+    });
+
+    // 항목 이름(라벨) 편집
+    tbody.querySelectorAll('.editable-label').forEach(el => {
+      el.addEventListener('blur', (e) => {
+        const idx = parseInt(e.target.dataset.labelIndex);
+        const text = e.target.innerText.trim();
+        if (text) {
+          currentData.fields[idx].label = text;
+        } else {
+          // 비우면 원래대로 되돌림
+          e.target.innerText = currentData.fields[idx].label;
+        }
+      });
+      // 엔터 시 줄바꿈 방지 (라벨은 한 줄)
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.target.blur();
+        }
       });
     });
 
