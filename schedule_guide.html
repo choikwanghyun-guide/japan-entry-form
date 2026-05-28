@@ -149,7 +149,7 @@
       <div id="landPreviewEmpty" style="padding:40px 20px;text-align:center;color:var(--muted);line-height:1.7;">
         미리보기를 불러오는 중이에요...<br>안 보이면 위 칸에 랜드 페이지 주소를 넣고 '적용'을 눌러주세요.<br><small>(파일을 더블클릭으로 연 경우엔 자동 추정이 안 돼요. 인터넷 주소로 열어주세요)</small>
       </div>
-      <iframe id="landPreview" title="랜드 미리보기" style="display:none;width:100%;height:80vh;border:0;"></iframe>
+      <iframe id="landPreview" title="랜드 미리보기" scrolling="no" style="display:none;width:100%;height:600px;border:0;"></iframe>
     </div>
   </div>
 
@@ -200,7 +200,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2227</span>
+  <span class="rev">rev_2026_0528_2232</span>
 </footer>
 
 <script>
@@ -220,8 +220,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
-const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
+const MASTER_KEY="";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
 // iCal 주소는 화면의 '구글 캘린더 연동' 칸에 붙여넣으면 됩니다. (코드 수정 불필요)
 
 // 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
@@ -303,6 +303,13 @@ $('landUrlSave').onclick=()=>{
   settings.landUrl=u;            // 저장 시 JSONBin에도 함께 보관됨
   applyLandPreview(resolveLandUrl());
 };
+/* 랜드 미리보기(iframe)가 보내온 높이에 맞춰 스크롤 없이 표시 */
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.type==='landHeight'&&e.data.height){
+    const fr=$('landPreview');
+    if(fr) fr.style.height=(e.data.height+20)+'px';
+  }
+});
 
 /* ---- 설정: 제외지역칩 ---- */
 REGIONS.forEach(r=>{
