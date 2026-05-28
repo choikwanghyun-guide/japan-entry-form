@@ -1540,11 +1540,11 @@
     }
     #printArea th, #printArea td {
       background: white !important;
-      color: black !important;
+      color: #000000 !important;
       border: 1px solid #888;
-      padding: 5px 8px !important;
+      padding: 2px 8px !important;
       font-size: 12px !important;
-      line-height: 1.4 !important;
+      line-height: 1.25 !important;
       vertical-align: middle !important;
       text-align: center !important;
       white-space: normal !important;
@@ -1552,19 +1552,24 @@
     }
     #printArea th {
       background: #f2f2f2 !important;
+      color: #000000 !important;
       font-weight: bold;
       width: 38%;
     }
     #printArea thead th {
       background: #e0e0e0 !important;
+      color: #000000 !important;
       font-size: 13px !important;
     }
     #printArea .editable, #printArea .editable-label {
-      color: black !important;
+      color: #000000 !important;
       padding: 0 !important;
+      margin: 0 !important;
       text-align: center !important;
       display: inline;
       font-size: 12px !important;
+      background: transparent !important;
+      line-height: 1.25 !important;
     }
     #printArea .th-num { color: #555; }
     #printArea .empty-value {
@@ -1848,7 +1853,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1431</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1446</span></p>
   </footer>
 
 </div>
@@ -3376,19 +3381,19 @@ ${posts}
       html += `<div style="margin-bottom: 16px;"></div>`;
     }
 
-    // 표 — 큰 글씨로
+    // 표 — 큰 글씨로, 여백은 좁게
     html += `<table style="width: 100%; border-collapse: collapse; border: 2px solid #333; table-layout: fixed;">`;
     html += `<tr>
-      <th style="width: 38%; background: #e0e0e0; border: 1px solid #888; padding: 9px 10px; font-size: 15px; font-weight: 700; text-align: center;">항목</th>
-      <th style="background: #e0e0e0; border: 1px solid #888; padding: 9px 10px; font-size: 15px; font-weight: 700; text-align: center;">내용</th>
+      <th style="width: 38%; background: #e0e0e0; border: 1px solid #888; padding: 5px 10px; font-size: 15px; font-weight: 700; text-align: center; color: #000;">항목</th>
+      <th style="background: #e0e0e0; border: 1px solid #888; padding: 5px 10px; font-size: 15px; font-weight: 700; text-align: center; color: #000;">내용</th>
     </tr>`;
     currentData.fields.forEach((field, i) => {
       const valueStr = String(field.value || '');
       const isEmpty = valueStr.includes('정보없음') || valueStr.includes('확인 필요');
-      const valColor = isEmpty ? '#c2410c' : '#1a1a1a';
+      const valColor = isEmpty ? '#c2410c' : '#000000';
       html += `<tr>
-        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 8px 10px; font-size: 14px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word;">${i + 1}. ${escapeHtml(field.label)}</th>
-        <td style="background: #fff; border: 1px solid #aaa; padding: 8px 10px; font-size: 14px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.5;">${escapeHtml(valueStr).replace(/\n/g, '<br>')}</td>
+        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
+        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${escapeHtml(valueStr).replace(/\n/g, '<br>')}</td>
       </tr>`;
     });
     html += `</table>`;
