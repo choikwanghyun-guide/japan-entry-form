@@ -1205,7 +1205,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0916</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0927</span></p>
   </footer>
 
 </div>
@@ -1384,16 +1384,19 @@
   async function findArchiveFile() {
     if (!googleUser) return null;
     try {
+      console.log('[파일찾기] 쿼리:', `name='${ARCHIVE_FILENAME}' and trashed=false`);
       const res = await gapi.client.drive.files.list({
         q: `name='${ARCHIVE_FILENAME}' and trashed=false`,
         spaces: 'drive',
         fields: 'files(id, name, modifiedTime)',
         oauth_token: googleUser.token
       });
+      console.log('[파일찾기] 응답:', res.result);
       const files = res.result.files || [];
+      console.log('[파일찾기] 파일 개수:', files.length);
       return files.length > 0 ? files[0] : null;
     } catch (err) {
-      console.error('파일 찾기 오류:', err);
+      console.error('[파일찾기] 오류:', err);
       throw err;
     }
   }
@@ -1527,7 +1530,10 @@
     btnDownload.textContent = '불러오는 중...';
 
     try {
+      console.log('[동기화] 드라이브에서 파일 찾기 시작...');
       const file = await findArchiveFile();
+      console.log('[동기화] 찾은 파일:', file);
+
       if (!file) {
         // 첫 사용 - 파일 없음
         archiveData = [];
@@ -1535,11 +1541,16 @@
         renderArchive();
         setSyncStatus('connected');
         if (!silent) showStatus('구글 드라이브에 저장된 데이터가 아직 없어요. 호텔 정보를 정리해서 동기화해보세요!', 'success');
+        else showStatus(`📭 구글 드라이브에 hotel-archive.json 파일이 없어요. 파일을 드라이브에 올리거나 새로 호텔을 정리하고 저장해보세요.`, 'success');
         return;
       }
 
       googleUser.fileId = file.id;
+      console.log('[동기화] 파일 다운로드 시작, ID:', file.id);
       const data = await downloadArchiveFile(file.id);
+      console.log('[동기화] 다운로드된 데이터:', data);
+      console.log('[동기화] data.hotels 배열인가?', Array.isArray(data?.hotels));
+      console.log('[동기화] data.hotels 길이:', data?.hotels?.length);
 
       if (data && Array.isArray(data.hotels)) {
         archiveData = data.hotels;
@@ -1551,12 +1562,14 @@
         if (!silent) showStatus(`✓ 구글 드라이브에서 ${archiveData.length}개 호텔 정보를 불러왔어요!`, 'success');
         else showStatus(`✓ ${googleUser.name}님 환영합니다! 구글 드라이브에서 ${archiveData.length}개 호텔 정보를 불러왔어요.`, 'success');
       } else {
-        throw new Error('파일 형식이 올바르지 않아요');
+        console.error('[동기화] 파일 형식 오류 — data:', data);
+        throw new Error('파일 형식이 올바르지 않아요. 콘솔(F12)에서 자세한 내용을 확인해주세요.');
       }
     } catch (err) {
-      console.error('불러오기 오류:', err);
+      console.error('[동기화] 오류 발생:', err);
       setSyncStatus('connected');
-      if (!silent) showStatus(`불러오기 실패: ${err.result?.error?.message || err.message}`, 'error');
+      const msg = err.result?.error?.message || err.message || '알 수 없는 오류';
+      showStatus(`불러오기 실패: ${msg}`, 'error');
     } finally {
       btnDownload.disabled = false;
       btnDownload.textContent = '🔄 불러오기';
