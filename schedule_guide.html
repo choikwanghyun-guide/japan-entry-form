@@ -87,6 +87,8 @@
   .legend .l-ok i{background:var(--ok);}
   .legend .l-no i{background:var(--no);}
   .note{margin-top:22px;font-size:16px;color:var(--muted);text-align:center;line-height:1.8;border-top:1px dashed var(--line);padding-top:18px;}
+  .site-footer{max-width:580px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted);line-height:1.7;opacity:.8;}
+  .site-footer .rev{font-family:monospace;font-size:12px;letter-spacing:.3px;}
 
   .selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--paper2);border-top:1px solid var(--line);padding:14px 16px calc(14px + env(safe-area-inset-bottom));display:none;box-shadow:0 -8px 24px -16px rgba(31,61,54,.5);}
   .selbar.show{display:block;}
@@ -160,6 +162,13 @@
   <div class="panel on" id="panelGuide">
     <div id="guideSettings">
     <div class="card">
+      <h2>구글 캘린더 연동</h2>
+      <div class="hint">'가이드 행사' 캘린더의 일정을 불러와 자동으로 불가 처리합니다. 불러온 뒤 아래 '설정 저장'을 눌러야 랜드 페이지에 반영돼요.</div>
+      <button class="miniadd" id="syncCal" style="width:100%;">구글 캘린더 불러오기</button>
+      <p class="saved-msg" id="syncMsg" style="margin-top:10px;"></p>
+    </div>
+
+    <div class="card">
       <h2>가이드 코멘트</h2>
       <div class="hint">랜드사에게 보여줄 조건을 적어주세요. (예: 등산팀 불가 / 학단 불가 / 7~9월 칸사이·오키나와 불가)</div>
       <textarea id="commentInput" placeholder="예) 등산팀 불가, 학단 불가, 7~9월 칸사이·오키나와 불가"></textarea>
@@ -192,6 +201,12 @@
   </div>
 </div>
 
+<!-- 푸터 -->
+<footer class="site-footer">
+  Created by Choi KwangHyun · © 2026<br>
+  <span class="rev">rev_2026_0528_2017</span>
+</footer>
+
 <!-- 하단 선택바 -->
 <div class="selbar" id="selbar"><div class="inner">
   <div class="info"><b id="selText">날짜를 선택하세요</b><small id="selSub"></small></div>
@@ -222,14 +237,23 @@
    2) KAKAO_LINK     : 카카오톡 오픈채팅 링크
    3) BIN_ID         : JSONBin 에서 만든 Bin 의 ID
    4) MASTER_KEY     : JSONBin X-Master-Key (저장 권한. 절대 외부에 공유 금지!)
+   5) ICAL_URL       : 구글 '가이드 행사' 캘린더의 비공개 iCal 주소 (.ics)
 =================================================================== */
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장 안 되고 데모로만 동작)
+const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
 const MASTER_KEY="";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const ICAL_URL="";      // ← 구글 캘린더 비공개 iCal 주소 (https://calendar.google.com/.../basic.ics)
 
-const BUSY_DATES=["2026-06-10","2026-06-11","2026-06-18","2026-06-25","2026-06-26"];
+// 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
+const CORS_PROXIES=[
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
+];
+
+// 구글에서 못 불러올 때 쓰는 예비(데모)값
+let BUSY_DATES=["2026-06-10","2026-06-11","2026-06-18","2026-06-25","2026-06-26"];
 
 const REGIONS=["북해도","큐슈","칸사이","시코쿠","나고야(알펜루트)","대마도","오키나와","야마구치","그외 지역"];
 
@@ -318,6 +342,74 @@ function renderExcludeList(){
   });
 }
 
+/* ---- 구글 캘린더(iCal) 불러오기 ---- */
+// .ics 텍스트에서 일정을 읽어 "바쁜 날" 목록(YYYY-MM-DD)으로 펼친다.
+function parseICS(text){
+  const days=new Set();
+  // 줄바꿈으로 접힌 줄(이어쓰기) 펼치기
+  const unfolded=text.replace(/\r?\n[ \t]/g,'');
+  const lines=unfolded.split(/\r?\n/);
+  let dtStart=null,dtEnd=null,inEvent=false;
+  const toYMD=v=>{
+    // 형식: 20260614  또는 20260614T093000Z 등 → 앞 8자리만
+    const m=v.match(/(\d{4})(\d{2})(\d{2})/);
+    return m?`${m[1]}-${m[2]}-${m[3]}`:null;
+  };
+  const addRange=(s,e)=>{
+    if(!s)return;
+    const sd=new Date(s+'T00:00:00');
+    // 종일일정의 DTEND는 다음날을 가리키므로 하루 빼서 처리. 시간 일정은 같은 날.
+    let ed=e?new Date(e+'T00:00:00'):new Date(s+'T00:00:00');
+    if(e && ed>sd) ed.setDate(ed.getDate()-1);
+    for(let d=new Date(sd);d<=ed;d.setDate(d.getDate()+1)){
+      const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');
+      days.add(`${y}-${mo}-${da}`);
+    }
+  };
+  for(const ln of lines){
+    if(ln.startsWith('BEGIN:VEVENT')){inEvent=true;dtStart=dtEnd=null;}
+    else if(ln.startsWith('END:VEVENT')){if(inEvent)addRange(dtStart,dtEnd);inEvent=false;}
+    else if(inEvent && ln.startsWith('DTSTART')){dtStart=toYMD(ln.split(':').pop());}
+    else if(inEvent && ln.startsWith('DTEND')){dtEnd=toYMD(ln.split(':').pop());}
+  }
+  return [...days].sort();
+}
+
+async function fetchICS(url){
+  let lastErr;
+  for(const make of CORS_PROXIES){
+    try{
+      const res=await fetch(make(url));
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const t=await res.text();
+      if(t.includes('BEGIN:VCALENDAR'))return t;
+      throw new Error('캘린더 형식이 아니에요');
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('불러오기 실패');
+}
+
+$('syncCal').onclick=async()=>{
+  const msg=$('syncMsg');
+  if(!ICAL_URL){
+    msg.style.color='var(--no)';msg.textContent="ICAL_URL이 비어 있어요. 코드 상단에 구글 iCal 주소를 넣어주세요.";
+    msg.classList.add('show');return;
+  }
+  msg.style.color='';msg.textContent="불러오는 중...";msg.classList.add('show');
+  try{
+    const ics=await fetchICS(ICAL_URL);
+    const days=parseICS(ics);
+    BUSY_DATES=days;
+    msg.style.color='var(--ok)';
+    msg.textContent=`✓ 일정 ${days.length}일 불러왔어요. 아래 '설정 저장'을 눌러 반영하세요.`;
+    render();
+  }catch(e){
+    msg.style.color='var(--no)';
+    msg.textContent="불러오기 실패: "+e.message;
+  }
+  msg.classList.add('show');
+};
+
 /* ---- 설정 저장 ---- */
 $('saveSettings').onclick=async()=>{
   settings.comment=$('commentInput').value.trim();
@@ -325,10 +417,10 @@ $('saveSettings').onclick=async()=>{
   applyCommentView();
 
   if(!BIN_ID||!MASTER_KEY){
-    // 저장소 미설정 — 데모로만 동작
-    $('savedMsg').textContent="✓ (데모) 저장됨. 온라인 저장은 BIN_ID·MASTER_KEY 입력 후 가능해요.";
+    $('savedMsg').style.color='var(--no)';
+    $('savedMsg').textContent="저장 안 됨: BIN_ID·MASTER_KEY가 비어 있어요.";
     $('savedMsg').classList.add('show');
-    setTimeout(()=>$('savedMsg').classList.remove('show'),3500);
+    setTimeout(()=>{$('savedMsg').classList.remove('show');$('savedMsg').style.color='';},3500);
     return;
   }
   // 온라인 저장소(JSONBin)에 업로드
