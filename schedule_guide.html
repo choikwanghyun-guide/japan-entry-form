@@ -36,7 +36,13 @@
   .panel.on{display:block;}
 
   .card{background:var(--paper2);border:1px solid var(--line);border-radius:16px;padding:16px 16px;margin-bottom:14px;}
-  .card h2{font-family:'Binggrae',sans-serif;font-size:21px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+  .card h2{font-family:'Binggrae',sans-serif;font-size:21px;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;}
+  .refresh-row{display:flex;justify-content:center;margin-bottom:14px;}
+  .refresh-btn{font-family:inherit;font-size:15px;background:var(--paper2);border:1px solid var(--line);color:var(--muted);border-radius:30px;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+  .refresh-btn:hover{background:var(--ink);color:var(--paper);}
+  .refresh-btn.spin .ic{animation:spin .8s linear infinite;}
+  .refresh-btn .ic{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   .card .hint{font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
@@ -62,8 +68,8 @@
   .saved-msg.show{display:block;}
 
   /* 랜드사 화면 */
-  .comment-box{background:var(--no-soft);border:1px solid #efc9d4;border-radius:14px;padding:16px 18px;margin-bottom:12px;font-size:17px;color:#8f3450;line-height:1.7;white-space:pre-line;}
-  .comment-box b{font-family:'Binggrae',sans-serif;font-weight:700;}
+  .comment-box{background:var(--no-soft);border:1px solid #efc9d4;border-radius:14px;padding:16px 18px;margin-bottom:12px;font-size:17px;color:#8f3450;line-height:1.7;white-space:pre-line;text-align:center;}
+  .comment-box b{font-family:'Binggrae',sans-serif;font-weight:700;font-size:21px;}
   .comment-box.empty{display:none;}
 
   .monthbar{display:flex;justify-content:space-between;align-items:center;margin:14px 0 14px;}
@@ -129,36 +135,22 @@
     <button id="tabGuide" class="on">가이드</button>
   </div>
 
-  <!-- ============ 랜드사 화면 ============ -->
+  <!-- ============ 랜드사 화면 (실제 랜드 페이지 미리보기) ============ -->
   <div class="panel" id="panelLand">
-    <div class="comment-box" id="commentView"></div>
-
     <div class="card">
-      <h2>문의자 정보</h2>
-      <div class="hint">문의하실 랜드사·담당자명을 적어주세요. 문의 메시지에 함께 담겨요.</div>
+      <h2>랜드 페이지 미리보기</h2>
+      <div class="hint">랜드사에게 보낼 실제 페이지를 그대로 보여줍니다. 보통은 자동으로 떠요. 안 뜨면 아래 칸에 랜드 페이지 주소를 넣고 '적용'을 누르세요.</div>
       <div class="exrow">
-        <input type="text" id="askLand" placeholder="랜드사명 (예: A랜드)" style="flex:1;min-width:130px;">
-        <input type="text" id="askPerson" placeholder="담당자명 (예: 김대리)" style="flex:1;min-width:130px;">
+        <input type="text" id="landUrlInput" placeholder="(자동) 랜드 페이지 주소 직접 지정 시 입력" style="flex:1;min-width:200px;">
+        <button class="miniadd" id="landUrlSave">적용</button>
       </div>
     </div>
-
-    <div class="card">
-      <h2>행사 지역</h2>
-      <div class="hint">진행할 지역을 선택하세요. 가이드 제외 조건에 걸리면 불가로 표시됩니다.</div>
-      <div class="chips" id="regionChips"></div>
-      <input type="text" id="customRegion" placeholder="지역명을 직접 입력하세요 (예: 도쿄, 닛코)" style="display:none;margin-top:12px;">
+    <div id="landPreviewWrap" style="border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--paper2);min-height:300px;">
+      <div id="landPreviewEmpty" style="padding:40px 20px;text-align:center;color:var(--muted);line-height:1.7;">
+        미리보기를 불러오는 중이에요...<br>안 보이면 위 칸에 랜드 페이지 주소를 넣고 '적용'을 눌러주세요.<br><small>(파일을 더블클릭으로 연 경우엔 자동 추정이 안 돼요. 인터넷 주소로 열어주세요)</small>
+      </div>
+      <iframe id="landPreview" title="랜드 미리보기" style="display:none;width:100%;height:80vh;border:0;"></iframe>
     </div>
-
-    <div class="monthbar"><button id="prev">‹</button><div class="monthtitle" id="mTitle"></div><button id="next">›</button></div>
-    <div class="cal">
-      <div class="dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
-      <div class="grid" id="grid"></div>
-    </div>
-    <div class="legend">
-      <span class="l-ok"><i></i>가능</span>
-      <span class="l-no"><i></i>불가</span>
-    </div>
-    <p class="note">초록색(가능) 날짜를 누르면 아래에 문의 버튼이 나타나요.<br>당일투어는 같은 날을 한 번만, 2일 이상은 시작일·종료일 순서로 눌러 주세요.</p>
   </div>
 
   <!-- ============ 가이드 설정 화면 ============ -->
@@ -208,26 +200,8 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2055</span>
+  <span class="rev">rev_2026_0528_2227</span>
 </footer>
-
-<!-- 하단 선택바 -->
-<div class="selbar" id="selbar"><div class="inner">
-  <div class="info"><b id="selText">날짜를 선택하세요</b><small id="selSub"></small></div>
-  <button class="clear" id="clearSel">취소</button>
-  <button class="ask" id="askBtn">문의하기</button>
-</div></div>
-
-<!-- 문의 시트 -->
-<div class="ov" id="ov"><div class="sheet">
-  <h3>섭외 문의</h3>
-  <p class="d">아래 내용으로 문의를 보냅니다</p>
-  <div class="preview" id="sheetPreview"></div>
-  <p class="copyhint">카톡은 보안상 문구 자동 입력이 안 돼요.<br><b>① 문구 복사 → ② 카카오톡 열기 → 채팅방에 붙여넣기</b></p>
-  <button class="btn btn-copy" id="copyBtn" style="margin-top:0;">문구 복사하기</button>
-  <a class="btn btn-kakao" id="kakaoBtn" target="_blank" rel="noopener" style="margin-top:10px;">카카오톡 열기</a>
-  <button class="btn-close" id="closeBtn">닫기</button>
-</div></div>
 
 <script>
 /* ===================================================================
@@ -246,8 +220,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
-const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
+const MASTER_KEY="";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
 // iCal 주소는 화면의 '구글 캘린더 연동' 칸에 붙여넣으면 됩니다. (코드 수정 불필요)
 
 // 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
@@ -270,6 +244,7 @@ let settings={
     {start:"2026-07-01",end:"2026-09-30",regions:["칸사이","오키나와"]},
   ],
   icalUrl:"",                 // 구글 캘린더 iCal 주소 (화면에서 입력)
+  landUrl:"",                 // 랜드 페이지 주소 (미리보기용, 화면에서 입력)
 };
 /* =================================================================== */
 
@@ -290,23 +265,44 @@ function switchTab(t){
   $('tabGuide').classList.toggle('on',!land);
   $('panelLand').classList.toggle('on',land);
   $('panelGuide').classList.toggle('on',!land);
-  $('subText').textContent=land?"초록색이 섭외 가능한 날이에요.":"가이드 설정 화면이에요.";
-  if(land){clearSelection();applyCommentView();render();}
-  else selbar.classList.remove('show');
+  $('subText').textContent=land?"랜드사에게 보일 실제 화면 미리보기예요.":"가이드 설정 화면이에요.";
+  if(land){
+    // 랜드 탭 열 때 미리보기를 최신으로 다시 로드
+    applyLandPreview(resolveLandUrl());
+  }
 }
 
-/* ---- 랜드사: 지역칩 ---- */
-REGIONS.forEach(r=>{
-  const b=document.createElement('button');b.className='chip'+(r===selectedRegion?' on':'');b.textContent=r;
-  b.onclick=()=>{
-    selectedRegion=r;
-    [...$('regionChips').children].forEach(c=>c.classList.remove('on'));b.classList.add('on');
-    $('customRegion').style.display=(r==='그외 지역')?'block':'none';
-    clearSelection();render();
-  };
-  $('regionChips').appendChild(b);
-});
-$('customRegion').oninput=()=>{ if(startSel)refreshPreview(); };
+/* ---- 랜드 페이지 미리보기 (iframe) ---- */
+// 주소 우선순위: 입력칸 → 저장된 값 → 같은 폴더의 schedule_land.html 자동 추정
+function resolveLandUrl(){
+  const typed=($('landUrlInput').value||'').trim();
+  if(typed)return typed;
+  if(settings.landUrl)return settings.landUrl;
+  // 현재 가이드 페이지 주소에서 파일명만 바꿔 자동 추정
+  try{
+    const here=location.href.split('?')[0].split('#')[0];
+    if(/schedule_guide\.html?$/i.test(here)) return here.replace(/schedule_guide(\.html?)$/i,'schedule_land$1');
+    // 파일명이 다르면 같은 폴더의 schedule_land.html 시도
+    const base=here.substring(0,here.lastIndexOf('/')+1);
+    if(base && /^https?:\/\//.test(base)) return base+'schedule_land.html';
+  }catch(e){}
+  return '';
+}
+function applyLandPreview(url){
+  const u=(url||'').trim();
+  const fr=$('landPreview'), empty=$('landPreviewEmpty');
+  if(u && /^https?:\/\//.test(u)){
+    fr.src=u+(u.includes('?')?'&':'?')+'_t='+Date.now();
+    fr.style.display='block'; empty.style.display='none';
+  }else{
+    fr.style.display='none'; empty.style.display='block';
+  }
+}
+$('landUrlSave').onclick=()=>{
+  const u=($('landUrlInput').value||'').trim();
+  settings.landUrl=u;            // 저장 시 JSONBin에도 함께 보관됨
+  applyLandPreview(resolveLandUrl());
+};
 
 /* ---- 설정: 제외지역칩 ---- */
 REGIONS.forEach(r=>{
@@ -413,7 +409,6 @@ $('syncCal').onclick=async()=>{
     settings.icalUrl=url;
     msg.style.color='var(--ok)';
     msg.textContent=`✓ 일정 ${days.length}일 불러왔어요. 아래 '설정 저장'을 눌러 반영하세요.`;
-    render();
   }catch(e){
     msg.style.color='var(--no)';
     msg.textContent="불러오기 실패: "+e.message+" (잠시 후 다시 시도해 보세요)";
@@ -425,7 +420,8 @@ $('syncCal').onclick=async()=>{
 $('saveSettings').onclick=async()=>{
   settings.comment=$('commentInput').value.trim();
   settings.excludeRegions=[...$('excludeRegionChips').children].filter(c=>c.classList.contains('on')).map(c=>c.dataset.region);
-  applyCommentView();
+  settings.icalUrl=($('icalInput').value||'').trim();
+  settings.landUrl=($('landUrlInput').value||'').trim();
 
   if(!BIN_ID||!MASTER_KEY){
     $('savedMsg').style.color='var(--no)';
@@ -453,123 +449,10 @@ $('saveSettings').onclick=async()=>{
   setTimeout(()=>{$('savedMsg').classList.remove('show');$('savedMsg').style.color='';},4000);
 };
 
-/* ---- 랜드사: 코멘트 박스 ---- */
-function applyCommentView(){
-  const c=settings.comment;
-  const box=$('commentView');
-  if(c){box.classList.remove('empty');box.innerHTML=`<b>가이드 조건</b><br>${c.replace(/</g,'&lt;')}`;}
-  else box.classList.add('empty');
-}
-
-/* ---- 날짜 상태 ---- */
-function dayState(date){
-  if(date<new Date(today.getFullYear(),today.getMonth(),today.getDate()))return 'past';
-  const k=key(date);
-  const exRegions=settings.excludeRegions||[];
-  const exPeriods=settings.excludePeriods||[];
-  if(exRegions.includes(selectedRegion))return 'no';
-  for(const p of exPeriods){
-    if(k>=p.start&&k<=p.end){
-      if(!p.regions||p.regions.length===0||p.regions.includes(selectedRegion))return 'no';
-    }
-  }
-  if(BUSY_DATES.includes(k))return 'no';
-  return 'ok';
-}
-
-function render(){
-  const grid=$('grid');grid.innerHTML='';
-  const y=view.getFullYear(),m=view.getMonth();
-  $('mTitle').textContent=`${y}년 ${m+1}월`;
-  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
-  for(let i=0;i<first;i++){const c=document.createElement('div');c.className='cell empty';grid.appendChild(c);}
-  for(let d=1;d<=days;d++){
-    const date=new Date(y,m,d),st=dayState(date);
-    const c=document.createElement('div');c.className='cell '+st;c.innerHTML=`${d}`;
-    const dot=document.createElement('span');dot.className='dot';
-    if(st==='no')dot.textContent='불가';else if(st==='ok')dot.textContent='가능';
-    c.appendChild(dot);
-    if(st==='past')c.style.pointerEvents='none';
-    if(key(date)===key(today))c.classList.add('today');
-    if(startSel){
-      const t=new Date(date).setHours(0,0,0,0),s=new Date(startSel).setHours(0,0,0,0),e=endSel?new Date(endSel).setHours(0,0,0,0):s;
-      const lo=Math.min(s,e),hi=Math.max(s,e);
-      if(t===s||(endSel&&t===e))c.classList.add('sel');else if(t>lo&&t<hi)c.classList.add('inrange');
-    }
-    if(st==='ok')c.addEventListener('click',()=>pick(date));
-    grid.appendChild(c);
-  }
-}
-function rangeHasBlocked(a,b){
-  const lo=new Date(Math.min(a,b)),hi=new Date(Math.max(a,b));
-  for(let d=new Date(lo);d<=hi;d.setDate(d.getDate()+1)){if(dayState(new Date(d))!=='ok')return true;}
-  return false;
-}
-function pick(date){
-  if(!startSel||(startSel&&endSel)){startSel=new Date(date);endSel=null;}
-  else{
-    if(date<startSel){endSel=new Date(startSel);startSel=new Date(date);}else{endSel=new Date(date);}
-    if(rangeHasBlocked(startSel,endSel)){alert('선택한 기간 안에 불가한 날이 포함돼 있어요.\n가능한(초록색) 날끼리 골라주세요.');startSel=new Date(date);endSel=null;}
-  }
-  updateBar();render();
-}
-const fmt=d=>`${d.getMonth()+1}월 ${d.getDate()}일`;
-function nights(){if(!startSel)return 0;const e=endSel||startSel;return Math.round((new Date(e).setHours(0,0,0,0)-new Date(startSel).setHours(0,0,0,0))/86400000);}
-function updateBar(){
-  if(!startSel){selbar.classList.remove('show');return;}
-  selbar.classList.add('show');
-  let rLabel=selectedRegion;
-  if(selectedRegion==='그외 지역'){const c=($('customRegion').value||'').trim();if(c)rLabel=c;}
-  if(!endSel){selText.textContent=`${fmt(startSel)} (당일)`;selSub.textContent=`${rLabel} · 종료일을 누르면 여러 날로`;}
-  else{const n=nights();selText.textContent=`${fmt(startSel)} ~ ${fmt(endSel)}`;selSub.textContent=`${rLabel} · ${n}박${n+1}일`;}
-}
-function clearSelection(){startSel=null;endSel=null;selbar.classList.remove('show');}
-const selbar=$('selbar'),selText=$('selText'),selSub=$('selSub'),ov=$('ov');
-$('clearSel').onclick=()=>{clearSelection();render();};
-function buildMsg(){
-  let period;
-  if(!endSel)period=`${startSel.getFullYear()}년 ${fmt(startSel)} (당일)`;
-  else{const n=nights();period=`${startSel.getFullYear()}년 ${fmt(startSel)} ~ ${fmt(endSel)} (${n}박${n+1}일)`;}
-  const land=($('askLand').value||'').trim();
-  const person=($('askPerson').value||'').trim();
-  let regionLabel=selectedRegion;
-  if(selectedRegion==='그외 지역'){
-    const custom=($('customRegion').value||'').trim();
-    regionLabel=custom?`그외 지역 (${custom})`:'그외 지역';
-  }
-  let head='';
-  if(land&&person)head=`[${land}] ${person}입니다.\n`;
-  else if(land)head=`[${land}]\n`;
-  else if(person)head=`${person}입니다.\n`;
-  return `${head}${GUIDE_NAME}님 섭외 문의\n지역: ${regionLabel}\n일정: ${period}\n위 일정으로 가능하실까요?`;
-}
-function refreshPreview(){
-  if(!startSel)return;
-  const msg=buildMsg();
-  $('sheetPreview').textContent=msg;
-  $('copyBtn').dataset.msg=msg;
-}
-$('askLand').oninput=refreshPreview;
-$('askPerson').oninput=refreshPreview;
-$('askBtn').onclick=()=>{
-  const msg=buildMsg();
-  $('sheetPreview').textContent=msg;
-  $('kakaoBtn').href=KAKAO_LINK;
-  $('copyBtn').dataset.msg=msg;
-  ov.classList.add('on');
-};
-$('copyBtn').onclick=function(){
-  const t=this.dataset.msg||'';
-  navigator.clipboard?.writeText(t).then(()=>{this.textContent='복사됐어요! 카톡에 붙여넣으세요';setTimeout(()=>this.textContent='문구 복사하기',1800);},()=>{this.textContent='복사 실패 — 길게 눌러 복사하세요';});
-};
-$('closeBtn').onclick=()=>ov.classList.remove('on');
-ov.onclick=e=>{if(e.target===ov)ov.classList.remove('on');};
-$('prev').onclick=()=>{view.setMonth(view.getMonth()-1);render();};
-$('next').onclick=()=>{view.setMonth(view.getMonth()+1);render();};
 
 /* 초기화 */
 async function loadFromCloud(){
-  if(!BIN_ID)return; // 저장소 미설정이면 기본 데모값 유지
+  if(!BIN_ID)return; // 저장소 미설정이면 기본값 유지
   try{
     const headers=MASTER_KEY?{'X-Master-Key':MASTER_KEY}:{};
     const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{headers});
@@ -581,23 +464,23 @@ async function loadFromCloud(){
         comment: rec.settings.comment||"",
         excludeRegions: Array.isArray(rec.settings.excludeRegions)?rec.settings.excludeRegions:[],
         excludePeriods: Array.isArray(rec.settings.excludePeriods)?rec.settings.excludePeriods:[],
-        icalUrl: rec.settings.icalUrl||""
+        icalUrl: rec.settings.icalUrl||"",
+        landUrl: rec.settings.landUrl||""
       };
       // 화면 복원
       $('commentInput').value=settings.comment||'';
       $('icalInput').value=settings.icalUrl||'';
+      $('landUrlInput').value=settings.landUrl||'';
       [...$('excludeRegionChips').children].forEach(c=>c.classList.toggle('on',settings.excludeRegions.includes(c.dataset.region)));
       renderExcludeList();
-      applyCommentView();
-      render();
     }
   }catch(e){/* 실패 시 기본값 유지 */}
 }
+
 $('commentInput').value=settings.comment;
 $('icalInput').value=settings.icalUrl||'';
+$('landUrlInput').value=settings.landUrl||'';
 renderExcludeList();
-applyCommentView();
-render();
 loadFromCloud();
 </script>
 </body>
