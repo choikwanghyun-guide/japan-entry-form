@@ -1214,7 +1214,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1021</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1114</span></p>
   </footer>
 
 </div>
@@ -1406,15 +1406,25 @@
   async function findArchiveFile() {
     if (!googleUser) return null;
     try {
-      console.log('[파일찾기] 쿼리:', `name='${ARCHIVE_FILENAME}' and trashed=false`);
-      const res = await gapi.client.drive.files.list({
-        q: `name='${ARCHIVE_FILENAME}' and trashed=false`,
-        spaces: 'drive',
-        fields: 'files(id, name, modifiedTime)',
-        oauth_token: googleUser.token
+      const q = encodeURIComponent(`name='${ARCHIVE_FILENAME}' and trashed=false`);
+      const url = `https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name,modifiedTime)`;
+      console.log('[파일찾기] URL:', url);
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${googleUser.token}`,
+          'Accept': 'application/json'
+        }
       });
-      console.log('[파일찾기] 응답:', res.result);
-      const files = res.result.files || [];
+      console.log('[파일찾기] 응답 상태:', res.status);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('[파일찾기] 실패:', errText);
+        throw new Error(`파일찾기 실패 (${res.status})`);
+      }
+      const data = await res.json();
+      console.log('[파일찾기] 응답:', data);
+      const files = data.files || [];
       console.log('[파일찾기] 파일 개수:', files.length);
       return files.length > 0 ? files[0] : null;
     } catch (err) {
@@ -1424,6 +1434,7 @@
   }
 
   async function createArchiveFile(content) {
+    console.log('[파일생성] 시작');
     const metadata = {
       name: ARCHIVE_FILENAME,
       mimeType: 'application/json'
@@ -1442,44 +1453,72 @@
       content +
       closeDelim;
 
-    const res = await gapi.client.request({
-      path: '/upload/drive/v3/files',
-      method: 'POST',
-      params: { uploadType: 'multipart' },
-      headers: {
-        'Content-Type': 'multipart/related; boundary="' + boundary + '"',
-        'Authorization': `Bearer ${googleUser.token}`
-      },
-      body: multipartRequestBody
-    });
-    return res.result.id;
+    const res = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${googleUser.token}`,
+          'Content-Type': 'multipart/related; boundary="' + boundary + '"'
+        },
+        body: multipartRequestBody
+      }
+    );
+    console.log('[파일생성] 응답 상태:', res.status);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[파일생성] 실패:', errText);
+      throw new Error(`파일생성 실패 (${res.status})`);
+    }
+    const data = await res.json();
+    console.log('[파일생성] 새 파일 ID:', data.id);
+    return data.id;
   }
 
   async function updateArchiveFile(fileId, content) {
-    const res = await gapi.client.request({
-      path: `/upload/drive/v3/files/${fileId}`,
-      method: 'PATCH',
-      params: { uploadType: 'media' },
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${googleUser.token}`
-      },
-      body: content
-    });
-    return res.result;
+    console.log('[파일수정] 시작, fileId:', fileId);
+    const res = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${googleUser.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: content
+      }
+    );
+    console.log('[파일수정] 응답 상태:', res.status);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[파일수정] 실패:', errText);
+      throw new Error(`파일수정 실패 (${res.status})`);
+    }
+    return await res.json();
   }
 
   async function downloadArchiveFile(fileId) {
-    const res = await gapi.client.drive.files.get({
-      fileId: fileId,
-      alt: 'media',
-      oauth_token: googleUser.token
-    });
-    // gapi가 body를 자동 파싱하기도 함
-    if (typeof res.body === 'string') {
-      try { return JSON.parse(res.body); } catch (e) { return res.result; }
+    console.log('[다운로드] 시작, fileId:', fileId);
+    // fetch로 직접 다운로드 (gapi 방식보다 안정적)
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${googleUser.token}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+    console.log('[다운로드] 응답 상태:', res.status, res.statusText);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('[다운로드] 실패 응답:', errText);
+      throw new Error(`다운로드 실패 (${res.status}): ${errText.substring(0, 200)}`);
     }
-    return res.result;
+    const data = await res.json();
+    console.log('[다운로드] 받은 데이터:', data);
+    return data;
   }
 
   // ===== 동기화 (업로드) =====
