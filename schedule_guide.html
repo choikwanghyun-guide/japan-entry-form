@@ -200,7 +200,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2232</span>
+  <span class="rev">rev_2026_0528_2236</span>
 </footer>
 
 <script>
@@ -220,8 +220,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
-const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const BIN_ID="";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
+const MASTER_KEY="";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
 // iCal 주소는 화면의 '구글 캘린더 연동' 칸에 붙여넣으면 됩니다. (코드 수정 불필요)
 
 // 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
@@ -307,7 +307,10 @@ $('landUrlSave').onclick=()=>{
 window.addEventListener('message',e=>{
   if(e.data&&e.data.type==='landHeight'&&e.data.height){
     const fr=$('landPreview');
-    if(fr) fr.style.height=(e.data.height+20)+'px';
+    if(fr){
+      const target=e.data.height+'px';
+      if(fr.style.height!==target) fr.style.height=target;   // 같으면 건드리지 않음(루프 방지)
+    }
   }
 });
 
