@@ -1205,7 +1205,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0858</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_0916</span></p>
   </footer>
 
 </div>
@@ -1213,7 +1213,7 @@
 <script>
   // ===== 구글 OAuth 설정 =====
   const GOOGLE_CLIENT_ID = '12813919900-1bkc0ce3q32126efepta5b182mpru4ea.apps.googleusercontent.com';
-  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
   const ARCHIVE_FILENAME = 'hotel-archive.json';
 
   let gapiInited = false;
@@ -1313,15 +1313,24 @@
       // 토큰 받음 - 사용자 정보 가져오기
       const token = resp.access_token;
       try {
-        // 사용자 정보 조회
-        const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const userInfo = await userInfoRes.json();
+        // 사용자 정보 조회 (실패해도 동기화는 진행)
+        let userInfo = { name: '사용자', email: 'logged in' };
+        try {
+          const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (userInfoRes.ok) {
+            userInfo = await userInfoRes.json();
+          } else {
+            console.warn('사용자 정보 조회 실패 (' + userInfoRes.status + ') - 동기화는 계속 진행됩니다');
+          }
+        } catch (uerr) {
+          console.warn('사용자 정보 조회 오류:', uerr);
+        }
 
         googleUser = {
-          name: userInfo.name || userInfo.email,
-          email: userInfo.email,
+          name: userInfo.name || userInfo.email || '사용자',
+          email: userInfo.email || '',
           token: token,
           fileId: null
         };
@@ -1333,7 +1342,7 @@
         await syncFromCloud(true);  // silent=true (사용자 메시지 없이)
       } catch (err) {
         console.error(err);
-        alert('사용자 정보를 가져오지 못했어요: ' + err.message);
+        alert('드라이브 연결 실패: ' + err.message);
       }
     };
 
