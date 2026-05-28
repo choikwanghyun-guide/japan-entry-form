@@ -134,7 +134,7 @@
   <!-- ============ 랜드사 화면 ============ -->
   <div class="panel on" id="panelLand">
     <div class="refresh-row">
-      <button class="refresh-btn" id="refreshBtn"><span class="ic">↻</span> 최신 일정 불러오기</button>
+      <button class="refresh-btn" id="refreshBtn"><span class="ic">↻</span> 최신 일정 불러오기 <b>(조금 시간 걸림 ㅠㅠ)</b></button>
     </div>
     <div class="card">
       <h2>문의자 정보</h2>
@@ -172,7 +172,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2132</span>
+  <span class="rev">rev_2026_0528_2152</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -208,8 +208,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
@@ -450,9 +450,12 @@ async function loadFromCloud(){
 }
 $('refreshBtn').onclick=async()=>{
   const b=$('refreshBtn');
+  const original=b.innerHTML;
   b.classList.add('spin');
   b.disabled=true;
+  b.innerHTML=`<span class="ic">↻</span> 불러오는 중...`;
   await loadFromCloud();
+  b.innerHTML=original;
   b.classList.remove('spin');
   b.disabled=false;
 };
