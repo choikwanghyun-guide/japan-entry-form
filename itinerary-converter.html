@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
   // PDF.js worker 설정
   if (window['pdfjsLib']) {
@@ -215,7 +216,7 @@
   .sched-input.dur-input  { text-align: center; color: var(--text2); width: 60px; }
   .sched-input.trans-input { color: var(--text); width: 70px; }
   .sched-input.place-input { color: var(--text); }
-  .sched-input.note-input  { color: var(--text2); font-size: 13px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 2px 6px; }
+  .sched-input.note-input  { color: var(--text); font-size: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; line-height: 1.5; }
 
   /* 행 조작 버튼 */
   .row-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
@@ -534,6 +535,43 @@
     text-align: center; padding: 24px; color: var(--text3);
     font-size: 13px; font-style: italic;
   }
+
+  /* ===== 귀여운 액션 버튼 (호텔 도구와 동일) ===== */
+  .action-btn-row {
+    display: flex; gap: 10px; width: 100%;
+  }
+  .action-btn {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 5px;
+    padding: 14px 8px; border-radius: 14px;
+    border: 1.5px solid transparent; background: var(--bg3);
+    cursor: pointer; font-family: inherit; transition: all 0.18s ease;
+  }
+  .action-btn .act-icon { font-size: 22px; line-height: 1; }
+  .action-btn .act-label { font-size: 13px; font-weight: 600; }
+  .action-btn:hover { transform: translateY(-3px) scale(1.03); }
+  .action-btn:active { transform: translateY(-1px) scale(0.99); }
+
+  .act-save { border-color: rgba(79,142,247,0.4); color: var(--accent); }
+  .act-save:hover { background: rgba(79,142,247,0.15); border-color: var(--accent); box-shadow: 0 6px 16px rgba(79,142,247,0.25); }
+
+  .act-sync { border-color: rgba(62,207,142,0.4); color: var(--accent2); }
+  .act-sync:hover { background: rgba(62,207,142,0.15); border-color: var(--accent2); box-shadow: 0 6px 16px rgba(62,207,142,0.25); }
+
+  .act-excel { border-color: rgba(34,197,94,0.4); color: #22c55e; }
+  .act-excel:hover { background: rgba(34,197,94,0.15); border-color: #22c55e; box-shadow: 0 6px 16px rgba(34,197,94,0.25); }
+
+  .act-print { border-color: rgba(79,142,247,0.4); color: var(--accent); }
+  .act-print:hover { background: rgba(79,142,247,0.15); border-color: var(--accent); box-shadow: 0 6px 16px rgba(79,142,247,0.25); }
+
+  .act-image { border-color: rgba(236,72,153,0.4); color: #ec4899; }
+  .act-image:hover { background: rgba(236,72,153,0.15); border-color: #ec4899; box-shadow: 0 6px 16px rgba(236,72,153,0.25); }
+
+  @media (max-width: 520px) {
+    .action-btn .act-label { font-size: 12px; }
+    .action-btn .act-icon { font-size: 20px; }
+    .action-btn { padding: 12px 4px; }
+  }
 </style>
 </head>
 <body>
@@ -757,22 +795,28 @@
 <!-- STEP 4: 내려받기 -->
 <div class="card" id="downloadCard" style="display:none">
   <div class="card-title"><div class="step-badge">4</div> 일정표 내려받기</div>
-  <div class="btn-group">
-    <button class="btn btn-excel" onclick="downloadExcel()">
-      📊 엑셀 파일 내려받기 <span style="font-size:11px;opacity:0.8">(세부 수정 가능)</span>
+  <div style="font-size:14px; color:var(--text2); margin-bottom:14px;">검토가 끝나면 아래 버튼으로 저장하거나 출력하세요.</div>
+  <div class="action-btn-row">
+    <button class="action-btn act-save" onclick="saveItineraryToArchive()">
+      <span class="act-icon">💾</span><span class="act-label">저장</span>
     </button>
-    <button class="btn btn-print" onclick="printItinerary()">
-      🖨️ 인쇄용 보기 <span style="font-size:11px;opacity:0.8">(출력 후 휴대)</span>
+    <button class="action-btn act-sync" onclick="saveAndSyncItinerary()">
+      <span class="act-icon">☁️</span><span class="act-label">동기화</span>
     </button>
-    <button class="btn btn-print" onclick="saveItineraryToArchive()" style="background:linear-gradient(135deg,var(--accent2),#2eb87a);color:#fff;">
-      🗂️ 보관함에 저장 <span style="font-size:11px;opacity:0.8">(구글 드라이브)</span>
+    <button class="action-btn act-excel" onclick="downloadExcel()">
+      <span class="act-icon">📗</span><span class="act-label">엑셀</span>
     </button>
-    <button class="btn btn-print" onclick="saveItineraryFile()">
-      💾 일정표 저장 <span style="font-size:11px;opacity:0.8">(파일로 보관)</span>
+    <button class="action-btn act-print" onclick="printItinerary()">
+      <span class="act-icon">🖨️</span><span class="act-label">프린트</span>
     </button>
-    <button class="btn btn-print" onclick="document.getElementById('loadItineraryInput').click()">
-      📂 일정표 불러오기 <span style="font-size:11px;opacity:0.8">(저장한 파일 열기)</span>
+    <button class="action-btn act-image" onclick="captureItinerary()">
+      <span class="act-icon">📸</span><span class="act-label">이미지</span>
     </button>
+  </div>
+  <!-- 파일 저장/불러오기 (보조) -->
+  <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+    <button onclick="saveItineraryFile()" style="background:transparent; color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer; font-family:inherit;">💾 파일로 저장</button>
+    <button onclick="document.getElementById('loadItineraryInput').click()" style="background:transparent; color:var(--text2); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer; font-family:inherit;">📂 파일 불러오기</button>
   </div>
 </div>
 
@@ -815,7 +859,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1537</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1603</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1124,7 +1168,50 @@ function saveItineraryToArchive() {
   hasUnsavedChanges = true;
   updateLastSyncDisplay();
   renderArchive();
-  showSyncStatus(`✓ "${displayTitle}" 보관함에 저장됐어요. "☁ 드라이브에 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+  showSyncStatus(`✓ "${displayTitle}" 보관함에 저장됐어요. "☁ 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+  return true;
+}
+
+// ── 저장 + 드라이브 동기화 한 번에 ──
+async function saveAndSyncItinerary() {
+  if (!parsedData) { showSyncStatus('저장할 일정표가 없어요. 먼저 확정서를 변환해주세요.', 'error'); return; }
+  if (!googleUser) { alert('먼저 위에서 구글 로그인을 해주세요.'); return; }
+  // 1) 보관함에 저장
+  const ok = saveItineraryToArchive();
+  if (!ok) return;
+  // 2) 드라이브로 업로드
+  await syncToCloud();
+}
+
+// ── 이미지로 저장 (캡처) ──
+async function captureItinerary() {
+  if (!parsedData) { showSyncStatus('이미지로 만들 일정표가 없어요.', 'error'); return; }
+  if (typeof html2canvas === 'undefined') {
+    alert('이미지 저장 기능을 불러오는 중이에요. 잠시 후 다시 시도해주세요. (인터넷 연결 필요)');
+    return;
+  }
+  // 인쇄용 영역을 캡처 대상으로 사용 (printItinerary가 만든 결과 활용)
+  const target = document.getElementById('itineraryPreview') || document.getElementById('infoCard');
+  if (!target) { showSyncStatus('일정표 화면을 찾을 수 없어요.', 'error'); return; }
+
+  showSyncStatus('📸 이미지를 만드는 중...', 'success');
+  try {
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#0d1117', scale: 2, logging: false, useCORS: true
+    });
+    const title = makeItineraryTitle(parsedData).replace(/[\\/:*?"<>|]/g, '_');
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${title || '일정표'}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSyncStatus('✓ 이미지로 저장됐어요! 다운로드 폴더를 확인하세요.', 'success');
+    }, 'image/png');
+  } catch (err) {
+    console.error('캡처 오류:', err);
+    showSyncStatus(`이미지 저장 실패: ${err.message}`, 'error');
+  }
 }
 
 // ── 보관함에서 일정표 열기 ──
@@ -2911,6 +2998,19 @@ function renderPreview() {
 
   container.innerHTML = html;
   initColResize();
+  autoResizeAllTextareas();
+}
+
+// 모든 일정표 textarea 높이를 내용에 맞게 자동 조정 (저장된 여러 줄 비고가 잘리지 않게)
+function autoResizeAllTextareas() {
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.sched-input').forEach(el => {
+      if (el.tagName === 'TEXTAREA') {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }
+    });
+  });
 }
 
 function renderRow(di, ii, item) {
