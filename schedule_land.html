@@ -36,7 +36,13 @@
   .panel.on{display:block;}
 
   .card{background:var(--paper2);border:1px solid var(--line);border-radius:16px;padding:16px 16px;margin-bottom:14px;}
-  .card h2{font-family:'Binggrae',sans-serif;font-size:21px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+  .card h2{font-family:'Binggrae',sans-serif;font-size:21px;font-weight:700;color:var(--accent);margin-bottom:4px;text-align:center;}
+  .refresh-row{display:flex;justify-content:center;margin-bottom:14px;}
+  .refresh-btn{font-family:inherit;font-size:15px;background:var(--paper2);border:1px solid var(--line);color:var(--muted);border-radius:30px;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+  .refresh-btn:hover{background:var(--ink);color:var(--paper);}
+  .refresh-btn.spin .ic{animation:spin .8s linear infinite;}
+  .refresh-btn .ic{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
   .card .hint{font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
@@ -127,6 +133,9 @@
 
   <!-- ============ 랜드사 화면 ============ -->
   <div class="panel on" id="panelLand">
+    <div class="refresh-row">
+      <button class="refresh-btn" id="refreshBtn"><span class="ic">↻</span> 최신 일정 불러오기</button>
+    </div>
     <div class="card">
       <h2>문의자 정보</h2>
       <div class="hint">문의하실 랜드사·담당자명·전화번호를 적어주세요. 문의 메시지에 함께 담겨요.</div>
@@ -163,7 +172,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2110</span>
+  <span class="rev">rev_2026_0528_2128</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -199,8 +208,8 @@
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
-const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
-const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
+const BIN_ID="";       // ← 가이드 페이지와 같은 Bin ID
+const ACCESS_KEY="";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
@@ -249,7 +258,7 @@ $('customRegion').oninput=()=>{ if(startSel)refreshPreview(); };
 function applyCommentView(){
   const c=settings.comment;
   const box=$('commentView');
-  if(c){box.classList.remove('empty');box.innerHTML=`<b>가이드 조건</b><br>${c.replace(/</g,'&lt;')}`;}
+  if(c){box.classList.remove('empty');box.innerHTML=`<b style="display:block;text-align:center;">가이드 조건</b>${c.replace(/</g,'&lt;')}`;}
   else box.classList.add('empty');
 }
 
@@ -439,6 +448,14 @@ async function loadFromCloud(){
     }
   }
 }
+$('refreshBtn').onclick=async()=>{
+  const b=$('refreshBtn');
+  b.classList.add('spin');
+  b.disabled=true;
+  await loadFromCloud();
+  b.classList.remove('spin');
+  b.disabled=false;
+};
 loadFromCloud();
 </script>
 </body>
