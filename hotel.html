@@ -1519,16 +1519,19 @@
 
   /* 인쇄 전용 스타일 */
   @media print {
-    body * { visibility: hidden; }
-    #printArea, #printArea * { visibility: visible; }
+    /* 메인 컨테이너를 완전히 숨김 (공간도 차지 안 하게) */
+    body > .container { display: none !important; }
+    /* 인쇄 영역만 일반 흐름으로 표시 */
     #printArea {
-      position: absolute;
-      left: 0;
-      top: 0;
+      display: block !important;
+      position: static !important;
       width: 100%;
     }
     @page { margin: 1.2cm; size: A4 portrait; }
   }
+
+  /* 평소엔 인쇄 영역 자체를 숨김 */
+  #printArea { display: none; }
 
   .print-title, .print-meta { display: none; }
 
@@ -1774,7 +1777,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1455</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1504</span></p>
   </footer>
 
 </div>
@@ -3294,7 +3297,7 @@ ${posts}
     const captureBox = document.createElement('div');
     captureBox.style.cssText = `
       position: fixed; left: -9999px; top: 0;
-      width: 760px; padding: 32px;
+      width: 820px; padding: 40px 60px;
       background: #ffffff; color: #1a1a1a;
       font-family: 'Pretendard', -apple-system, sans-serif;
       box-sizing: border-box;
