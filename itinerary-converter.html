@@ -205,6 +205,115 @@
   .sched-table tr.flight-row td { background: rgba(79,142,247,0.06); }
   .sched-table tr.meal-row td { background: rgba(62,207,142,0.05); }
 
+  /* 모바일 스크롤 안내 (기본 숨김) */
+  .mobile-scroll-hint { display: none; }
+
+  /* ===== 모바일 대응 (아이폰 등 좁은 화면) — 카드형 ===== */
+  @media (max-width: 768px) {
+    .mobile-scroll-hint {
+      display: block;
+      background: rgba(79,142,247,0.12);
+      border: 1px solid rgba(79,142,247,0.3);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    /* day-block은 스크롤 불필요 (카드가 세로로 쌓임) */
+    .day-block { overflow: visible; }
+
+    /* 표 구조를 해제하고 블록으로 — 각 행이 카드가 됨 */
+    .sched-table,
+    .sched-table tbody,
+    .sched-table tr,
+    .sched-table td {
+      display: block;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box;
+    }
+    /* 헤더 행 숨김 (각 칸에 라벨이 붙으므로 불필요) */
+    .sched-table thead { display: none; }
+
+    /* 각 행(tr) = 카드 */
+    .sched-table tr {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 12px;
+      padding: 6px 10px 10px;
+      background: var(--bg3);
+    }
+    .sched-table tr.hotel-row { background: rgba(247,184,79,0.10); }
+    .sched-table tr.flight-row { background: rgba(79,142,247,0.10); }
+    .sched-table tr.meal-row { background: rgba(62,207,142,0.10); }
+
+    /* 각 칸(td) = 라벨 + 값 한 줄 */
+    .sched-table td {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0 !important;
+      border-bottom: 1px solid rgba(48,54,61,0.4);
+      overflow: visible !important;
+    }
+    .sched-table tr td:last-child { border-bottom: none; }
+
+    /* 라벨 (data-label) 표시 */
+    .sched-table td::before {
+      content: attr(data-label);
+      flex: 0 0 64px;
+      color: var(--text2);
+      font-size: 12px;
+      font-weight: 700;
+      padding-top: 6px;
+    }
+    /* 위치조정 칸: 라벨 없이 버튼들만 가로로 */
+    .sched-table td[data-label="위치조정"]::before {
+      content: "";
+      flex: 0 0 0;
+    }
+
+    /* 입력 필드는 남은 공간 채우기 */
+    .sched-table td .sched-input,
+    .sched-table td textarea {
+      flex: 1;
+      text-align: left !important;
+      width: auto !important;
+    }
+    .sched-table td.time-cell .sched-input { max-width: 90px; }
+
+    /* 도착·출발·이동·체류는 짧으니 입력칸 작게 */
+    .sched-table td[data-label="도착"] .sched-input,
+    .sched-table td[data-label="출발"] .sched-input,
+    .sched-table td[data-label="이동"] .sched-input,
+    .sched-table td[data-label="체류"] .sched-input {
+      flex: 0 0 100px;
+    }
+
+    /* 내용·비고는 큼직하게 */
+    .sched-table td[data-label="내용"] textarea,
+    .sched-table td[data-label="비고"] textarea {
+      font-size: 15px;
+      min-height: 28px;
+    }
+    .sched-table td[data-label="비고"]::before { color: var(--accent3); }
+
+    /* 위치조정 버튼들 한 줄 정리 */
+    .sched-table td[data-label="위치조정"] .rowtool-wrap {
+      display: flex; flex-direction: row; gap: 14px; align-items: center; width: 100%;
+    }
+
+    /* 지도 버튼 모바일에서 크게 */
+    .sched-table td[data-label="이동"] button {
+      font-size: 12px !important;
+    }
+    /* 숨김 input은 모바일에서도 계속 숨김 */
+    .sched-table input[type="hidden"] { display: none !important; }
+  }
+
   /* 편집 인풋 */
   .sched-input {
     width: 100%; background: transparent; border: none; border-radius: 4px;
@@ -859,7 +968,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1603</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1626</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -2948,6 +3057,8 @@ function renderPreview() {
   const groupName = document.getElementById('infoGroupName').value || '';
 
   let html = '';
+  // 모바일 전용 안내 (좁은 화면에서만 보임)
+  html += `<div class="mobile-scroll-hint">📱 휴대폰에서는 카드 형태로 보여요. 각 항목을 위아래로 넘기며 확인하세요</div>`;
   if (groupName) {
     html += `<div style="
       background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(62,207,142,0.1));
@@ -3030,7 +3141,7 @@ function renderRow(di, ii, item) {
        onclick="setTextColor(${di},${ii},'${name}')" title="${name}" tabindex="-1"></button>`
   ).join('');
   return `<tr class="${rowCls}${hlCls}${tcCls}${boldCls}" id="row-${di}-${ii}">
-    <td>
+    <td data-label="위치조정">
       <div class="rowtool-wrap">
         <div class="row-btns">
           <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
@@ -3047,15 +3158,15 @@ function renderRow(di, ii, item) {
         </div>
       </div>
     </td>
-    <td><input class="sched-input time-input" id="arrive-${di}-${ii}" value="${item.arrive||''}" placeholder="HH:MM"
+    <td data-label="도착"><input class="sched-input time-input" id="arrive-${di}-${ii}" value="${item.arrive||''}" placeholder="HH:MM"
       tabindex="-1"
       onchange="updateItem(${di},${ii},'arrive',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'arrive',this.value);this.blur();}"></td>
-    <td><input class="sched-input time-input" id="depart-${di}-${ii}" value="${item.depart||item.time||''}" placeholder="HH:MM"
+    <td data-label="출발"><input class="sched-input time-input" id="depart-${di}-${ii}" value="${item.depart||item.time||''}" placeholder="HH:MM"
       tabindex="-1"
       onchange="updateItem(${di},${ii},'depart',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'depart',this.value);this.blur();}"></td>
-    <td>
+    <td data-label="이동">
       <input class="sched-input dur-input" id="moveDur-${di}-${ii}" value="${item.moveDur||''}" placeholder="00:00"
         onchange="updateItem(${di},${ii},'moveDur',this.value)"
         onkeydown="handleDurTab(event, ${di}, ${ii}, 'move')">
@@ -3068,16 +3179,16 @@ function renderRow(di, ii, item) {
       " onmouseover="this.style.background='rgba(62,207,142,0.3)'"
          onmouseout="this.style.background='rgba(62,207,142,0.15)'">🗺️지도</button>` : ''}
     </td>
-    <td><input class="sched-input dur-input" id="stayDur-${di}-${ii}" value="${item.stayDur||''}" placeholder="00:00"
+    <td data-label="체류"><input class="sched-input dur-input" id="stayDur-${di}-${ii}" value="${item.stayDur||''}" placeholder="00:00"
       onchange="updateItem(${di},${ii},'stayDur',this.value)"
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'stay')"></td>
     <input type="hidden" class="sched-input trans-input" value="${item.transport||''}">
     <input type="hidden" class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}">
-    <td><textarea class="sched-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
+    <td data-label="내용"><textarea class="sched-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'desc',this.value);"
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'desc')"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
-    <td style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
+    <td data-label="비고" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.meal||item.note||''}</textarea></td>
   </tr>`;
