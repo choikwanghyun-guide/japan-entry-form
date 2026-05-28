@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>호텔 정보 정리</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -1411,6 +1412,63 @@
     border-radius: 999px;
   }
 
+  /* 인쇄 전용 스타일 */
+  @media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 20px;
+      background: white !important;
+      color: black !important;
+    }
+    #printArea table {
+      background: white !important;
+      border: 1px solid #ccc;
+    }
+    #printArea th {
+      background: #f0f0f0 !important;
+      color: black !important;
+      border: 1px solid #ccc;
+    }
+    #printArea td {
+      background: white !important;
+      color: black !important;
+      border: 1px solid #ccc;
+    }
+    #printArea .editable, #printArea .editable-label {
+      color: black !important;
+    }
+    #printArea .empty-value {
+      color: #d97706 !important;
+    }
+    #printArea .insights-box {
+      background: #f9f9f9 !important;
+      border: 1px solid #ddd;
+      page-break-inside: avoid;
+    }
+    #printArea .insights-content {
+      color: black !important;
+    }
+    #printArea .print-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: black !important;
+      margin-bottom: 8px;
+    }
+    #printArea .print-meta {
+      font-size: 13px;
+      color: #555 !important;
+      margin-bottom: 16px;
+    }
+    @page { margin: 1.5cm; }
+  }
+
+  .print-title, .print-meta { display: none; }
+
 </style>
 </head>
 <body>
@@ -1610,6 +1668,7 @@
       <strong>항목 이름과 내용 모두</strong> 클릭하면 직접 수정할 수 있어요. 정보가 부족한 항목은 주황색으로 표시됩니다.
     </p>
 
+    <div id="captureArea">
     <div class="hotel-meta" id="hotelMeta"></div>
 
     <table id="resultsTable">
@@ -1625,6 +1684,7 @@
     <div class="insights-box" id="insightsBox" style="display: none;">
       <div class="insights-title">✦ 가이드용 핵심 포인트</div>
       <div class="insights-content" id="insightsContent" contenteditable="true"></div>
+    </div>
     </div>
 
     <div class="download-bar">
@@ -1642,12 +1702,18 @@
         <button class="btn-download" onclick="downloadExcel()">
           ⬇ 엑셀로 다운로드
         </button>
+        <button class="btn-save" onclick="printHotel()" style="border-color: var(--accent-blue); color: var(--accent-blue);">
+          🖨 인쇄하기
+        </button>
+        <button class="btn-save" onclick="captureHotel()" style="border-color: var(--accent-purple); color: var(--accent-purple);">
+          📸 이미지로 저장
+        </button>
       </div>
     </div>
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1220</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0528_1412</span></p>
   </footer>
 
 </div>
@@ -3069,6 +3135,109 @@ ${posts}
     }
 
     document.getElementById('results-section').classList.add('show');
+  }
+
+  // ===== 인쇄하기 =====
+  function printHotel() {
+    if (!currentData) {
+      alert('먼저 호텔 정보를 정리해주세요.');
+      return;
+    }
+
+    // 인사이트 최신값 반영
+    const insightsEl = document.getElementById('insightsContent');
+    if (insightsEl) currentData.insights = insightsEl.innerText;
+
+    const parsedName = parseHotelName(currentData.hotelName || '');
+    const infoDateVal = document.getElementById('infoDate').value.trim();
+
+    // 인쇄용 영역 생성
+    let printArea = document.getElementById('printArea');
+    if (printArea) printArea.remove();
+
+    printArea = document.createElement('div');
+    printArea.id = 'printArea';
+
+    // 제목
+    let titleHtml = `<div class="print-title">${escapeHtml(parsedName.main)}`;
+    if (parsedName.aliases.length > 0) {
+      titleHtml += ` <span style="font-size: 15px; font-weight: normal;">(${parsedName.aliases.map(a => escapeHtml(a)).join(' / ')})</span>`;
+    }
+    titleHtml += `</div>`;
+
+    let metaHtml = '<div class="print-meta">';
+    if (infoDateVal) metaHtml += `📅 정보 기준: ${escapeHtml(infoDateVal)} · `;
+    metaHtml += `가이드 최광현 (한국폰 010-2620-8072 / 일본폰 090-7555-7489)</div>`;
+
+    // 표 생성
+    let tableHtml = '<table><thead><tr><th style="width:34%;">항목</th><th>내용</th></tr></thead><tbody>';
+    currentData.fields.forEach((field, i) => {
+      const valueStr = String(field.value || '');
+      const isEmpty = valueStr.includes('정보없음') || valueStr.includes('확인 필요');
+      tableHtml += `<tr><th>${i + 1}. ${escapeHtml(field.label)}</th><td><div class="editable ${isEmpty ? 'empty-value' : ''}">${escapeHtml(valueStr).replace(/\n/g, '<br>')}</div></td></tr>`;
+    });
+    tableHtml += '</tbody></table>';
+
+    // 인사이트
+    let insightsHtml = '';
+    if (currentData.insights) {
+      insightsHtml = `<div class="insights-box"><div class="insights-title" style="color:#7c5cf0; font-weight:bold; margin-bottom:8px;">✦ 가이드용 핵심 포인트</div><div class="insights-content">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div></div>`;
+    }
+
+    printArea.innerHTML = titleHtml + metaHtml + tableHtml + insightsHtml;
+    document.body.appendChild(printArea);
+
+    // 인쇄 후 정리
+    window.print();
+    setTimeout(() => { if (printArea) printArea.remove(); }, 500);
+  }
+
+  // ===== 이미지로 저장 (캡처) =====
+  async function captureHotel() {
+    if (!currentData) {
+      alert('먼저 호텔 정보를 정리해주세요.');
+      return;
+    }
+
+    if (typeof html2canvas === 'undefined') {
+      alert('이미지 저장 기능을 불러오는 중이에요. 잠시 후 다시 시도해주세요.\n(인터넷 연결이 필요해요)');
+      return;
+    }
+
+    // 인사이트 최신값 반영
+    const insightsEl = document.getElementById('insightsContent');
+    if (insightsEl) currentData.insights = insightsEl.innerText;
+
+    const captureArea = document.getElementById('captureArea');
+    const parsedName = parseHotelName(currentData.hotelName || '');
+
+    // 캡처 중 알림
+    showStatus('📸 이미지를 만드는 중...', 'success');
+
+    try {
+      const canvas = await html2canvas(captureArea, {
+        backgroundColor: '#0f1117',  // 다크 배경
+        scale: 2,  // 고해상도
+        logging: false,
+        useCORS: true
+      });
+
+      // 다운로드
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${parsedName.main || '호텔정보'}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showStatus('✓ 이미지로 저장됐어요! 다운로드 폴더를 확인하세요.', 'success');
+      }, 'image/png');
+    } catch (err) {
+      console.error('캡처 오류:', err);
+      showStatus(`이미지 저장 실패: ${err.message}`, 'error');
+    }
   }
 
   function downloadExcel() {
