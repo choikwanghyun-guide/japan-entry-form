@@ -283,6 +283,7 @@
       flex: 1;
       text-align: left !important;
       width: auto !important;
+      align-self: flex-start;
     }
     .sched-table td.time-cell .sched-input { max-width: 90px; }
 
@@ -294,19 +295,20 @@
       flex: 0 0 100px;
     }
 
-    /* 내용·비고는 큼직하게, 높이는 내용에 따라 자동 확장 */
+    /* 내용·비고는 큼직하게, 높이는 JS가 내용에 맞춰 자동 확장 (height:auto !important 쓰면 JS 계산값이 무시되므로 쓰지 않음) */
     .sched-table td[data-label="내용"] textarea,
     .sched-table td[data-label="비고"] textarea {
       font-size: 15px;
       min-height: 28px;
-      height: auto !important;
-      overflow: visible !important;
+      overflow: hidden;
       white-space: pre-wrap;
       word-break: break-word;
     }
     .sched-table td[data-label="비고"]::before { color: var(--accent3); }
-    /* 카드(tr)와 td가 내용에 따라 높이가 늘어나도록 (고정 높이 방지) */
-    .sched-table tr, .sched-table td { height: auto !important; }
+    /* td가 내용에 따라 높이가 늘어나도록 (고정 높이 방지). textarea 높이는 건드리지 않음 */
+    .sched-table tr { height: auto !important; }
+    .sched-table td { height: auto !important; align-items: stretch; }
+    .sched-table td::before { align-self: flex-start; }
 
     /* 위치조정 버튼들 한 줄 정리 — 이동/색상 버튼 모두 가로로 */
     .sched-table td[data-label="위치조정"] {
@@ -997,7 +999,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1654</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1707</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3143,14 +3145,19 @@ function renderPreview() {
 
 // 모든 일정표 textarea 높이를 내용에 맞게 자동 조정 (저장된 여러 줄 비고가 잘리지 않게)
 function autoResizeAllTextareas() {
-  requestAnimationFrame(() => {
+  const resize = () => {
     document.querySelectorAll('.sched-input').forEach(el => {
       if (el.tagName === 'TEXTAREA') {
         el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
+        const h = el.scrollHeight;
+        if (h > 0) el.style.height = h + 'px';
       }
     });
-  });
+  };
+  // 즉시 1회 + 레이아웃(특히 모바일 카드) 확정 후 1회 더 → 비고 여러 줄이 정확히 펼쳐짐
+  requestAnimationFrame(resize);
+  setTimeout(resize, 60);
+  setTimeout(resize, 250);
 }
 
 // 화면 크기 변경(회전, 창 크기 조절) 시 textarea 높이 다시 계산
