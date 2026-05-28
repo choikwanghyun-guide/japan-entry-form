@@ -815,7 +815,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1521</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0528_1537</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1344,6 +1344,7 @@ function showFormatBadge(format) {
     'guide':     '📑 가이드 일정표 (자체 양식)',
     'lotte':     '🟥 롯데 / 부산롯데형',
     'hanastar':  '🟨 노랑풍선 / 스타재팬형',
+    'hanasaku':  '🟧 하나사쿠 / 여행펀형',
     'yballoon_event': '📄 노랑풍선 행사개요서 (PDF)',
     'hijapan_confirm': '📄 HI JAPAN 확정서 (PDF)',
     'url':       '🌐 웹 상품페이지',
@@ -1373,8 +1374,9 @@ function parseExcelConfirm(file) {
     else if (format === 'kta')  data = parseKTA(rows);
     else if (format === 'tw')   data = parseTW(rows);
     else if (format === 'guide') data = parseGuideItinerary(rows);
+    else if (format === 'hanasaku') data = parseHanasaku(rows);
     else {
-      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 엑셀 형식이에요.\n투어폰, KTA, TW, 가이드 일정표 형식을 지원해요.');
+      showAlert('uploadAlert', 'error', '❌ 지원하지 않는 엑셀 형식이에요.\n투어폰, KTA, TW, 하나사쿠/여행펀, 가이드 일정표 형식을 지원해요.');
       return;
     }
 
@@ -1411,6 +1413,9 @@ function detectExcelFormat(rows) {
 
   // 롯데: 지역/교통편/시간/세부일정
   if (/지역.*교통편.*시간.*세부일정/i.test(flat)) return 'lotte';
+
+  // 하나사쿠/여행펀: 행선지 / 교통편 / 시간 / 일정 / 식사 헤더 (제1일·제2일 + 식사 컬럼)
+  if (/행\s*선\s*지.*교\s*통\s*편.*시\s*간.*일\s*정/.test(flatRaw)) return 'hanasaku';
 
   return 'unknown';
 }
@@ -1884,6 +1889,139 @@ function parseGuideItinerary(rows) {
   if (data.days.length > 0) data.nights = data.days.length - 1;
 
   return data;
+}
+
+
+// ── 하나사쿠 / 여행펀형 파싱 ──
+// 헤더: 행선지(B) | 교통편(C) | 시간(D) | 일정(E) | 식사(F)
+// 날짜 구분: A열에 "제1일" / "제2일" + 그 아래 행에 날짜
+function parseHanasaku(rows) {
+  const data = {
+    title: '', startDate: '', endDate: '', nights: 0,
+    departureFlight: '', returnFlight: '', transport: '전용버스',
+    pax: '', region: '', days: []
+  };
+
+  // 상단 헤더 정보 추출 (제목, 출발일, 인원)
+  for (let i = 0; i < 12; i++) {
+    const joined = (rows[i] || []).map(v => String(v||'')).join(' ').trim();
+    if (!joined) continue;
+    // 제목: [여행펀/조석] 도쿄 ... 같은 줄
+    if (/\[.*\]/.test(joined) && !data.title) {
+      data.title = joined.replace(/^\s*A\d+\s*/, '').trim();
+    }
+    // 출발일
+    const dm = joined.match(/출발일\s*[:：]?\s*(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (dm) {
+      data.startDate = `${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
+    }
+    // 인원
+    const pm = joined.match(/인원\s*[:：]?\s*(.+?)(?:가이드|$)/);
+    if (pm && !data.pax) data.pax = pm[1].trim();
+  }
+
+  // 헤더 행 찾기 (행선지/교통편/시간/일정)
+  let headerRow = -1;
+  for (let i = 0; i < 20; i++) {
+    const joined = (rows[i] || []).map(v => String(v||'')).join('');
+    if (/행\s*선\s*지/.test(joined) && /일\s*정/.test(joined)) { headerRow = i; break; }
+  }
+  if (headerRow === -1) return data;
+
+  // 컬럼 인덱스 파악 (보통 B=1행선지, C=2교통편, D=3시간, E=4일정, F=5식사)
+  const hdr = rows[headerRow].map(v => String(v||'').replace(/\s/g,''));
+  let colPlace = 1, colTrans = 2, colTime = 3, colDesc = 4, colMeal = 5;
+  hdr.forEach((h, idx) => {
+    if (/행선지/.test(h)) colPlace = idx;
+    else if (/교통편/.test(h)) colTrans = idx;
+    else if (/시간/.test(h)) colTime = idx;
+    else if (/일정/.test(h)) colDesc = idx;
+    else if (/식사/.test(h)) colMeal = idx;
+  });
+
+  let currentDay = null;
+  let currentDayNo = 0;
+
+  for (let i = headerRow + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const colA = String(r[0]||'').trim();        // 제N일 / 날짜 / 요일
+    const place = String(r[colPlace]||'').trim();
+    const trans = String(r[colTrans]||'').trim();
+    let time = String(r[colTime]||'').trim();
+    const desc = String(r[colDesc]||'').trim();
+    const meal = String(r[colMeal]||'').trim();
+
+    // 새 일자 감지: "제1일", "제2일"
+    const dayMatch = colA.match(/제\s*(\d+)\s*일/);
+    if (dayMatch) {
+      currentDayNo = parseInt(dayMatch[1]);
+      currentDay = { dayNo: currentDayNo, date: '', items: [] };
+      data.days.push(currentDay);
+    }
+
+    // A열에 날짜가 있으면 현재 일자에 반영
+    const dateInA = colA.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (dateInA && currentDay && !currentDay.date) {
+      currentDay.date = `${dateInA[1]}-${String(dateInA[2]).padStart(2,'0')}-${String(dateInA[3]).padStart(2,'0')}`;
+      if (!data.startDate && currentDayNo === 1) data.startDate = currentDay.date;
+    }
+
+    if (!currentDay) continue;
+    if (!place && !desc && !trans) continue;  // 빈 행
+
+    // 시간 포맷 (07:55:00 → 07:55, "오 전" 같은 텍스트는 그대로)
+    if (/^\d/.test(time)) time = formatTime(time.replace(/:00$/, ''));
+
+    // 항공편 감지 (교통편에 LJ1234 형태)
+    const flightMatch = trans.match(/\b([A-Z]{2}\d{2,4})\b/);
+    if (flightMatch) {
+      if (!data.departureFlight) data.departureFlight = flightMatch[1];
+      else data.returnFlight = flightMatch[1];
+    }
+
+    // HOTEL 라인
+    if (/^HOTEL\s*[:：]/i.test(desc)) {
+      const hotelName = desc.replace(/^HOTEL\s*[:：]/i, '').trim();
+      if (hotelName) {
+        currentDay.items.push({
+          time: '', transport: '', place: place || '',
+          desc: '🏨 ' + hotelName, meal: '', type: 'hotel'
+        });
+      }
+      continue;
+    }
+
+    // URL만 있는 줄은 직전 호텔 아이템에 붙이기 (건너뜀)
+    if (/^https?:\/\//.test(desc)) continue;
+
+    currentDay.items.push({
+      time: time || '',
+      transport: trans || '',
+      place: place || '',
+      desc: desc || place || '',
+      meal: normalizeMeal(meal),
+      type: guessItemType(desc, trans)
+    });
+  }
+
+  // 종료일 계산
+  if (data.startDate && data.days.length > 0) {
+    data.endDate = calcDate(data.startDate, data.days.length - 1);
+    data.nights = data.days.length - 1;
+  }
+  // 지역 추출 (제목에서 도시명 추정)
+  if (data.title) {
+    const cityMatch = data.title.match(/도쿄|오사카|후쿠오카|삿포로|오키나와|나고야|교토|동경/);
+    if (cityMatch) data.region = cityMatch[0] === '동경' ? '도쿄' : cityMatch[0];
+  }
+
+  return data;
+}
+
+// 식사 표기 정규화 (중:현지식 → 중식: 현지식)
+function normalizeMeal(meal) {
+  if (!meal) return '';
+  return meal.trim().replace(/\s+/g, ' ');
 }
 
 
