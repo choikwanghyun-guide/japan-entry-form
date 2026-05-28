@@ -470,6 +470,7 @@
       </div>
       <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
         <select id="f-period-days" style="flex: 1;">
+          <option value="1">Daily Tour (당일치기)</option>
           <option value="2">1박 2일</option>
           <option value="3">2박 3일</option>
           <option value="4" selected>3박 4일</option>
@@ -497,7 +498,9 @@
           <option value="북해도">북해도</option>
           <option value="마츠야마">마츠야마</option>
           <option value="나고야">나고야</option>
+          <option value="__custom__">기타지역 (직접 입력)</option>
         </select>
+        <input type="text" id="f-region-custom" placeholder="지역명 직접 입력 (예: 시즈오카)" style="display: none; margin-top: 8px;">
       </div>
       <div class="section">
         <label class="field-label">일정</label>
@@ -533,7 +536,7 @@
       <label class="field-label">교통편 종류</label>
       <select id="f-transport-type">
         <option value="항공">항공</option>
-        <option value="선박">선박 (대마도)</option>
+        <option value="선박">선박</option>
       </select>
     </div>
 
@@ -708,7 +711,7 @@
   const PRESET_KEY = 'happycall_weather_presets_v1';
   const LOCATION_KEY = 'happycall_location_presets_v1';
   const MAX_LEN = 1000;
-  const fieldIds = ['f-guide','f-period','f-period-start','f-period-start-text','f-period-days','f-region','f-days','f-weather','f-transport-type','f-airport','f-airline','f-port','f-shipline','f-meeting-date','f-meeting-time','f-meeting-spot','f-picket','f-phone-kr','f-phone-jp'];
+  const fieldIds = ['f-guide','f-period','f-period-start','f-period-start-text','f-period-days','f-region','f-region-custom','f-days','f-weather','f-transport-type','f-airport','f-airline','f-port','f-shipline','f-meeting-date','f-meeting-time','f-meeting-spot','f-picket','f-phone-kr','f-phone-jp'];
   const checkIds = ['opt-plug','opt-onsen','opt-baggage','opt-aizen'];
   const WEEKDAYS = ['일','월','화','수','목','금','토'];
 
@@ -967,6 +970,7 @@
       toggleTransport();
       syncDateText();
       syncPeriodStartText();
+      toggleRegionCustom();
     } catch (e) {}
   }
 
@@ -1097,8 +1101,14 @@
     const startW = WEEKDAYS[startDate.getDay()];
     const endW = WEEKDAYS[endDate.getDay()];
 
-    periodInput.value = `${startM}/${startD} - ${endM}/${endD}`;
-    displayEl.textContent = `→ ${startM}/${startD}(${startW}) ~ ${endM}/${endD}(${endW})`;
+    // 당일치기(Daily Tour)는 시작일=종료일이므로 날짜를 한 번만 표시
+    if (days === 1) {
+      periodInput.value = `${startM}/${startD}`;
+      displayEl.textContent = `→ ${startM}/${startD}(${startW}) 당일`;
+    } else {
+      periodInput.value = `${startM}/${startD} - ${endM}/${endD}`;
+      displayEl.textContent = `→ ${startM}/${startD}(${startW}) ~ ${endM}/${endD}(${endW})`;
+    }
   }
 
   function syncPeriodStartText() {
@@ -1160,6 +1170,19 @@
   document.getElementById('f-period-start-text').addEventListener('input', syncPeriodStartFromText);
   document.getElementById('f-period-start-text').addEventListener('blur', syncPeriodStartFromText);
   document.getElementById('f-period-days').addEventListener('change', calculatePeriod);
+
+  // 지역 '기타지역' 선택 시 직접 입력칸 표시/숨김
+  function toggleRegionCustom() {
+    const sel = document.getElementById('f-region');
+    const customInput = document.getElementById('f-region-custom');
+    if (sel.value === '__custom__') {
+      customInput.style.display = '';
+      customInput.focus();
+    } else {
+      customInput.style.display = 'none';
+    }
+  }
+  document.getElementById('f-region').addEventListener('change', toggleRegionCustom);
   document.getElementById('btn-open-period-cal').addEventListener('click', () => {
     const dateInput = document.getElementById('f-period-start');
     if (typeof dateInput.showPicker === 'function') {
@@ -1191,7 +1214,8 @@
   function buildBlocks() {
     const guide = getVal('f-guide');
     const period = getVal('f-period');
-    const region = getVal('f-region');
+    const regionSel = getVal('f-region');
+    const region = regionSel === '__custom__' ? getVal('f-region-custom') : regionSel;
     const days = getVal('f-days');
     const weather = getVal('f-weather');
     const isShip = getVal('f-transport-type') === '선박';
@@ -1395,6 +1419,7 @@ ${weather}`
       document.getElementById('f-period-days').value = '4';
       document.getElementById('period-display').textContent = '';
       updateMeetingDateDisplay();
+      toggleRegionCustom();
     }
   });
 
