@@ -38,6 +38,20 @@
 </script>
 <!-- ===== /Google Analytics ===== -->
 
+<!-- ===== Microsoft Clarity ===== -->
+<!-- 프로젝트 ID: wzsoxra8tp / "내 방문 제외"(ga_optout) 설정 시 함께 비활성화 -->
+<script type="text/javascript">
+(function () {
+  try { if (localStorage.getItem('ga_optout') === '1') return; } catch (e) { /* 무시 */ }
+  (function(c,l,a,r,i,t,y){
+    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+  })(window, document, "clarity", "script", "wzsoxra8tp");
+})();
+</script>
+<!-- ===== /Microsoft Clarity ===== -->
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
   :root {
@@ -1884,7 +1898,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0601_0108</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0601_0130</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
