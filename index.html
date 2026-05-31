@@ -4,6 +4,18 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>일본 입국 서류 자동출력 (이디카드 + 입국신고서 + 세관신고서)</title>
+
+<!-- ===== Google Analytics (GA4) ===== -->
+<!-- 측정 ID: G-T8Q2L4FXSM -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-T8Q2L4FXSM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-T8Q2L4FXSM');
+</script>
+<!-- ===== /Google Analytics ===== -->
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
   :root {
@@ -1852,5 +1864,51 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
   Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_2100</span>
 </div>
+
+<!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
+<script>
+(function () {
+  // gtag 미로딩(광고차단 등) 환경에서도 에러 안 나도록 안전 래퍼
+  function track(name, params) {
+    if (typeof gtag === 'function') gtag('event', name, params || {});
+  }
+
+  function bindEvents() {
+    // 1) 명부 파일 업로드
+    var fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        var f = this.files && this.files[0];
+        track('file_upload', {
+          file_name: f ? f.name : '',
+          file_ext: f ? (f.name.split('.').pop() || '').toLowerCase() : ''
+        });
+      });
+    }
+
+    // 2) 입국신고서 인쇄
+    var btnImm = document.getElementById('btnImmigration');
+    if (btnImm) btnImm.addEventListener('click', function () {
+      track('print_document', { doc_type: 'immigration' });
+    });
+
+    // 3) 세관신고서 인쇄
+    var btnCustoms = document.getElementById('btnCustoms');
+    if (btnCustoms) btnCustoms.addEventListener('click', function () {
+      track('print_document', { doc_type: 'customs' });
+    });
+
+    // 4) 고객 요약정보 내려받기
+    var btnEd = document.getElementById('btnEdCard');
+    if (btnEd) btnEd.addEventListener('click', function () {
+      track('download_summary', { doc_type: 'edcard' });
+    });
+  }
+
+  if (document.readyState !== 'loading') bindEvents();
+  else document.addEventListener('DOMContentLoaded', bindEvents);
+})();
+</script>
+<!-- ===== /GA4 이벤트 추적 ===== -->
 
 </body></html>
