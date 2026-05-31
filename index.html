@@ -12,6 +12,28 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
+
+  // === 내 방문 제외 스위치 ===
+  // 제외할 기기에서 주소 끝에 ?mytraffic=off 를 붙여 한 번만 접속 → 이후 영구 제외
+  // 다시 포함하려면 ?mytraffic=on 으로 접속
+  (function () {
+    var GA_ID = 'G-T8Q2L4FXSM';
+    try {
+      var params = new URLSearchParams(location.search);
+      if (params.get('mytraffic') === 'off') {
+        localStorage.setItem('ga_optout', '1');
+        alert('이 기기는 이제 방문 통계에서 제외됩니다.');
+      }
+      if (params.get('mytraffic') === 'on') {
+        localStorage.removeItem('ga_optout');
+        alert('방문 통계 제외가 해제되었습니다.');
+      }
+      if (localStorage.getItem('ga_optout') === '1') {
+        window['ga-disable-' + GA_ID] = true; // gtag 공식 비활성화 플래그
+      }
+    } catch (e) { /* localStorage 불가 환경 무시 */ }
+  })();
+
   gtag('config', 'G-T8Q2L4FXSM');
 </script>
 <!-- ===== /Google Analytics ===== -->
@@ -1862,7 +1884,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0527_2100</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0601_0108</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
