@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1625</div>
+  <div class="rev-info">rev_2026_0601_1647</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1563,7 +1563,7 @@
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
-  let imageFontPx = 29;   // 이미지 기본 글자 크기(px) — 보통27 / 크게29 / 아주크게32
+  let imageFontPx = 36;   // 이미지 기본 글자 크기(px) — 보통32 / 크게36 / 아주크게42 (이미지 폭 580px 기준)
 
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
@@ -1652,9 +1652,9 @@
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
       <div class="img-fontsize">글자 크기
-        <button type="button" class="fs-btn" data-px="27">보통</button>
-        <button type="button" class="fs-btn" data-px="29">크게</button>
-        <button type="button" class="fs-btn" data-px="32">아주 크게</button>
+        <button type="button" class="fs-btn" data-px="32">보통</button>
+        <button type="button" class="fs-btn" data-px="36">크게</button>
+        <button type="button" class="fs-btn" data-px="42">아주 크게</button>
       </div>
     `;
     group.forEach(g => {
@@ -2466,7 +2466,7 @@
   /* 화면 밖 렌더링용 카드 (실제 이미지로 캡처됨) */
   #img-render-root {
     position: fixed; left: -99999px; top: 0;
-    width: 720px; background: #ffffff; color: #1f2937;
+    width: 580px; background: #ffffff; color: #1f2937;
     font-size: 18px;
     font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   }
