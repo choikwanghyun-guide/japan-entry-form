@@ -839,7 +839,7 @@
     <div id="messages-container"></div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2049</div>
+  <div class="rev-info">rev_2026_0601_2101</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -2098,7 +2098,7 @@
     const status = document.getElementById('import-status');
     if (typeof mammoth === 'undefined') {
       status.style.color = '#ff8a80';
-      status.textContent = '워드 읽기 기능을 불러오지 못했어요. "Claude로 분석"을 이용해 주세요.';
+      status.textContent = '워드 읽기 기능을 불러오지 못했어요. "AI로 분석"을 이용해 주세요.';
       return;
     }
     const reader = new FileReader();
@@ -2221,7 +2221,7 @@
           || (text.match(/\([월화수목금토일]\s*[出출]\)/g) || []).length >= 2
           || (text.match(/\d{1,2}\s*\/\s*\d{1,2}\s*\(?\s*출/g) || []).length >= 2;
         if (multi) d._notes.push('출발일이 여러 개라(예: 0208, 0222…) 하나로 정할 수 없어요. 출발일을 직접 골라 입력해주세요.');
-        else d._notes.push('출발일을 찾지 못했어요(확정서 양식이 달라서요). 직접 입력하거나 "Claude로 분석"을 써보세요.');
+        else d._notes.push('출발일을 찾지 못했어요(확정서 양식이 달라서요). 직접 입력하거나 "AI로 분석"을 써보세요.');
       }
       if (!d.region) d._notes.push('여행 지역을 찾지 못했어요 — 직접 선택해주세요.');
       if (!d.nights) d._notes.push('여행 기간(박수)을 찾지 못했어요 — 직접 선택해주세요.');
@@ -2236,7 +2236,7 @@
     let html = '';
     if (filled && filled.length) html += '<div style="color:#7ee787">✓ 채운 항목: ' + filled.map(escapeHtml).join(', ') + '</div>';
     if (notes && notes.length) html += '<div style="color:#ffcc66;margin-top:8px;line-height:1.65">⚠ 자동으로 못 넣은 것 & 이유<br>• ' + notes.map(escapeHtml).join('<br>• ') + '</div>';
-    if ((!filled || !filled.length) && (!notes || !notes.length)) html = '<span style="color:#ff8a80">자동으로 찾은 항목이 없어요. "Claude로 분석"을 이용하거나 직접 입력해주세요.</span>';
+    if ((!filled || !filled.length) && (!notes || !notes.length)) html = '<span style="color:#ff8a80">자동으로 찾은 항목이 없어요. "AI로 분석"을 이용하거나 직접 입력해주세요.</span>';
     status.innerHTML = html;
     // 완벽히 채웠을 때만(이유 없음) 자동으로 입력 화면으로. 이유가 있으면 읽도록 모달 유지.
     if (filled && filled.length && (!notes || !notes.length)) {
@@ -2542,7 +2542,11 @@
   }
   #import-overlay .ib-copy { background: #5a5a5e; color: #fff; }
   #import-overlay .ib-claude { background: #d97757; color: #fff; }
+  #import-overlay .ib-gpt { background: #10a37f; color: #fff; }
+  #import-overlay .ib-gemini { background: #1a73e8; color: #fff; }
   #import-overlay .ib-excel { background: #1e7e4f; color: #fff; }
+  #import-overlay .import-sub { font-size: 12.5px; color: #aeaeb2; line-height: 1.55; margin: 4px 0 8px; }
+  #import-overlay .import-prompt-quote { display: block; background: #3a3a3c; color: #ffd479; border-radius: 8px; padding: 8px 10px; margin: 5px 0; font-size: 13px; }
   #import-overlay textarea {
     width: 100%; box-sizing: border-box; margin-top: 6px;
     min-height: 120px; padding: 12px; font-size: 14px;
@@ -2649,7 +2653,7 @@
 <div id="import-overlay">
   <div class="import-card">
     <h3>🤖 확정서/일정표로 내용 채우기</h3>
-    <p class="import-desc">확정서 내용을 붙여넣으면 자동으로 채워요. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 프롬프트를 복사해 Claude에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣으세요.</p>
+    <p class="import-desc">확정서 내용을 붙여넣으면 자동으로 채워요. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 명령어를 복사해 AI(챗GPT·재미나이·클로드)에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣으세요.</p>
 
     <div class="import-step">1) 엑셀·워드 파일이면 — 바로 불러오기</div>
     <div class="import-row">
@@ -2657,10 +2661,15 @@
     </div>
     <input type="file" id="import-excel-file" accept=".xlsx,.xls,.csv,.docx" style="display:none">
 
-    <div class="import-step">2) 이미지·한글·PDF면 — Claude로 분석</div>
+    <div class="import-step">2) 이미지·한글·PDF면 — AI로 분석</div>
+    <p class="import-sub"><b>명령어(프롬프트)</b>
+      <span class="import-prompt-quote">붙여넣은 이 확정서를 읽고 가이드명·날짜·미팅정보 등을 JSON 형식으로 정리해줘</span>
+      👉 아래 AI 중 하나를 열고, 위 명령어(복사 버튼)와 함께 확정서(이미지·한글·PDF)를 첨부하세요. 받은 JSON을 3번 칸에 붙여넣으면 돼요.</p>
+    <button type="button" class="ib ib-copy" id="import-copy-prompt" style="width:100%;flex:none;margin-bottom:8px;">📋 명령어(프롬프트) 복사</button>
     <div class="import-row">
-      <button type="button" class="ib ib-copy" id="import-copy-prompt">📋 프롬프트 복사</button>
-      <a class="ib ib-claude" id="import-open-claude" href="https://claude.ai/new" target="_blank" rel="noopener">Claude 열기 ↗</a>
+      <a class="ib ib-gpt" href="https://chatgpt.com/" target="_blank" rel="noopener">챗GPT ↗</a>
+      <a class="ib ib-gemini" href="https://gemini.google.com/app" target="_blank" rel="noopener">재미나이 ↗</a>
+      <a class="ib ib-claude" href="https://claude.ai/new" target="_blank" rel="noopener">클로드 ↗</a>
     </div>
 
     <div class="import-step">3) 확정서 텍스트 또는 Claude가 준 JSON 붙여넣기</div>
