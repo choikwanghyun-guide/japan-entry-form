@@ -605,7 +605,7 @@
 
   <div id="panel-input">
 
-    <button type="button" id="btn-import-confirm" class="import-trigger">🤖 확정서로 자동 채우기</button>
+    <button type="button" id="btn-import-confirm" class="import-trigger">🤖 확정서/일정표로 내용 채우기</button>
     <button type="button" id="btn-edit-template" class="tpl-trigger">✏️ 고객에게 보낼 내용 기입</button>
 
     <div class="section-title">기본 정보</div>
@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1401</div>
+  <div class="rev-info">rev_2026_0601_154241</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1563,18 +1563,18 @@
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
-  let imageFontPx = 18;   // 이미지 기본 글자 크기(px) — 보통16 / 크게18 / 아주크게21
+  let imageFontPx = 20;   // 이미지 기본 글자 크기(px) — 보통18 / 크게20 / 아주크게23
 
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
     '하나투어':    { bg: '#6E2B8C', text: '#ffffff', accent: '#00B5D8' },
-    '모두투어':    { bg: '#0086D1', text: '#ffffff' },
-    '노랑풍선':    { bg: '#F2A900', text: '#1f2937' },
-    '교원투어':    { bg: '#00A19A', text: '#ffffff' },
-    '롯데관광':    { bg: '#DA291C', text: '#ffffff' },
-    '온라인투어':  { bg: '#0067B1', text: '#ffffff' },
-    '인터파크투어': { bg: '#E2007A', text: '#ffffff' },
-    '참좋은여행':  { bg: '#00A651', text: '#ffffff' }
+    '모두투어':    { bg: '#00A14B', text: '#ffffff', accent: '#A6CE39' },
+    '노랑풍선':    { bg: '#FFC600', text: '#1f2937', accent: '#E8920C' },
+    '교원투어':    { bg: '#EE5A24', text: '#ffffff', accent: '#F9A03F' },
+    '롯데관광':    { bg: '#0046AD', text: '#ffffff', accent: '#E60012' },
+    '온라인투어':  { bg: '#00A0E2', text: '#ffffff', accent: '#ED3A3A' },
+    '인터파크투어': { bg: '#3A4DFF', text: '#ffffff', accent: '#7C8AFF' },
+    '참좋은여행':  { bg: '#0089CF', text: '#ffffff', accent: '#00B4E0' }
   };
 
   function escapeHtml(s) {
@@ -1652,9 +1652,9 @@
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
       <div class="img-fontsize">글자 크기
-        <button type="button" class="fs-btn" data-px="16">보통</button>
-        <button type="button" class="fs-btn" data-px="18">크게</button>
-        <button type="button" class="fs-btn" data-px="21">아주 크게</button>
+        <button type="button" class="fs-btn" data-px="18">보통</button>
+        <button type="button" class="fs-btn" data-px="20">크게</button>
+        <button type="button" class="fs-btn" data-px="23">아주 크게</button>
       </div>
     `;
     group.forEach(g => {
@@ -2597,7 +2597,7 @@
 
 <div id="import-overlay">
   <div class="import-card">
-    <h3>🤖 확정서로 자동 채우기</h3>
+    <h3>🤖 확정서/일정표로 내용 채우기</h3>
     <p class="import-desc">확정서 내용을 붙여넣으면 자동으로 채워요. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 프롬프트를 복사해 Claude에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣으세요.</p>
 
     <div class="import-step">1) 엑셀·워드 파일이면 — 바로 불러오기</div>
