@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1548</div>
+  <div class="rev-info">rev_2026_0601_1557</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1769,7 +1769,13 @@
           const blob = await (await fetch(dataUrl)).blob();
           const file = new File([blob], '일본여행안내.png', { type: 'image/png' });
           if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: '일본 여행 안내' });
+            // 이미지와 함께 보낼 텍스트 = 메인 인사 문구(첫 번째 텍스트 블록, 사용자가 수정한 내용 반영)
+            const mainEl = document.getElementById('body-0');
+            const shareText = (mainEl && mainEl.value.trim()) ? mainEl.value.trim() : '';
+            const shareData = { files: [file] };
+            if (shareText) shareData.text = shareText;
+            else shareData.title = '일본 여행 안내';
+            await navigator.share(shareData);
           } else {
             alert('이 기기에서는 공유가 안 돼요. 다운로드하거나 이미지를 길게 눌러 저장하세요.');
           }
