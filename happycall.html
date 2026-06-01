@@ -836,7 +836,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1034</div>
+  <div class="rev-info">rev_2026_0601_1114</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1837,7 +1837,29 @@ ${items.join('\n')}
     return false;
   }
 
+  // 확정서 불러오기 전, 트립 정보 비우기 (가이드명·연락처는 유지)
+  function clearForImport() {
+    const keep = ['f-guide', 'f-phone-kr', 'f-phone-jp'];
+    fieldIds.forEach(id => {
+      if (keep.includes(id)) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else el.value = (id === 'f-port') ? '부산항 국제여객터미널' : '';
+    });
+    const days = document.getElementById('f-period-days'); if (days) days.value = '4';
+    ['f-meeting-date-text', 'f-period-start-text'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const pd = document.getElementById('period-display'); if (pd) pd.textContent = '';
+    if (typeof toggleTransport === 'function') toggleTransport();
+    if (typeof toggleRegionCustom === 'function') toggleRegionCustom();
+    if (typeof updateMeetingDateDisplay === 'function') updateMeetingDateDisplay();
+  }
+
   function fillFromExtracted(d) {
+    // 의미 있는 정보가 있을 때만 비우고 채움 (빈/오류 파일로 폼이 통째로 지워지는 것 방지)
+    const hasData = ['region', 'startDate', 'nights', 'transport', 'meetingTime', 'meetingSpot', 'picket', 'airport', 'airline'].some(k => d[k]);
+    if (!hasData) return [];
+    clearForImport();
     const filled = [];
     if (d.agency && setSelectIfOption('f-agency', d.agency)) filled.push('여행사');
     if (d.region) {
@@ -1867,6 +1889,8 @@ ${items.join('\n')}
         document.getElementById('f-period-days').value = String(days);
         filled.push('기간');
       }
+      const daysEl = document.getElementById('f-days');
+      if (daysEl) { daysEl.value = days + '일'; filled.push('일정'); }
     }
     if (typeof calculatePeriod === 'function') calculatePeriod();
 
@@ -1918,15 +1942,9 @@ ${items.join('\n')}
     const reader = new FileReader();
     reader.onload = (e) => {
       mammoth.extractRawText({ arrayBuffer: e.target.result }).then(r => {
-        const filled = fillFromExtracted(parseConfirmText(r.value || ''));
-        if (filled.length === 0) {
-          status.style.color = '#ffcc66';
-          status.textContent = '⚠ 워드에서 자동으로 찾은 항목이 적어요. "Claude로 분석"을 이용하거나 샘플을 보여주세요.';
-        } else {
-          status.style.color = '#7ee787';
-          status.textContent = '✓ 워드에서 채운 항목: ' + filled.join(', ');
-          setTimeout(() => { document.getElementById('import-overlay').style.display = 'none'; switchTab('input'); }, 1300);
-        }
+        const data = parseConfirmText(r.value || '');
+        const filled = fillFromExtracted(data);
+        reportImport(filled, data._notes);
       }).catch(err => {
         status.style.color = '#ff8a80';
         status.textContent = '워드를 읽지 못했어요: ' + (err && err.message ? err.message : err);
@@ -1953,14 +1971,7 @@ ${items.join('\n')}
         });
         const data = parseConfirmText(allText);
         const filled = fillFromExtracted(data);
-        if (filled.length === 0) {
-          status.style.color = '#ffcc66';
-          status.textContent = '⚠ 엑셀에서 자동으로 찾은 항목이 적어요. "Claude로 분석"을 쓰거나, 엑셀 샘플을 보여주시면 이 양식에 딱 맞는 파서를 만들 수 있어요.';
-        } else {
-          status.style.color = '#7ee787';
-          status.textContent = '✓ 엑셀에서 채운 항목: ' + filled.join(', ');
-          setTimeout(() => { document.getElementById('import-overlay').style.display = 'none'; switchTab('input'); }, 1300);
-        }
+        reportImport(filled, data._notes);
       } catch (err) {
         status.style.color = '#ff8a80';
         status.textContent = '엑셀을 읽지 못했어요: ' + (err && err.message ? err.message : err);
@@ -2008,7 +2019,9 @@ ${items.join('\n')}
     for (const a of Object.keys(AGENCY_THEME)) { if (text.includes(a)) { d.agency = a; break; } }
 
     // 미팅 시각·장소 (집결 / 集)
-    const mt = text.match(/(\d{1,2})\s*:\s*(\d{2})\s*集/) || text.match(/(\d{1,2})\s*:\s*(\d{2})(?::\d{2})?[^\n]{0,40}?집결/);
+    const mt = text.match(/(\d{1,2})\s*:\s*(\d{2})\s*集/)
+            || text.match(/(\d{1,2})\s*:\s*(\d{2})(?::\d{2})?[^\n]{0,40}?집결/)
+            || text.match(/(?:[\s|]|^)([01]?\d|2[0-3])([0-5]\d)\s+[가-힣][가-힣 ]{0,12}?(?:집결|미팅)/);
     if (mt) d.meetingTime = `${pad(mt[1])}:${mt[2]}`;
     const sn = text.match(/([가-힣][가-힣 ]*?공항)[^\n]{0,12}?(?:집결|集合|集|미팅)/);
     const sd = text.match(/(?:집결|集)[^\n]*?\(([^)]+)\)/);
@@ -2036,7 +2049,38 @@ ${items.join('\n')}
     const pj = text.match(/일본[^\n0-9]{0,8}(0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4})/);
     if (pj) d.phoneJp = pj[1].replace(/\s/g, '');
 
+    // 자동으로 못 넣은 항목과 이유
+    d._notes = [];
+    const isRoster = /여권\s*번호|PASSPORT|주민\s*등?록?\s*번호/i.test(text) && !d.startDate;
+    if (isRoster) {
+      d._notes.push('이 파일은 승객 명단이라 일정·출발일 정보가 없어요. 일정표(확정서)를 넣거나 직접 입력해주세요.');
+    } else {
+      if (!d.startDate) {
+        const multi = /출발\s*확정/.test(text)
+          || (text.match(/\([월화수목금토일]\s*[出출]\)/g) || []).length >= 2
+          || (text.match(/\d{1,2}\s*\/\s*\d{1,2}\s*\(?\s*출/g) || []).length >= 2;
+        if (multi) d._notes.push('출발일이 여러 개라(예: 0208, 0222…) 하나로 정할 수 없어요. 출발일을 직접 골라 입력해주세요.');
+        else d._notes.push('출발일을 찾지 못했어요(확정서 양식이 달라서요). 직접 입력하거나 "Claude로 분석"을 써보세요.');
+      }
+      if (!d.region) d._notes.push('여행 지역을 찾지 못했어요 — 직접 선택해주세요.');
+      if (!d.nights) d._notes.push('여행 기간(박수)을 찾지 못했어요 — 직접 선택해주세요.');
+      if (d.startDate && !d.meetingTime) d._notes.push('이 확정서엔 미팅(집결) 시각이 적혀 있지 않아요 — 직접 입력해주세요.');
+    }
+
     return d;
+  }
+
+  function reportImport(filled, notes) {
+    const status = document.getElementById('import-status');
+    let html = '';
+    if (filled && filled.length) html += '<div style="color:#7ee787">✓ 채운 항목: ' + filled.map(escapeHtml).join(', ') + '</div>';
+    if (notes && notes.length) html += '<div style="color:#ffcc66;margin-top:8px;line-height:1.65">⚠ 자동으로 못 넣은 것 & 이유<br>• ' + notes.map(escapeHtml).join('<br>• ') + '</div>';
+    if ((!filled || !filled.length) && (!notes || !notes.length)) html = '<span style="color:#ff8a80">자동으로 찾은 항목이 없어요. "Claude로 분석"을 이용하거나 직접 입력해주세요.</span>';
+    status.innerHTML = html;
+    // 완벽히 채웠을 때만(이유 없음) 자동으로 입력 화면으로. 이유가 있으면 읽도록 모달 유지.
+    if (filled && filled.length && (!notes || !notes.length)) {
+      setTimeout(() => { document.getElementById('import-overlay').style.display = 'none'; switchTab('input'); }, 1300);
+    }
   }
 
   function runImport() {
@@ -2048,17 +2092,7 @@ ${items.join('\n')}
     if (jsonStr.startsWith('{')) { try { data = JSON.parse(jsonStr); } catch (e) { data = null; } }
     if (!data) data = parseConfirmText(raw);
     const filled = fillFromExtracted(data);
-    if (filled.length === 0) {
-      status.style.color = '#ff8a80';
-      status.textContent = '⚠ 자동으로 찾은 항목이 없어요. 이미지·한글이면 위 "프롬프트 복사" 후 Claude에 확정서를 첨부해 JSON을 받아 붙여넣어 주세요.';
-    } else {
-      status.style.color = '#7ee787';
-      status.textContent = '✓ 채운 항목: ' + filled.join(', ');
-      setTimeout(() => {
-        document.getElementById('import-overlay').style.display = 'none';
-        switchTab('input');
-      }, 1300);
-    }
+    reportImport(filled, data._notes);
   }
 
   function openImportModal() {
@@ -2082,7 +2116,7 @@ ${items.join('\n')}
       if (f) { if (/\.docx$/i.test(f.name)) handleDocxImport(f); else handleExcelImport(f); }
       excelFile.value = '';
     };
-    document.getElementById('import-close').onclick = () => { ov.style.display = 'none'; };
+    document.getElementById('import-close').onclick = () => { ov.style.display = 'none'; switchTab('input'); };
     ov.onclick = (e) => { if (e.target === ov) ov.style.display = 'none'; };
   }
 
