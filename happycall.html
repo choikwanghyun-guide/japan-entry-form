@@ -606,7 +606,7 @@
   <div id="panel-input">
 
     <button type="button" id="btn-import-confirm" class="import-trigger">🤖 확정서로 자동 채우기</button>
-    <button type="button" id="btn-edit-template" class="tpl-trigger">✏️ 안내 포맷 편집</button>
+    <button type="button" id="btn-edit-template" class="tpl-trigger">✏️ 고객에게 보낼 내용 기입</button>
 
     <div class="section-title">기본 정보</div>
 
@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1259</div>
+  <div class="rev-info">rev_2026_0601_1311</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1896,11 +1896,10 @@
     return false;
   }
 
-  // 확정서 불러오기 전, 가이드명·연락처 포함 모든 트립 정보 비우기
+  // 확정서 불러오기 전, 트립 정보 비우기 (가이드명·연락처는 본인 것이므로 유지)
   function clearForImport() {
-    // 확정서 불러오기 시 가이드·연락처 포함 모든 트립 정보를 비움
-    // (여러 가이드가 공용으로 쓰므로 이전 가이드 정보가 남지 않게)
-    const keep = [];
+    // 가이드명·연락처는 비우지 않음 — 각 가이드가 자기 계정에 한 번 입력한 값이 유지됨
+    const keep = ['f-guide', 'f-phone-kr', 'f-phone-jp'];
     fieldIds.forEach(id => {
       if (keep.includes(id)) return;
       const el = document.getElementById(id);
@@ -1971,13 +1970,14 @@
     if (d.shipline) { document.getElementById('f-shipline').value = String(d.shipline).trim(); filled.push('선사'); }
 
     // 가이드·연락처는 확정서에 적힌 담당 가이드 정보로 채움 (여러 가이드 공용)
-    const setFromDoc = (id, val, label) => {
+    // 가이드명·연락처는 비어 있을 때만 채움 — 본인이 한 번 입력하면 그대로 유지됨
+    const setIfEmpty = (id, val, label) => {
       const el = document.getElementById(id);
-      if (val && el) { el.value = String(val).trim(); filled.push(label); }
+      if (val && el && !el.value.trim()) { el.value = String(val).trim(); filled.push(label); }
     };
-    setFromDoc('f-guide', d.guide, '가이드명');
-    setFromDoc('f-phone-kr', d.phoneKr, '한국연락처');
-    setFromDoc('f-phone-jp', d.phoneJp, '일본연락처');
+    setIfEmpty('f-guide', d.guide, '가이드명');
+    setIfEmpty('f-phone-kr', d.phoneKr, '한국연락처');
+    setIfEmpty('f-phone-jp', d.phoneJp, '일본연락처');
 
     if (typeof saveData === 'function') saveData();
     return filled;
@@ -2430,12 +2430,12 @@
 
   /* 안내 포맷 편집 */
   .tpl-trigger {
-    width: 100%; padding: 13px; margin-bottom: 18px;
-    background: #2f4636; color: #cde6d3; border: 1px solid #3f6a4d;
-    border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
-    font-family: inherit;
+    width: 100%; padding: 14px; margin-bottom: 18px;
+    background: #ff9500; color: #fff; border: none;
+    border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;
+    font-family: inherit; box-shadow: 0 2px 10px rgba(255,149,0,0.35);
   }
-  .tpl-trigger:active { background: #283b2d; }
+  .tpl-trigger:active { background: #e08600; }
   #template-overlay {
     position: fixed; inset: 0; z-index: 10001;
     background: rgba(0,0,0,0.8); display: none;
@@ -2517,7 +2517,7 @@
 <!-- ===== 안내 포맷 편집 ===== -->
 <div id="template-overlay">
   <div class="tpl-card">
-    <h3>✏️ 안내 포맷 편집</h3>
+    <h3>✏️ 고객에게 보낼 내용 기입</h3>
     <p class="tpl-desc">가이드마다 자기 말투로 안내 문구를 직접 쓸 수 있어요. 아래 <b>자리표시자</b>를 넣어두면, 확정서를 불러올 때 그 자리에 실제 값이 자동으로 채워집니다. (예: <code>{지역}</code> → 북해도)<br>입력칸을 누른 뒤 자리표시자를 탭하면 커서 위치에 삽입돼요.</p>
     <div class="tpl-chips" id="tpl-chips"></div>
     <div id="tpl-sections"></div>
