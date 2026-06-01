@@ -451,6 +451,17 @@
     font-family: monospace;
     letter-spacing: 0.5px;
   }
+  .output-actions {
+    display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+  }
+  .output-actions .oa-btn {
+    flex: 1; min-width: 120px; padding: 14px 10px; border: none; border-radius: 11px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .output-actions .oa-btn:active { opacity: 0.85; }
+  .output-actions .oa-imp { background: #FEE500; color: #3A2A00; }
+  .output-actions .oa-etc { background: #30d158; color: #06310f; }
+  .output-actions .oa-dl  { background: #0a84ff; color: #fff; }
 
   /* 모달 */
   .modal-backdrop {
@@ -837,9 +848,14 @@
     </div>
     <button class="regen-btn" id="btn-regen">↻ 입력값으로 다시 생성 (수정 내용 초기화)</button>
     <div id="messages-container"></div>
+    <div class="output-actions">
+      <button type="button" class="oa-btn oa-imp" id="oa-important">중요안내사항 보기</button>
+      <button type="button" class="oa-btn oa-etc" id="oa-etc">그외 안내사항 보기</button>
+      <button type="button" class="oa-btn oa-dl" id="oa-download">다운로드</button>
+    </div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2101</div>
+  <div class="rev-info">rev_2026_0601_2139</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1567,7 +1583,7 @@
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
-  let imageFontPx = 32;   // 이미지 기본 글자 크기(px) — 보통32(기본) / 크게36 / 아주크게42 (이미지 폭 580px 기준)
+  let imageFontPx = 28;   // 이미지 기본 글자 크기(px) — 보통28(기본) / 크게30 / 아주크게34 (이미지 폭 660px·줄간격 축소 기준)
 
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
@@ -1656,9 +1672,9 @@
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
       <div class="img-fontsize">글자 크기
-        <button type="button" class="fs-btn" data-px="32">보통</button>
-        <button type="button" class="fs-btn" data-px="36">크게</button>
-        <button type="button" class="fs-btn" data-px="42">아주 크게</button>
+        <button type="button" class="fs-btn" data-px="28">보통</button>
+        <button type="button" class="fs-btn" data-px="30">크게</button>
+        <button type="button" class="fs-btn" data-px="34">아주 크게</button>
       </div>
     `;
     group.forEach(g => {
@@ -1892,6 +1908,36 @@
       const blocks = buildBlocks();
       renderBlocks(blocks);
     }
+  });
+
+  // 결과 탭 하단 빠른 버튼
+  document.getElementById('oa-important').addEventListener('click', async (e) => {
+    const el = document.getElementById('body-0');
+    const txt = el ? el.value.trim() : '';
+    if (!txt) { alert('먼저 "그외 안내사항 안내하기"로 내용을 만들어 주세요.'); return; }
+    if (navigator.share) {
+      try { await navigator.share({ text: txt }); } catch (err) { /* 취소 등 */ }
+    } else {
+      copyText(txt, e.currentTarget);
+    }
+  });
+  document.getElementById('oa-etc').addEventListener('click', () => {
+    if (!document.getElementById('img-make-btn')) { alert('먼저 "그외 안내사항 안내하기"로 내용을 만들어 주세요.'); return; }
+    generateImage();
+  });
+  document.getElementById('oa-download').addEventListener('click', async (e) => {
+    if (typeof html2canvas !== 'function') { alert('이미지 변환 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
+    if (!document.getElementById('img-make-btn')) { alert('먼저 "그외 안내사항 안내하기"로 내용을 만들어 주세요.'); return; }
+    const b = e.currentTarget; const o = b.textContent;
+    b.disabled = true; b.textContent = '만드는 중…';
+    try {
+      const dataUrl = await renderHtmlToDataUrl(buildImageHTML());
+      const a = document.createElement('a');
+      a.href = dataUrl; a.download = '일본여행안내.png';
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (err) {
+      alert('이미지 생성에 실패했습니다: ' + (err && err.message ? err.message : err));
+    } finally { b.disabled = false; b.textContent = o; }
   });
 
   document.getElementById('btn-reset').addEventListener('click', () => {
@@ -2446,30 +2492,30 @@
   /* 화면 밖 렌더링용 카드 (실제 이미지로 캡처됨) */
   #img-render-root {
     position: fixed; left: -99999px; top: 0;
-    width: 580px; background: #ffffff; color: #1f2937;
+    width: 660px; background: #ffffff; color: #1f2937;
     font-size: 18px;
     font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   }
   #img-render-root .ir-header {
     display: flex; align-items: center; gap: 16px;
-    background: #11254e; color: #fff; padding: 52px 32px 26px;
+    background: #11254e; color: #fff; padding: 30px 28px 22px;
   }
   #img-render-root .ir-htext { flex: 1; }
   #img-render-root .ir-flag { font-size: 2.1em; line-height: 1; font-weight: 800; }
   #img-render-root .ir-agency { font-size: 0.95em; font-weight: 700; opacity: 0.92; white-space: nowrap; }
   #img-render-root .ir-title { font-size: 1.5em; font-weight: 800; letter-spacing: -0.01em; }
   #img-render-root .ir-sub { font-size: 0.82em; opacity: 0.82; margin-top: 4px; }
-  #img-render-root .ir-section { padding: 22px 32px; border-bottom: 1px solid #eef0f4; }
+  #img-render-root .ir-section { padding: 16px 28px; border-bottom: 1px solid #eef0f4; }
   #img-render-root .ir-sec-title {
     font-size: 1.2em; font-weight: 700; color: #11254e;
-    padding-left: 12px; border-left: 5px solid #0a84ff; margin-bottom: 10px;
+    padding-left: 12px; border-left: 5px solid #0a84ff; margin-bottom: 8px;
   }
   #img-render-root .ir-sec-body {
-    font-size: 1.08em; line-height: 1.8; color: #2b3440;
+    font-size: 1.08em; line-height: 1.5; color: #2b3440;
     white-space: pre-wrap; word-break: keep-all;
   }
   #img-render-root .ir-foot {
-    padding: 18px 32px; text-align: right; font-size: 13px; color: #6b7280; background: #f8fafc;
+    padding: 12px 28px; text-align: right; font-size: 13px; color: #6b7280; background: #f8fafc;
   }
 
   /* 결과 오버레이 */
