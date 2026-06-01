@@ -837,10 +837,9 @@
     </div>
     <button class="regen-btn" id="btn-regen">↻ 입력값으로 다시 생성 (수정 내용 초기화)</button>
     <div id="messages-container"></div>
-    <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1746</div>
+  <div class="rev-info">rev_2026_0601_2043</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1796,7 +1795,6 @@
     const ov = document.getElementById('img-result-overlay');
     document.getElementById('img-result-pic').src = dataUrl;
 
-    document.getElementById('img-close').onclick = () => { ov.style.display = 'none'; };
     ov.onclick = (e) => { if (e.target === ov) ov.style.display = 'none'; };
 
     const dl = document.getElementById('img-download');
@@ -1895,8 +1893,6 @@
       renderBlocks(blocks);
     }
   });
-
-  document.getElementById('btn-back').addEventListener('click', () => switchTab('input'));
 
   document.getElementById('btn-reset').addEventListener('click', () => {
     if (confirm('정말로 모든 입력 정보를 지우시겠습니까?\n(가이드명, 연락처 등 저장된 정보가 사라집니다)\n※ 날씨 포맷은 유지됩니다')) {
@@ -2508,12 +2504,11 @@
 
 <div id="img-result-overlay">
   <div class="ir-actions">
-    <button class="ir-btn ir-btn-text" id="img-share-text">① 인사 문구(글자)만 보내기</button>
-    <button class="ir-btn ir-btn-share" id="img-share">② 이미지만 보내기</button>
+    <button class="ir-btn ir-btn-text" id="img-share-text">중요 안내사항 보내기 (인사 · 미팅일시,장소 · 피켓명 · 준비물 · 가이드 연락처)</button>
+    <button class="ir-btn ir-btn-share" id="img-share">그외 안내사항 보내기</button>
     <a class="ir-btn ir-btn-dl" id="img-download">💾 다운로드</a>
-    <button class="ir-btn ir-btn-close" id="img-close">닫기</button>
   </div>
-  <div class="ir-savehint">📱 휴대폰: <b>①</b>로 인사 문구(글자)를 먼저 보내고, <b>②</b>로 이미지를 보내면 순서대로 가요.<br>💻 PC: 인사 문구는 복사해서 붙여넣고, 이미지는 "다운로드" 후 보내세요.</div>
+  <div class="ir-savehint">📱 휴대폰: <b>"중요 안내사항"</b>을 먼저 보내고, <b>"그외 안내사항"</b>(이미지)을 보내면 순서대로 가요. (닫으려면 창 바깥 어두운 곳을 누르세요)<br>💻 PC: 중요 안내사항은 복사해서 붙여넣고, 그외 안내사항은 "다운로드" 후 보내세요.</div>
   <img id="img-result-pic" alt="여행 안내 이미지">
 </div>
 <!-- ===== /이미지 안내 카드 ===== -->
