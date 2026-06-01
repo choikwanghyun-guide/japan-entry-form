@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1647</div>
+  <div class="rev-info">rev_2026_0601_1746</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1399,7 +1399,7 @@
 
   const DEFAULT_TEMPLATES = {
     main: {
-      title: '인사 · 미팅 · 준비물 · 연락처',
+      title: '중요 안내사항 (인사 · 미팅일시,장소 · 피켓명 · 준비물 · 가이드 연락처)',
       body: `안녕하세요. {기간} 일본 {지역} 일정을 함께하게 된 {가이드명} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
 
 * 미팅일시: {미팅일} {미팅시각} 미팅
@@ -1474,6 +1474,11 @@
         body:  (s.body != null) ? s.body : def.body
       };
     });
+    // 옛 기본 제목을 쓰고 있던 경우 새 제목으로 자동 업그레이드 (직접 수정한 제목은 그대로 둠)
+    const OLD_MAIN_TITLES = ['인사 · 미팅 · 준비물 · 연락처', '인사·미팅·준비물·연락처'];
+    if (templates.main && OLD_MAIN_TITLES.includes(templates.main.title)) {
+      templates.main.title = DEFAULT_TEMPLATES.main.title;
+    }
   }
   function saveTemplates() {
     try {
@@ -1563,7 +1568,7 @@
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
-  let imageFontPx = 36;   // 이미지 기본 글자 크기(px) — 보통32 / 크게36 / 아주크게42 (이미지 폭 580px 기준)
+  let imageFontPx = 32;   // 이미지 기본 글자 크기(px) — 보통32(기본) / 크게36 / 아주크게42 (이미지 폭 580px 기준)
 
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
@@ -1647,7 +1652,7 @@
     wrap.className = 'msg-card img-group';
     let inner = `
       <div class="msg-header">
-        <span class="msg-title">${order}. 🖼️ 이미지로 보낼 안내</span>
+        <span class="msg-title">${order}. 🖼️ 그외 안내사항</span>
         <button class="img-make-btn" id="img-make-btn">이미지로 저장</button>
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
@@ -1801,30 +1806,10 @@
     const greetingEl = document.getElementById('body-0');
     const greeting = (greetingEl && greetingEl.value.trim()) ? greetingEl.value.trim() : '';
 
-    const shareBothBtn = document.getElementById('img-share-both');
     const shareTextBtn = document.getElementById('img-share-text');
     const shareBtn = document.getElementById('img-share');
 
     if (navigator.share) {
-      // 📲 인사 이미지 + 안내 이미지 2장을 한 번에 (순서: 인사 → 안내)
-      shareBothBtn.style.display = '';
-      shareBothBtn.onclick = async () => {
-        const orig = shareBothBtn.textContent;
-        try {
-          shareBothBtn.disabled = true;
-          shareBothBtn.textContent = '인사 이미지 만드는 중…';
-          const greetUrl = await renderHtmlToDataUrl(buildGreetingHTML());
-          const f1 = await dataUrlToFile(greetUrl, '1_인사안내.png');
-          const f2 = await dataUrlToFile(dataUrl, '2_여행안내.png');
-          if (navigator.canShare && navigator.canShare({ files: [f1, f2] })) {
-            await navigator.share({ files: [f1, f2] });
-          } else {
-            alert('이 기기에서는 2장 한번에 공유가 안 돼요. 아래 ①②로 하나씩 보내주세요.');
-          }
-        } catch (e) { /* 취소 등 */ }
-        finally { shareBothBtn.disabled = false; shareBothBtn.textContent = orig; }
-      };
-
       // ① 인사 문구만 (글자 메시지)
       shareTextBtn.style.display = greeting ? '' : 'none';
       shareTextBtn.onclick = async () => {
@@ -1843,7 +1828,6 @@
         } catch (e) { /* 취소 등 */ }
       };
     } else {
-      shareBothBtn.style.display = 'none';
       shareTextBtn.style.display = 'none';
       shareBtn.style.display = 'none';
     }
@@ -2524,13 +2508,12 @@
 
 <div id="img-result-overlay">
   <div class="ir-actions">
-    <button class="ir-btn ir-btn-both" id="img-share-both">📲 인사+안내 2장 한번에 보내기</button>
     <button class="ir-btn ir-btn-text" id="img-share-text">① 인사 문구(글자)만 보내기</button>
     <button class="ir-btn ir-btn-share" id="img-share">② 이미지만 보내기</button>
     <a class="ir-btn ir-btn-dl" id="img-download">💾 다운로드</a>
     <button class="ir-btn ir-btn-close" id="img-close">닫기</button>
   </div>
-  <div class="ir-savehint">📱 휴대폰: <b>"인사+안내 2장 한번에 보내기"</b>를 누르면 인사 이미지 → 안내 이미지 순서로 한 번에 보내져요. (카톡 선택)<br>혹은 인사 문구를 글자로 보내고 싶으면 ①(글자) → ②(이미지) 순서로 보내세요.<br>💻 PC: "다운로드" 후 카톡 PC에 끌어다 붙이세요.</div>
+  <div class="ir-savehint">📱 휴대폰: <b>①</b>로 인사 문구(글자)를 먼저 보내고, <b>②</b>로 이미지를 보내면 순서대로 가요.<br>💻 PC: 인사 문구는 복사해서 붙여넣고, 이미지는 "다운로드" 후 보내세요.</div>
   <img id="img-result-pic" alt="여행 안내 이미지">
 </div>
 <!-- ===== /이미지 안내 카드 ===== -->
