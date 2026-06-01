@@ -722,11 +722,14 @@
       <div class="section">
         <label class="field-label">항공사</label>
         <select id="f-airline">
+          <option value="">선택</option>
           <option value="에어부산">에어부산</option>
           <option value="진에어">진에어</option>
           <option value="제주항공">제주항공</option>
           <option value="이스타항공">이스타항공</option>
+          <option value="티웨이항공">티웨이항공</option>
           <option value="대한항공">대한항공</option>
+          <option value="아시아나항공">아시아나항공</option>
           <option value="트리니티항공">트리니티항공</option>
         </select>
       </div>
@@ -836,7 +839,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1114</div>
+  <div class="rev-info">rev_2026_0601_1227</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1837,9 +1840,11 @@ ${items.join('\n')}
     return false;
   }
 
-  // 확정서 불러오기 전, 트립 정보 비우기 (가이드명·연락처는 유지)
+  // 확정서 불러오기 전, 가이드명·연락처 포함 모든 트립 정보 비우기
   function clearForImport() {
-    const keep = ['f-guide', 'f-phone-kr', 'f-phone-jp'];
+    // 확정서 불러오기 시 가이드·연락처 포함 모든 트립 정보를 비움
+    // (여러 가이드가 공용으로 쓰므로 이전 가이드 정보가 남지 않게)
+    const keep = [];
     fieldIds.forEach(id => {
       if (keep.includes(id)) return;
       const el = document.getElementById(id);
@@ -1909,27 +1914,54 @@ ${items.join('\n')}
     if (d.port) { document.getElementById('f-port').value = String(d.port).trim(); filled.push('항구'); }
     if (d.shipline) { document.getElementById('f-shipline').value = String(d.shipline).trim(); filled.push('선사'); }
 
-    // 가이드·연락처는 비어 있을 때만 채움 (이미 저장된 내 정보 보호)
-    const setIfEmpty = (id, val, label) => {
+    // 가이드·연락처는 확정서에 적힌 담당 가이드 정보로 채움 (여러 가이드 공용)
+    const setFromDoc = (id, val, label) => {
       const el = document.getElementById(id);
-      if (val && el && !el.value.trim()) { el.value = String(val).trim(); filled.push(label); }
+      if (val && el) { el.value = String(val).trim(); filled.push(label); }
     };
-    setIfEmpty('f-guide', d.guide, '가이드명');
-    setIfEmpty('f-phone-kr', d.phoneKr, '한국연락처');
-    setIfEmpty('f-phone-jp', d.phoneJp, '일본연락처');
+    setFromDoc('f-guide', d.guide, '가이드명');
+    setFromDoc('f-phone-kr', d.phoneKr, '한국연락처');
+    setFromDoc('f-phone-jp', d.phoneJp, '일본연락처');
 
     if (typeof saveData === 'function') saveData();
     return filled;
   }
 
-  function cellToStr(v) {
-    if (v instanceof Date && !isNaN(v)) {
-      if (v.getUTCFullYear() <= 1900) {
-        return String(v.getUTCHours()).padStart(2, '0') + ':' + String(v.getUTCMinutes()).padStart(2, '0');
-      }
-      return v.getUTCFullYear() + '-' + String(v.getUTCMonth() + 1).padStart(2, '0') + '-' + String(v.getUTCDate()).padStart(2, '0');
+  // 셀 객체({t,v,w,z})를 문자열로. 날짜/시간 서식 셀은 SheetJS의 SSF로
+  // 일련번호를 직접 변환해 시간대 영향을 받지 않게 함 (JS Date 변환 시 KST에서 하루 밀리는 버그 회피).
+  function cellToStr(cell) {
+    if (cell == null) return '';
+    if (cell.t === 'n' && typeof cell.v === 'number' && cell.z &&
+        typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.is_date(cell.z)) {
+      try {
+        const o = XLSX.SSF.parse_date_code(cell.v);
+        if (o) {
+          if (cell.v < 1 || (o.y <= 1900 && o.d === 0)) {
+            let H = o.H, M = o.M;
+            if (o.S >= 30) { M += 1; if (M === 60) { M = 0; H = (H + 1) % 24; } }
+            return String(H).padStart(2, '0') + ':' + String(M).padStart(2, '0');
+          }
+          return o.y + '-' + String(o.m).padStart(2, '0') + '-' + String(o.d).padStart(2, '0');
+        }
+      } catch (e) {}
     }
-    return v == null ? '' : String(v);
+    if (cell.w != null && cell.w !== '') return String(cell.w);
+    return cell.v == null ? '' : String(cell.v);
+  }
+
+  function sheetToText(ws) {
+    if (!ws || !ws['!ref']) return '';
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const lines = [];
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      const cells = [];
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const s = cellToStr(ws[XLSX.utils.encode_cell({ r: R, c: C })]);
+        if (s !== '') cells.push(s);
+      }
+      lines.push(cells.join(' '));
+    }
+    return lines.join('\n');
   }
 
   function handleDocxImport(file) {
@@ -1963,11 +1995,10 @@ ${items.join('\n')}
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false, cellNF: true });
         let allText = '';
         wb.SheetNames.forEach(name => {
-          const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
-          rows.forEach(r => { allText += r.map(cellToStr).join(' ') + '\n'; });
+          allText += sheetToText(wb.Sheets[name]) + '\n';
         });
         const data = parseConfirmText(allText);
         const filled = fillFromExtracted(data);
