@@ -56,6 +56,8 @@
 
 <!-- 이미지 생성 라이브러리 (html2canvas) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- 엑셀 읽기 라이브러리 (SheetJS) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -611,6 +613,21 @@
     </div>
 
     <div class="section">
+      <label class="field-label">여행사 <span style="color:#8e8e93;font-weight:400">(선택 시 이미지 색상에 반영)</span></label>
+      <select id="f-agency">
+        <option value="">선택 안 함</option>
+        <option value="하나투어">하나투어</option>
+        <option value="모두투어">모두투어</option>
+        <option value="노랑풍선">노랑풍선</option>
+        <option value="교원투어">교원투어</option>
+        <option value="롯데관광">롯데관광</option>
+        <option value="온라인투어">온라인투어</option>
+        <option value="인터파크투어">인터파크투어</option>
+        <option value="참좋은여행">참좋은여행</option>
+      </select>
+    </div>
+
+    <div class="section">
       <label class="field-label">행사기간 (시작일 + 일수 자동계산)</label>
       <div style="display: flex; gap: 8px; align-items: stretch;">
         <input type="text" id="f-period-start-text" placeholder="시작일 (예: 20260504 또는 0504)" inputmode="numeric" style="flex: 1;">
@@ -817,7 +834,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_0925</div>
+  <div class="rev-info">rev_2026_0601_0947</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -860,7 +877,7 @@
   const PRESET_KEY = 'happycall_weather_presets_v1';
   const LOCATION_KEY = 'happycall_location_presets_v1';
   const MAX_LEN = 1000;
-  const fieldIds = ['f-guide','f-period','f-period-start','f-period-start-text','f-period-days','f-region','f-region-custom','f-days','f-weather','f-transport-type','f-airport','f-airline','f-port','f-shipline','f-meeting-date','f-meeting-time','f-meeting-spot','f-picket','f-phone-kr','f-phone-jp'];
+  const fieldIds = ['f-guide','f-agency','f-period','f-period-start','f-period-start-text','f-period-days','f-region','f-region-custom','f-days','f-weather','f-transport-type','f-airport','f-airline','f-port','f-shipline','f-meeting-date','f-meeting-time','f-meeting-spot','f-picket','f-phone-kr','f-phone-jp'];
   const checkIds = ['opt-plug','opt-onsen','opt-baggage','opt-aizen'];
   const WEEKDAYS = ['일','월','화','수','목','금','토'];
 
@@ -1464,6 +1481,19 @@ ${items.join('\n')}
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
+  let imageFontPx = 18;   // 이미지 기본 글자 크기(px) — 보통16 / 크게18 / 아주크게21
+
+  // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
+  const AGENCY_THEME = {
+    '하나투어':    { bg: '#E51937', text: '#ffffff' },
+    '모두투어':    { bg: '#0086D1', text: '#ffffff' },
+    '노랑풍선':    { bg: '#F2A900', text: '#1f2937' },
+    '교원투어':    { bg: '#00A19A', text: '#ffffff' },
+    '롯데관광':    { bg: '#DA291C', text: '#ffffff' },
+    '온라인투어':  { bg: '#0067B1', text: '#ffffff' },
+    '인터파크투어': { bg: '#E2007A', text: '#ffffff' },
+    '참좋은여행':  { bg: '#00A651', text: '#ffffff' }
+  };
 
   function escapeHtml(s) {
     return String(s)
@@ -1539,6 +1569,11 @@ ${items.join('\n')}
         <button class="img-make-btn" id="img-make-btn">이미지로 저장</button>
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
+      <div class="img-fontsize">글자 크기
+        <button type="button" class="fs-btn" data-px="16">보통</button>
+        <button type="button" class="fs-btn" data-px="18">크게</button>
+        <button type="button" class="fs-btn" data-px="21">아주 크게</button>
+      </div>
     `;
     group.forEach(g => {
       inner += `
@@ -1564,6 +1599,14 @@ ${items.join('\n')}
     });
 
     document.getElementById('img-make-btn').addEventListener('click', generateImage);
+
+    wrap.querySelectorAll('.fs-btn').forEach(b => {
+      if (parseInt(b.dataset.px) === imageFontPx) b.classList.add('active');
+      b.addEventListener('click', () => {
+        imageFontPx = parseInt(b.dataset.px);
+        wrap.querySelectorAll('.fs-btn').forEach(x => x.classList.toggle('active', x === b));
+      });
+    });
   }
 
   // ===== 이미지 생성 =====
@@ -1572,14 +1615,18 @@ ${items.join('\n')}
     const region = regionSel === '__custom__' ? getVal('f-region-custom') : regionSel;
     const period = getVal('f-period');
     const guide = getVal('f-guide');
+    const agency = getVal('f-agency');
     const subParts = [region, period].filter(Boolean).join('  ·  ');
+    const theme = AGENCY_THEME[agency] || { bg: '#11254e', text: '#ffffff', accent: '#0a84ff' };
+    const accent = theme.accent || theme.bg;
 
-    let html = `<div class="ir-header">
-      <div class="ir-flag">🇯🇵</div>
+    let html = `<div class="ir-header" style="background:${theme.bg};color:${theme.text}">
+      <div class="ir-flag">JP</div>
       <div class="ir-htext">
         <div class="ir-title">일본 여행 안내</div>
-        ${subParts ? `<div class="ir-sub">${escapeHtml(subParts)}</div>` : ''}
+        ${subParts ? `<div class="ir-sub" style="color:${theme.text}">${escapeHtml(subParts)}</div>` : ''}
       </div>
+      ${agency ? `<div class="ir-agency">${escapeHtml(agency)}</div>` : ''}
     </div>`;
 
     imageSections.forEach(s => {
@@ -1588,12 +1635,13 @@ ${items.join('\n')}
       const text = ta.value.trim();
       if (!text) return;
       html += `<div class="ir-section">
-        <div class="ir-sec-title">${escapeHtml(s.title)}</div>
+        <div class="ir-sec-title" style="border-left-color:${accent}">${escapeHtml(s.title)}</div>
         <div class="ir-sec-body">${escapeHtml(text)}</div>
       </div>`;
     });
 
-    if (guide) html += `<div class="ir-foot">${escapeHtml(guide)} 가이드 드림</div>`;
+    const footParts = [agency, guide ? guide + ' 가이드' : ''].filter(Boolean).join('  ·  ');
+    if (footParts) html += `<div class="ir-foot">${escapeHtml(footParts)} 드림</div>`;
     return html;
   }
 
@@ -1605,6 +1653,7 @@ ${items.join('\n')}
     const btn = document.getElementById('img-make-btn');
     const root = document.getElementById('img-render-root');
     root.innerHTML = buildImageHTML();
+    root.style.fontSize = imageFontPx + 'px';
     root.style.display = 'block';
     if (btn) { btn.disabled = true; btn.textContent = '만드는 중…'; }
     try {
@@ -1761,6 +1810,7 @@ ${items.join('\n')}
 
 {
   "region": "여행 지역 (예: 오사카, 도쿄, 후쿠오카, 대마도, 오키나와, 북해도, 마츠야마, 나고야)",
+  "agency": "여행사명 (하나투어/모두투어/노랑풍선/교원투어/롯데관광/온라인투어/인터파크투어/참좋은여행 중, 없으면 빈칸)",
   "startDate": "출발일/첫날 (YYYY-MM-DD)",
   "nights": "박수(숫자만, 예: 2)",
   "transport": "항공 또는 선박",
@@ -1787,6 +1837,7 @@ ${items.join('\n')}
 
   function fillFromExtracted(d) {
     const filled = [];
+    if (d.agency && setSelectIfOption('f-agency', d.agency)) filled.push('여행사');
     if (d.region) {
       if (setSelectIfOption('f-region', d.region)) filled.push('지역');
       else {
@@ -1836,6 +1887,47 @@ ${items.join('\n')}
     return filled;
   }
 
+  function cellToStr(v) {
+    if (v instanceof Date && !isNaN(v)) {
+      return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+    }
+    return v == null ? '' : String(v);
+  }
+
+  function handleExcelImport(file) {
+    const status = document.getElementById('import-status');
+    if (typeof XLSX === 'undefined') {
+      status.style.color = '#ff8a80';
+      status.textContent = '엑셀 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+        let allText = '';
+        wb.SheetNames.forEach(name => {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+          rows.forEach(r => { allText += r.map(cellToStr).join(' ') + '\n'; });
+        });
+        const data = parseConfirmText(allText);
+        const filled = fillFromExtracted(data);
+        if (filled.length === 0) {
+          status.style.color = '#ffcc66';
+          status.textContent = '⚠ 엑셀에서 자동으로 찾은 항목이 적어요. "Claude로 분석"을 쓰거나, 엑셀 샘플을 보여주시면 이 양식에 딱 맞는 파서를 만들 수 있어요.';
+        } else {
+          status.style.color = '#7ee787';
+          status.textContent = '✓ 엑셀에서 채운 항목: ' + filled.join(', ');
+          setTimeout(() => { document.getElementById('import-overlay').style.display = 'none'; switchTab('input'); }, 1300);
+        }
+      } catch (err) {
+        status.style.color = '#ff8a80';
+        status.textContent = '엑셀을 읽지 못했어요: ' + (err && err.message ? err.message : err);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
   function parseConfirmText(text) {
     const d = {};
     const dm = text.match(/(20\d{2})\s*[.\-\/년]\s*(\d{1,2})\s*[.\-\/월]\s*(\d{1,2})/);
@@ -1845,6 +1937,7 @@ ${items.join('\n')}
     const regions = ['후쿠오카', '오사카', '도쿄', '오키나와', '대마도', '북해도', '마츠야마', '나고야'];
     for (const r of regions) { if (text.includes(r)) { d.region = r; break; } }
     if (!d.region && text.includes('삿포로')) d.region = '북해도';
+    for (const a of Object.keys(AGENCY_THEME)) { if (text.includes(a)) { d.agency = a; break; } }
     if (/선박|페리|배편|크루즈/.test(text)) d.transport = '선박';
     else if (/항공|비행|항공편|편명/.test(text)) d.transport = '항공';
     return d;
@@ -1885,6 +1978,13 @@ ${items.join('\n')}
       setTimeout(() => { b.textContent = o; }, 1500);
     };
     document.getElementById('import-run').onclick = runImport;
+    const excelBtn = document.getElementById('import-excel-btn');
+    const excelFile = document.getElementById('import-excel-file');
+    excelBtn.onclick = () => excelFile.click();
+    excelFile.onchange = () => {
+      if (excelFile.files && excelFile.files[0]) handleExcelImport(excelFile.files[0]);
+      excelFile.value = '';
+    };
     document.getElementById('import-close').onclick = () => { ov.style.display = 'none'; };
     ov.onclick = (e) => { if (e.target === ov) ov.style.display = 'none'; };
   }
@@ -1903,6 +2003,12 @@ ${items.join('\n')}
   .img-make-btn:active { background: #0066cc; }
   .img-make-btn:disabled { opacity: 0.6; }
   .img-group-hint { font-size: 12px; color: #aeaeb2; margin: 4px 0 10px; }
+  .img-fontsize { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: #aeaeb2; margin: 0 0 12px; }
+  .fs-btn {
+    padding: 6px 12px; border-radius: 8px; font-size: 13px; font-family: inherit;
+    background: #3a3a3c; color: #d1d1d6; border: 1px solid #5a5a5e; cursor: pointer;
+  }
+  .fs-btn.active { background: #0a84ff; color: #fff; border-color: #0a84ff; font-weight: 600; }
   .img-sub { margin-bottom: 12px; }
   .img-sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
   .img-sub-title { font-size: 14px; font-weight: 600; color: #5a9fd4; }
@@ -1911,22 +2017,25 @@ ${items.join('\n')}
   #img-render-root {
     position: fixed; left: -99999px; top: 0;
     width: 720px; background: #ffffff; color: #1f2937;
+    font-size: 18px;
     font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   }
   #img-render-root .ir-header {
     display: flex; align-items: center; gap: 16px;
     background: #11254e; color: #fff; padding: 26px 32px;
   }
-  #img-render-root .ir-flag { font-size: 40px; line-height: 1; }
-  #img-render-root .ir-title { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
-  #img-render-root .ir-sub { font-size: 14px; color: #b9c4dd; margin-top: 4px; }
+  #img-render-root .ir-htext { flex: 1; }
+  #img-render-root .ir-flag { font-size: 2.1em; line-height: 1; font-weight: 800; }
+  #img-render-root .ir-agency { font-size: 0.95em; font-weight: 700; opacity: 0.92; white-space: nowrap; }
+  #img-render-root .ir-title { font-size: 1.5em; font-weight: 800; letter-spacing: -0.01em; }
+  #img-render-root .ir-sub { font-size: 0.82em; opacity: 0.82; margin-top: 4px; }
   #img-render-root .ir-section { padding: 22px 32px; border-bottom: 1px solid #eef0f4; }
   #img-render-root .ir-sec-title {
-    font-size: 18px; font-weight: 700; color: #11254e;
-    padding-left: 12px; border-left: 4px solid #0a84ff; margin-bottom: 10px;
+    font-size: 1.2em; font-weight: 700; color: #11254e;
+    padding-left: 12px; border-left: 5px solid #0a84ff; margin-bottom: 10px;
   }
   #img-render-root .ir-sec-body {
-    font-size: 15.5px; line-height: 1.75; color: #374151;
+    font-size: 1.08em; line-height: 1.8; color: #2b3440;
     white-space: pre-wrap; word-break: keep-all;
   }
   #img-render-root .ir-foot {
@@ -1963,11 +2072,11 @@ ${items.join('\n')}
 
 <div id="img-result-overlay">
   <div class="ir-actions">
-    <button class="ir-btn ir-btn-share" id="img-share">📲 카톡으로 공유</button>
+    <button class="ir-btn ir-btn-share" id="img-share">📲 공유 (카톡)</button>
     <a class="ir-btn ir-btn-dl" id="img-download">💾 다운로드</a>
     <button class="ir-btn ir-btn-close" id="img-close">닫기</button>
   </div>
-  <div class="ir-savehint">휴대폰에서는 이미지를 길게 눌러 "사진 저장"을 선택해도 돼요.</div>
+  <div class="ir-savehint">📱 휴대폰: "공유"를 누르면 목록에서 <b>카톡</b>을 선택하세요 (또는 이미지를 길게 눌러 "사진 저장").<br>💻 PC: 카톡이 목록에 없으면 "다운로드" 후 카톡 PC에 끌어다 붙이세요.</div>
   <img id="img-result-pic" alt="여행 안내 이미지">
 </div>
 <!-- ===== /이미지 안내 카드 ===== -->
@@ -2001,6 +2110,7 @@ ${items.join('\n')}
   }
   #import-overlay .ib-copy { background: #5a5a5e; color: #fff; }
   #import-overlay .ib-claude { background: #d97757; color: #fff; }
+  #import-overlay .ib-excel { background: #1e7e4f; color: #fff; }
   #import-overlay textarea {
     width: 100%; box-sizing: border-box; margin-top: 6px;
     min-height: 120px; padding: 12px; font-size: 14px;
@@ -2025,13 +2135,19 @@ ${items.join('\n')}
     <h3>🤖 확정서로 자동 채우기</h3>
     <p class="import-desc">확정서 내용을 붙여넣으면 자동으로 채워요. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 프롬프트를 복사해 Claude에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣으세요.</p>
 
-    <div class="import-step">1) 이미지·한글·PDF라면 — Claude로 분석</div>
+    <div class="import-step">1) 엑셀 파일이면 — 바로 불러오기</div>
+    <div class="import-row">
+      <button type="button" class="ib ib-excel" id="import-excel-btn">📊 엑셀 파일 불러오기</button>
+    </div>
+    <input type="file" id="import-excel-file" accept=".xlsx,.xls,.csv" style="display:none">
+
+    <div class="import-step">2) 이미지·한글·PDF면 — Claude로 분석</div>
     <div class="import-row">
       <button type="button" class="ib ib-copy" id="import-copy-prompt">📋 프롬프트 복사</button>
       <a class="ib ib-claude" id="import-open-claude" href="https://claude.ai/new" target="_blank" rel="noopener">Claude 열기 ↗</a>
     </div>
 
-    <div class="import-step">2) 확정서 텍스트 또는 Claude가 준 JSON 붙여넣기</div>
+    <div class="import-step">3) 확정서 텍스트 또는 Claude가 준 JSON 붙여넣기</div>
     <textarea id="import-text" placeholder="여기에 확정서 내용(엑셀/텍스트)을 붙여넣거나, Claude가 준 JSON을 붙여넣으세요"></textarea>
 
     <button type="button" class="import-fill" id="import-run">채우기</button>
