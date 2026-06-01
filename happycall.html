@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1557</div>
+  <div class="rev-info">rev_2026_0601_1625</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1563,7 +1563,7 @@
   }
 
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
-  let imageFontPx = 25;   // 이미지 기본 글자 크기(px) — 보통23 / 크게25 / 아주크게28
+  let imageFontPx = 29;   // 이미지 기본 글자 크기(px) — 보통27 / 크게29 / 아주크게32
 
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
@@ -1652,9 +1652,9 @@
       </div>
       <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
       <div class="img-fontsize">글자 크기
-        <button type="button" class="fs-btn" data-px="23">보통</button>
-        <button type="button" class="fs-btn" data-px="25">크게</button>
-        <button type="button" class="fs-btn" data-px="28">아주 크게</button>
+        <button type="button" class="fs-btn" data-px="27">보통</button>
+        <button type="button" class="fs-btn" data-px="29">크게</button>
+        <button type="button" class="fs-btn" data-px="32">아주 크게</button>
       </div>
     `;
     group.forEach(g => {
@@ -1727,25 +1727,62 @@
     return html;
   }
 
+  // 메인 인사 문구를 이미지로 (같은 헤더/색상 사용)
+  function buildGreetingHTML() {
+    const regionSel = getVal('f-region');
+    const region = regionSel === '__custom__' ? getVal('f-region-custom') : regionSel;
+    const period = getVal('f-period');
+    const guide = getVal('f-guide');
+    const agency = getVal('f-agency');
+    const subParts = [region, period].filter(Boolean).join('  ·  ');
+    const theme = AGENCY_THEME[agency] || { bg: '#11254e', text: '#ffffff', accent: '#0a84ff' };
+    const greetingEl = document.getElementById('body-0');
+    const greeting = greetingEl ? greetingEl.value.trim() : '';
+    let html = `<div class="ir-header" style="background:${theme.bg};color:${theme.text}">
+      <div class="ir-flag">JP</div>
+      <div class="ir-htext">
+        <div class="ir-title">일본 여행 안내</div>
+        ${subParts ? `<div class="ir-sub" style="color:${theme.text}">${escapeHtml(subParts)}</div>` : ''}
+      </div>
+      ${agency ? `<div class="ir-agency">${escapeHtml(agency)}</div>` : ''}
+    </div>`;
+    html += `<div class="ir-section"><div class="ir-sec-body">${escapeHtml(greeting)}</div></div>`;
+    const footParts = [agency, guide ? guide + ' 가이드' : ''].filter(Boolean).join('  ·  ');
+    if (footParts) html += `<div class="ir-foot">${escapeHtml(footParts)} 드림</div>`;
+    return html;
+  }
+
+  async function renderHtmlToDataUrl(html) {
+    const root = document.getElementById('img-render-root');
+    root.innerHTML = html;
+    root.style.fontSize = imageFontPx + 'px';
+    root.style.display = 'block';
+    try {
+      const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      return canvas.toDataURL('image/png');
+    } finally {
+      root.style.display = 'none';
+    }
+  }
+
+  async function dataUrlToFile(durl, name) {
+    const blob = await (await fetch(durl)).blob();
+    return new File([blob], name, { type: 'image/png' });
+  }
+
   async function generateImage() {
     if (typeof html2canvas !== 'function') {
       alert('이미지 변환 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
       return;
     }
     const btn = document.getElementById('img-make-btn');
-    const root = document.getElementById('img-render-root');
-    root.innerHTML = buildImageHTML();
-    root.style.fontSize = imageFontPx + 'px';
-    root.style.display = 'block';
     if (btn) { btn.disabled = true; btn.textContent = '만드는 중…'; }
     try {
-      const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = await renderHtmlToDataUrl(buildImageHTML());
       showImageResult(dataUrl);
     } catch (e) {
       alert('이미지 생성에 실패했습니다: ' + (e && e.message ? e.message : e));
     } finally {
-      root.style.display = 'none';
       if (btn) { btn.disabled = false; btn.textContent = '이미지로 저장'; }
     }
   }
@@ -1761,27 +1798,53 @@
     dl.href = dataUrl;
     dl.download = '일본여행안내.png';
 
+    const greetingEl = document.getElementById('body-0');
+    const greeting = (greetingEl && greetingEl.value.trim()) ? greetingEl.value.trim() : '';
+
+    const shareBothBtn = document.getElementById('img-share-both');
+    const shareTextBtn = document.getElementById('img-share-text');
     const shareBtn = document.getElementById('img-share');
-    if (navigator.share && navigator.canShare) {
+
+    if (navigator.share) {
+      // 📲 인사 이미지 + 안내 이미지 2장을 한 번에 (순서: 인사 → 안내)
+      shareBothBtn.style.display = '';
+      shareBothBtn.onclick = async () => {
+        const orig = shareBothBtn.textContent;
+        try {
+          shareBothBtn.disabled = true;
+          shareBothBtn.textContent = '인사 이미지 만드는 중…';
+          const greetUrl = await renderHtmlToDataUrl(buildGreetingHTML());
+          const f1 = await dataUrlToFile(greetUrl, '1_인사안내.png');
+          const f2 = await dataUrlToFile(dataUrl, '2_여행안내.png');
+          if (navigator.canShare && navigator.canShare({ files: [f1, f2] })) {
+            await navigator.share({ files: [f1, f2] });
+          } else {
+            alert('이 기기에서는 2장 한번에 공유가 안 돼요. 아래 ①②로 하나씩 보내주세요.');
+          }
+        } catch (e) { /* 취소 등 */ }
+        finally { shareBothBtn.disabled = false; shareBothBtn.textContent = orig; }
+      };
+
+      // ① 인사 문구만 (글자 메시지)
+      shareTextBtn.style.display = greeting ? '' : 'none';
+      shareTextBtn.onclick = async () => {
+        try { await navigator.share({ text: greeting }); } catch (e) { /* 취소 등 */ }
+      };
+      // ② 이미지만
       shareBtn.style.display = '';
       shareBtn.onclick = async () => {
         try {
-          const blob = await (await fetch(dataUrl)).blob();
-          const file = new File([blob], '일본여행안내.png', { type: 'image/png' });
-          if (navigator.canShare({ files: [file] })) {
-            // 이미지와 함께 보낼 텍스트 = 메인 인사 문구(첫 번째 텍스트 블록, 사용자가 수정한 내용 반영)
-            const mainEl = document.getElementById('body-0');
-            const shareText = (mainEl && mainEl.value.trim()) ? mainEl.value.trim() : '';
-            const shareData = { files: [file] };
-            if (shareText) shareData.text = shareText;
-            else shareData.title = '일본 여행 안내';
-            await navigator.share(shareData);
+          const f2 = await dataUrlToFile(dataUrl, '여행안내.png');
+          if (navigator.canShare && navigator.canShare({ files: [f2] })) {
+            await navigator.share({ files: [f2] });
           } else {
-            alert('이 기기에서는 공유가 안 돼요. 다운로드하거나 이미지를 길게 눌러 저장하세요.');
+            alert('이 기기에서는 이미지 공유가 안 돼요. 다운로드한 뒤 보내주세요.');
           }
-        } catch (e) { /* 사용자가 취소 등 */ }
+        } catch (e) { /* 취소 등 */ }
       };
     } else {
+      shareBothBtn.style.display = 'none';
+      shareTextBtn.style.display = 'none';
       shareBtn.style.display = 'none';
     }
     ov.style.display = 'flex';
@@ -2409,7 +2472,7 @@
   }
   #img-render-root .ir-header {
     display: flex; align-items: center; gap: 16px;
-    background: #11254e; color: #fff; padding: 26px 32px;
+    background: #11254e; color: #fff; padding: 52px 32px 26px;
   }
   #img-render-root .ir-htext { flex: 1; }
   #img-render-root .ir-flag { font-size: 2.1em; line-height: 1; font-weight: 800; }
@@ -2446,6 +2509,8 @@
     border: none; cursor: pointer; text-decoration: none; display: inline-block;
   }
   #img-result-overlay .ir-btn-share { background: #30d158; color: #06310f; }
+  #img-result-overlay .ir-btn-both { background: #0a84ff; color: #fff; }
+  #img-result-overlay .ir-btn-text { background: #FEE500; color: #3A2A00; }
   #img-result-overlay .ir-btn-dl { background: #0a84ff; color: #fff; }
   #img-result-overlay .ir-btn-close { background: #48484a; color: #f2f2f7; }
   #img-result-overlay .ir-savehint { color: #d1d1d6; font-size: 13px; margin-bottom: 10px; text-align: center; }
@@ -2459,11 +2524,13 @@
 
 <div id="img-result-overlay">
   <div class="ir-actions">
-    <button class="ir-btn ir-btn-share" id="img-share">📲 공유 (카톡)</button>
+    <button class="ir-btn ir-btn-both" id="img-share-both">📲 인사+안내 2장 한번에 보내기</button>
+    <button class="ir-btn ir-btn-text" id="img-share-text">① 인사 문구(글자)만 보내기</button>
+    <button class="ir-btn ir-btn-share" id="img-share">② 이미지만 보내기</button>
     <a class="ir-btn ir-btn-dl" id="img-download">💾 다운로드</a>
     <button class="ir-btn ir-btn-close" id="img-close">닫기</button>
   </div>
-  <div class="ir-savehint">📱 휴대폰: "공유"를 누르면 목록에서 <b>카톡</b>을 선택하세요 (또는 이미지를 길게 눌러 "사진 저장").<br>💻 PC: 카톡이 목록에 없으면 "다운로드" 후 카톡 PC에 끌어다 붙이세요.</div>
+  <div class="ir-savehint">📱 휴대폰: <b>"인사+안내 2장 한번에 보내기"</b>를 누르면 인사 이미지 → 안내 이미지 순서로 한 번에 보내져요. (카톡 선택)<br>혹은 인사 문구를 글자로 보내고 싶으면 ①(글자) → ②(이미지) 순서로 보내세요.<br>💻 PC: "다운로드" 후 카톡 PC에 끌어다 붙이세요.</div>
   <img id="img-result-pic" alt="여행 안내 이미지">
 </div>
 <!-- ===== /이미지 안내 카드 ===== -->
