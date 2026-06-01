@@ -849,13 +849,13 @@
     <button class="regen-btn" id="btn-regen">↻ 입력값으로 다시 생성 (수정 내용 초기화)</button>
     <div id="messages-container"></div>
     <div class="output-actions">
-      <button type="button" class="oa-btn oa-imp" id="oa-important">중요안내사항 보기</button>
-      <button type="button" class="oa-btn oa-etc" id="oa-etc">그외 안내사항 보기</button>
+      <button type="button" class="oa-btn oa-imp" id="oa-important">중요 안내사항 보내기</button>
+      <button type="button" class="oa-btn oa-etc" id="oa-etc">그외 안내사항 보내기</button>
       <button type="button" class="oa-btn oa-dl" id="oa-download">다운로드</button>
     </div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2139</div>
+  <div class="rev-info">rev_2026_0601_2150</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1921,9 +1921,21 @@
       copyText(txt, e.currentTarget);
     }
   });
-  document.getElementById('oa-etc').addEventListener('click', () => {
+  document.getElementById('oa-etc').addEventListener('click', async (e) => {
+    if (typeof html2canvas !== 'function') { alert('이미지 변환 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
     if (!document.getElementById('img-make-btn')) { alert('먼저 "그외 안내사항 안내하기"로 내용을 만들어 주세요.'); return; }
-    generateImage();
+    const b = e.currentTarget; const o = b.textContent;
+    b.disabled = true; b.textContent = '만드는 중…';
+    try {
+      const dataUrl = await renderHtmlToDataUrl(buildImageHTML());
+      if (navigator.share) {
+        const file = await dataUrlToFile(dataUrl, '여행안내.png');
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+        } else { showImageResult(dataUrl); }
+      } else { showImageResult(dataUrl); }
+    } catch (err) { /* 취소 등 */ }
+    finally { b.disabled = false; b.textContent = o; }
   });
   document.getElementById('oa-download').addEventListener('click', async (e) => {
     if (typeof html2canvas !== 'function') { alert('이미지 변환 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
