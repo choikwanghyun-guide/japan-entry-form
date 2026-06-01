@@ -599,8 +599,8 @@
   </div>
 
   <div class="tab-bar">
-    <button class="tab active" id="tab-input">입력</button>
-    <button class="tab" id="tab-output">분할 문자</button>
+    <button class="tab active" id="tab-input">중요 안내사항</button>
+    <button class="tab" id="tab-output">그외 안내사항</button>
   </div>
 
   <div id="panel-input">
@@ -825,7 +825,7 @@
       <input type="text" id="f-phone-jp" placeholder="090-0000-0000">
     </div>
 
-    <button class="btn-primary" id="btn-generate">분할 문자 만들기 →</button>
+    <button class="btn-primary" id="btn-generate">그외 안내사항 안내하기</button>
     <div class="status" id="save-status"></div>
     <button class="reset-btn" id="btn-reset">전체 입력 초기화</button>
   </div>
@@ -839,7 +839,7 @@
     <div id="messages-container"></div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2043</div>
+  <div class="rev-info">rev_2026_0601_2049</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -2390,7 +2390,7 @@
         });
         saveTemplates();
         const st = document.getElementById('tpl-status');
-        st.textContent = '✓ 저장됐어요. \u2018분할 문자 만들기\u2019를 누르면 이 포맷으로 만들어져요.';
+        st.textContent = '✓ 저장됐어요. \u2018그외 안내사항 안내하기\u2019를 누르면 이 포맷으로 만들어져요.';
         setTimeout(() => { ov.style.display = 'none'; }, 1500);
       });
       document.getElementById('tpl-reset-all').addEventListener('click', () => {
