@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1311</div>
+  <div class="rev-info">rev_2026_0601_1319</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -2449,6 +2449,13 @@
   #template-overlay h3 { margin: 0 0 4px; font-size: 18px; color: #f2f2f7; }
   #template-overlay .tpl-desc { font-size: 12.5px; color: #aeaeb2; margin: 0 0 14px; line-height: 1.6; }
   #template-overlay .tpl-desc code { background: #4a4a4e; color: #cfe0ff; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  #template-overlay .tpl-warn {
+    background: #4a3a1a; border: 1px solid #b8860b; color: #ffe6a0;
+    border-radius: 10px; padding: 11px 13px; margin-bottom: 16px;
+    font-size: 12.5px; line-height: 1.65;
+  }
+  #template-overlay .tpl-warn b { color: #ffd24d; }
+  #template-overlay .tpl-warn code { background: #5c4a22; color: #ffe6a0; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
   #template-overlay .tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   #template-overlay .tpl-chip {
     padding: 5px 9px; border-radius: 7px; font-size: 12px; cursor: pointer;
@@ -2520,6 +2527,7 @@
     <h3>✏️ 고객에게 보낼 내용 기입</h3>
     <p class="tpl-desc">가이드마다 자기 말투로 안내 문구를 직접 쓸 수 있어요. 아래 <b>자리표시자</b>를 넣어두면, 확정서를 불러올 때 그 자리에 실제 값이 자동으로 채워집니다. (예: <code>{지역}</code> → 북해도)<br>입력칸을 누른 뒤 자리표시자를 탭하면 커서 위치에 삽입돼요.</p>
     <div class="tpl-chips" id="tpl-chips"></div>
+    <div class="tpl-warn">⚠️ <b>{ } 중괄호 부분은 손대지 마세요!</b><br>확정서를 불러오면 그 자리에 날짜·지역·미팅시각 등이 <b>자동으로</b> 채워지는 칸이에요. 글자를 지우거나 바꾸면 자동 입력이 안 됩니다. (예: <code>{지역}</code> → 북해도)<br>중괄호 <b>바깥의 안내 문구만</b> 자유롭게 고쳐 주세요.</div>
     <div id="tpl-sections"></div>
     <button type="button" class="tpl-save" id="tpl-save">저장하기</button>
     <button type="button" class="tpl-reset-all" id="tpl-reset-all">↺ 전체 기본 포맷으로 되돌리기</button>
