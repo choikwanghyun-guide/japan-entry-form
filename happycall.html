@@ -839,7 +839,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1227</div>
+  <div class="rev-info">rev_2026_0601_1240</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1787,6 +1787,8 @@ ${items.join('\n')}
       document.getElementById('period-display').textContent = '';
       updateMeetingDateDisplay();
       toggleRegionCustom();
+      // 비운 상태를 localStorage + 클라우드에도 저장해서, 다시 열 때 옛 데이터가 되돌아오지 않게 함
+      saveData();
     }
   });
 
