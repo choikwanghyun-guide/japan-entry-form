@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1331</div>
+  <div class="rev-info">rev_2026_0601_1401</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1398,7 +1398,9 @@
   const PLACEHOLDERS = ['가이드명','기간','지역','일정','미팅일','미팅시각','미팅장소','공항','항구','미팅장소상세','피켓명','연락처_한국','연락처_일본','여행사','준비물'];
 
   const DEFAULT_TEMPLATES = {
-    main: `안녕하세요. {기간} 일본 {지역} 일정을 함께하게 된 {가이드명} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
+    main: {
+      title: '인사 · 미팅 · 준비물 · 연락처',
+      body: `안녕하세요. {기간} 일본 {지역} 일정을 함께하게 된 {가이드명} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
 
 * 미팅일시: {미팅일} {미팅시각} 미팅
 * 미팅장소: {미팅장소}
@@ -1415,24 +1417,36 @@
 
 -연락처-
 한국 {연락처_한국}
-일본 {연락처_일본}`,
+일본 {연락처_일본}`
+    },
 
-    currency: `< 화폐 >
+    currency: {
+      title: '화폐 · 금제품 · 식당',
+      body: `< 화폐 >
 일본은 엔화로만 사용 가능하며, 신용카드가 안되는 곳이 많습니다. 사용하실 만큼 엔화로 준비해 오시면 됩니다. 면세점 등에서 사용 가능한 카드는 VISA, MASTER 등 해외 사용 가능한 카드로 준비해 주시기 바랍니다. (일반 체크카드는 사용 불가)
 
 < 금제품 안내 >
 일본 입국시 금목걸이, 팔찌, 고가의 시계 등에 세금이 부과되는 사례가 잦습니다. 수십만원에서 백만원이 넘는 세금이 나올 수 있으니 고가 제품 착용은 자제해 주시길 권해드립니다.
 
 < 식당 >
-일본 식당은 외부음식 및 주류 반입이 불가합니다. 한국 또는 식당 밖에서 구매하신 음식·주류는 식당 내 반입이 불가하오니 참고 부탁드립니다.`,
+일본 식당은 외부음식 및 주류 반입이 불가합니다. 한국 또는 식당 밖에서 구매하신 음식·주류는 식당 내 반입이 불가하오니 참고 부탁드립니다.`
+    },
 
-    quarantine: `< 검역 >
-최근 일본 검역이 매우 까다로워졌습니다. 육류(고기, 햄, 소세지 등)뿐만 아니라 채소류(상추, 깻잎 등), 과일류를 소지한 채 입국 시 식물 검역 증명서가 필요합니다. 신고하지 않고 가져가다 적발되면 최대 100만엔(약 천만원)의 벌금이 부과될 수 있습니다.`,
+    quarantine: {
+      title: '검역',
+      body: `< 검역 >
+최근 일본 검역이 매우 까다로워졌습니다. 육류(고기, 햄, 소세지 등)뿐만 아니라 채소류(상추, 깻잎 등), 과일류를 소지한 채 입국 시 식물 검역 증명서가 필요합니다. 신고하지 않고 가져가다 적발되면 최대 100만엔(약 천만원)의 벌금이 부과될 수 있습니다.`
+    },
 
-    onsen: `< 온천 >
-온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`,
+    onsen: {
+      title: '온천',
+      body: `< 온천 >
+온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`
+    },
 
-    baggage: `< 수하물 >
+    baggage: {
+      title: '수하물 안내',
+      body: `< 수하물 >
 모든 액체류는 캐리어에 넣고 위탁 수하물로 부쳐주세요. 라이타, 보조배터리, 전자담배, 무선 고데기 등 폭발 위험 제품은 위탁 불가이므로 반드시 기내 수하물로 반입하셔야 합니다.
 
 100ml 미만 액체류는 비닐에 넣어 1개까지만 기내 반입 가능합니다. 라이타 1개(지포 제외), 보조배터리는 반드시 기내에 들고 타셔야 합니다.
@@ -1440,18 +1454,26 @@
 ※ 한국 다이슨 드라이기는 일본에서 작동하지 않습니다.
 ※ 무선(충전식) 고데기는 일본 반입 불가, 유선 고데기만 위탁 가능합니다.
 ※ 칼, 면도기, 손톱깍기, 가위 등은 반드시 위탁 수하물로 맡겨주세요.`
+    }
   };
 
   let templates = {};
 
   function loadTemplates() {
-    try {
-      const raw = localStorage.getItem(TEMPLATE_KEY);
-      const saved = raw ? JSON.parse(raw) : {};
-      templates = Object.assign({}, DEFAULT_TEMPLATES, saved || {});
-    } catch (e) {
-      templates = Object.assign({}, DEFAULT_TEMPLATES);
-    }
+    let saved = {};
+    try { const raw = localStorage.getItem(TEMPLATE_KEY); saved = raw ? JSON.parse(raw) : {}; }
+    catch (e) { saved = {}; }
+    templates = {};
+    TEMPLATE_FIELDS.forEach(f => {
+      const def = DEFAULT_TEMPLATES[f.key] || { title: '', body: '' };
+      let s = saved ? saved[f.key] : null;
+      if (typeof s === 'string') s = { body: s };   // 옛 형식(문자열) 자동 호환
+      s = s || {};
+      templates[f.key] = {
+        title: (s.title != null && String(s.title).trim() !== '') ? s.title : def.title,
+        body:  (s.body != null) ? s.body : def.body
+      };
+    });
   }
   function saveTemplates() {
     try {
@@ -1505,8 +1527,8 @@
 
     blocks.push({
       group: 'text',
-      title: '인사 · 미팅 · 준비물 · 연락처',
-      text: applyTemplate(templates.main, vars)
+      title: applyTemplate(templates.main.title, vars),
+      text: applyTemplate(templates.main.body, vars)
     });
 
     // 날씨 (이미지로 보냄)
@@ -1516,21 +1538,24 @@
 
     blocks.push({
       group: 'image',
-      title: '화폐 · 금제품 · 식당',
-      text: applyTemplate(templates.currency, vars)
+      title: applyTemplate(templates.currency.title, vars),
+      text: applyTemplate(templates.currency.body, vars)
     });
 
-    let block3 = applyTemplate(templates.quarantine, vars);
+    let qTitle = applyTemplate(templates.quarantine.title, vars);
+    let block3 = applyTemplate(templates.quarantine.body, vars);
     if (getChk('opt-onsen')) {
-      block3 += '\n\n' + applyTemplate(templates.onsen, vars);
+      const onsenTitle = applyTemplate(templates.onsen.title, vars);
+      if (onsenTitle) qTitle += ' · ' + onsenTitle;
+      block3 += '\n\n' + applyTemplate(templates.onsen.body, vars);
     }
-    blocks.push({ group: 'image', title: '검역' + (getChk('opt-onsen') ? ' · 온천' : ''), text: block3 });
+    blocks.push({ group: 'image', title: qTitle, text: block3 });
 
     if (getChk('opt-baggage') && !isShip) {
       blocks.push({
         group: 'image',
-        title: '수하물 안내',
-        text: applyTemplate(templates.baggage, vars)
+        title: applyTemplate(templates.baggage.title, vars),
+        text: applyTemplate(templates.baggage.body, vars)
       });
     }
 
@@ -2212,8 +2237,9 @@
   // ===== 안내 포맷 편집 모달 =====
   (function setupTemplateEditor() {
     let built = false;
-    const areas = {};
-    const backs = {};
+    const areas = {};   // 내용 textarea
+    const backs = {};   // 내용 하이라이트 배경
+    const titles = {};  // 제목 input
     let lastFocused = null;
 
     function escapeHtml(s) {
@@ -2231,14 +2257,14 @@
     function refresh(ta) { highlight(ta); autoGrow(ta); }
 
     function insertAtCursor(text) {
-      const ta = lastFocused || areas['main'];
-      if (!ta) return;
-      ta.focus();
-      const s = ta.selectionStart, e = ta.selectionEnd;
-      ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+      const el = lastFocused || areas['main'];
+      if (!el) return;
+      el.focus();
+      const s = el.selectionStart, e = el.selectionEnd;
+      el.value = el.value.slice(0, s) + text + el.value.slice(e);
       const pos = s + text.length;
-      ta.setSelectionRange(pos, pos);
-      refresh(ta);
+      el.setSelectionRange(pos, pos);
+      if (el.tagName === 'TEXTAREA' && el.dataset.key) refresh(el);
     }
 
     function buildOnce() {
@@ -2265,9 +2291,30 @@
         rst.type = 'button';
         rst.className = 'tpl-sec-reset';
         rst.textContent = '↺ 기본';
-        rst.addEventListener('click', () => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; refresh(areas[f.key]); });
+        rst.addEventListener('click', () => {
+          titles[f.key].value = DEFAULT_TEMPLATES[f.key].title;
+          areas[f.key].value = DEFAULT_TEMPLATES[f.key].body;
+          refresh(areas[f.key]);
+        });
         head.appendChild(lab); head.appendChild(rst);
+        sec.appendChild(head);
 
+        // 제목 입력
+        const tIn = document.createElement('input');
+        tIn.type = 'text';
+        tIn.className = 'tpl-title';
+        tIn.placeholder = '제목';
+        tIn.addEventListener('focus', () => { lastFocused = tIn; });
+        titles[f.key] = tIn;
+        sec.appendChild(tIn);
+        const tHint = document.createElement('div');
+        tHint.className = 'tpl-title-hint';
+        tHint.textContent = (f.key === 'main')
+          ? '↑ 제목 — 미리보기 정리용이에요 (고객 문자엔 표시되지 않아요)'
+          : '↑ 제목 — 이미지 안내의 머리글로 고객에게 표시돼요';
+        sec.appendChild(tHint);
+
+        // 내용 입력
         const field = document.createElement('div');
         field.className = 'tpl-field';
         const back = document.createElement('div');
@@ -2280,7 +2327,8 @@
         areas[f.key] = ta;
         backs[f.key] = back;
         field.appendChild(back); field.appendChild(ta);
-        sec.appendChild(head); sec.appendChild(field);
+        sec.appendChild(field);
+
         secWrap.appendChild(sec);
       });
 
@@ -2288,15 +2336,21 @@
       document.getElementById('tpl-close').addEventListener('click', () => { ov.style.display = 'none'; });
       ov.addEventListener('click', (e) => { if (e.target === ov) ov.style.display = 'none'; });
       document.getElementById('tpl-save').addEventListener('click', () => {
-        TEMPLATE_FIELDS.forEach(f => { templates[f.key] = areas[f.key].value; });
+        TEMPLATE_FIELDS.forEach(f => {
+          templates[f.key] = { title: titles[f.key].value, body: areas[f.key].value };
+        });
         saveTemplates();
         const st = document.getElementById('tpl-status');
         st.textContent = '✓ 저장됐어요. \u2018분할 문자 만들기\u2019를 누르면 이 포맷으로 만들어져요.';
         setTimeout(() => { ov.style.display = 'none'; }, 1500);
       });
       document.getElementById('tpl-reset-all').addEventListener('click', () => {
-        if (confirm('모든 안내 포맷을 기본값으로 되돌릴까요?\n(저장하기를 눌러야 최종 반영됩니다)')) {
-          TEMPLATE_FIELDS.forEach(f => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; refresh(areas[f.key]); });
+        if (confirm('모든 안내 포맷(제목·내용)을 기본값으로 되돌릴까요?\n(저장하기를 눌러야 최종 반영됩니다)')) {
+          TEMPLATE_FIELDS.forEach(f => {
+            titles[f.key].value = DEFAULT_TEMPLATES[f.key].title;
+            areas[f.key].value = DEFAULT_TEMPLATES[f.key].body;
+            refresh(areas[f.key]);
+          });
         }
       });
       built = true;
@@ -2306,11 +2360,12 @@
       buildOnce();
       loadTemplates();
       TEMPLATE_FIELDS.forEach(f => {
-        areas[f.key].value = (templates[f.key] != null) ? templates[f.key] : DEFAULT_TEMPLATES[f.key];
+        const t = templates[f.key] || DEFAULT_TEMPLATES[f.key];
+        titles[f.key].value = t.title;
+        areas[f.key].value = t.body;
       });
       document.getElementById('tpl-status').textContent = '';
       document.getElementById('template-overlay').style.display = 'flex';
-      // 표시된 뒤에 높이/하이라이트 계산 (숨김 상태에선 높이가 0이라 보임 후 실행)
       requestAnimationFrame(() => { TEMPLATE_FIELDS.forEach(f => refresh(areas[f.key])); });
     }
 
@@ -2490,6 +2545,13 @@
   }
   #template-overlay .tpl-chip:active { background: #0a84ff; color: #fff; }
   #template-overlay .tpl-sec { margin-bottom: 16px; }
+  #template-overlay .tpl-title {
+    width: 100%; box-sizing: border-box; margin: 2px 0 3px;
+    padding: 9px 11px; font-size: 14px; font-weight: 700;
+    background: #4a4a4e; color: #ffd24d; border: 1px solid #8e8e93; border-radius: 9px;
+    font-family: inherit;
+  }
+  #template-overlay .tpl-title-hint { font-size: 11px; color: #8e8e93; margin: 0 2px 6px; }
   #template-overlay .tpl-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
   #template-overlay .tpl-sec-label { font-size: 13px; color: #c7c7cc; font-weight: 600; }
   #template-overlay .tpl-sec-reset {
@@ -2564,7 +2626,7 @@
 <div id="template-overlay">
   <div class="tpl-card">
     <h3>✏️ 고객에게 보낼 내용 기입</h3>
-    <p class="tpl-desc">가이드마다 자기 말투로 안내 문구를 직접 쓸 수 있어요. 아래 <b>자리표시자</b>를 넣어두면, 확정서를 불러올 때 그 자리에 실제 값이 자동으로 채워집니다. (예: <code>{지역}</code> → 북해도)<br>입력칸을 누른 뒤 자리표시자를 탭하면 커서 위치에 삽입돼요.</p>
+    <p class="tpl-desc">가이드님께서 자주 사용하시는 문구를 직접 넣으실 수 있습니다. (아무것도 안 바꾸고 아래 샘플 양식 그대로 보내셔도 됩니다.)<br>주황색 <code>{ }</code> 부분은 확정서·일정표에서 추출한 값이 <b>자동으로</b> 들어가도록 해 놓은 자리입니다.<br>아래 항목(<b>메인 문자 · 화폐·금제품·식당 · 검역 · 온천 · 수하물</b>) 모두 자유롭게 수정하실 수 있어요. 입력칸을 누른 뒤 자리표시자 칩을 탭하면 커서 위치에 삽입됩니다.</p>
     <div class="tpl-chips" id="tpl-chips"></div>
     <div class="tpl-warn">⚠️ <b>주황색 { } 글씨는 손대지 마세요!</b><br>확정서를 불러오면 그 자리에 날짜·지역·미팅시각 등이 <b>자동으로</b> 채워지는 칸이에요. 글자를 지우거나 바꾸면 자동 입력이 안 됩니다. (예: <code>{지역}</code> → 북해도)<br>주황색이 아닌 일반 글씨(안내 문구)만 자유롭게 고쳐 주세요.</div>
     <div id="tpl-sections"></div>
