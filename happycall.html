@@ -462,6 +462,22 @@
   .output-actions .oa-imp { background: #FEE500; color: #3A2A00; }
   .output-actions .oa-etc { background: #30d158; color: #06310f; }
   .output-actions .oa-dl  { background: #0a84ff; color: #fff; }
+  .attach-btn {
+    width: 100%; padding: 13px; background: #2c3e63; color: #cfe0ff;
+    border: 1px solid #3f5a8a; border-radius: 11px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .attach-btn:active { background: #25344f; }
+  .attach-hint { font-size: 12px; color: #8e8e93; margin-top: 7px; line-height: 1.5; }
+  .attach-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .attach-item { position: relative; width: 84px; height: 84px; }
+  .attach-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; border: 1px solid #48484a; }
+  .attach-rm {
+    position: absolute; top: -7px; right: -7px; width: 23px; height: 23px;
+    border-radius: 50%; border: 2px solid #1c1c1e; background: #ff3b30; color: #fff;
+    font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  #img-render-root .ir-photo { display: block; width: 100%; border-radius: 8px; margin-top: 10px; }
 
   /* 모달 */
   .modal-backdrop {
@@ -836,6 +852,15 @@
       <input type="text" id="f-phone-jp" placeholder="090-0000-0000">
     </div>
 
+    <div class="divider"></div>
+    <div class="section-title">사진 · 지도 첨부 <span style="font-weight:400;color:#8e8e93;font-size:13px;">(그외 안내사항 이미지에 함께 표시)</span></div>
+    <div class="section">
+      <input type="file" id="f-attach-file" accept="image/*" multiple style="display:none">
+      <button type="button" id="f-attach-btn" class="attach-btn">📷 사진/지도 추가</button>
+      <div class="attach-hint">구글맵은 캡처(스크린샷)해서 추가하세요. 여러 장 가능 (최대 6장).</div>
+      <div id="f-attach-list" class="attach-list"></div>
+    </div>
+
     <button class="btn-primary" id="btn-generate">그외 안내사항 안내하기</button>
     <div class="status" id="save-status"></div>
     <button class="reset-btn" id="btn-reset">전체 입력 초기화</button>
@@ -855,7 +880,7 @@
     </div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2150</div>
+  <div class="rev-info">rev_2026_0601_2231</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1585,6 +1610,60 @@
   let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
   let imageFontPx = 28;   // 이미지 기본 글자 크기(px) — 보통28(기본) / 크게30 / 아주크게34 (이미지 폭 660px·줄간격 축소 기준)
 
+  // ===== 사진·지도 첨부 (그외 안내사항 이미지에 포함) =====
+  let attachImages = [];          // 압축된 dataURL 배열 (기기 로컬 저장, 클라우드 동기화 안 함)
+  const ATTACH_KEY = 'happycall_attach_v1';
+  const ATTACH_MAX = 6;
+
+  function loadAttach() {
+    try { const raw = localStorage.getItem(ATTACH_KEY); attachImages = raw ? JSON.parse(raw) : []; }
+    catch (e) { attachImages = []; }
+    if (!Array.isArray(attachImages)) attachImages = [];
+  }
+  function saveAttach() {
+    try { localStorage.setItem(ATTACH_KEY, JSON.stringify(attachImages)); }
+    catch (e) { alert('사진 저장 공간이 부족해요. 일부 사진을 지우거나 더 작은 사진을 써주세요.'); }
+  }
+  function compressImage(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지 로드 실패')); };
+      img.src = url;
+    });
+  }
+  function renderAttachList() {
+    const list = document.getElementById('f-attach-list');
+    if (!list) return;
+    list.innerHTML = '';
+    attachImages.forEach((src, i) => {
+      const item = document.createElement('div');
+      item.className = 'attach-item';
+      item.innerHTML = `<img src="${src}" alt="첨부 ${i + 1}"><button type="button" class="attach-rm" data-i="${i}" aria-label="삭제">✕</button>`;
+      list.appendChild(item);
+    });
+    list.querySelectorAll('.attach-rm').forEach(b => {
+      b.addEventListener('click', () => {
+        attachImages.splice(parseInt(b.dataset.i), 1);
+        saveAttach(); renderAttachList();
+      });
+    });
+  }
+
   // 여행사별 대표 색상 (대략적인 브랜드 색 — 다르면 알려주시면 바꿔드려요)
   const AGENCY_THEME = {
     '하나투어':    { bg: '#6E2B8C', text: '#ffffff', accent: '#00B5D8' },
@@ -1742,6 +1821,13 @@
       </div>`;
     });
 
+    if (attachImages && attachImages.length) {
+      html += `<div class="ir-section">
+        <div class="ir-sec-title" style="border-left-color:${accent}">📍 안내 사진 · 지도</div>
+        ${attachImages.map(src => `<img class="ir-photo" src="${src}" alt="">`).join('')}
+      </div>`;
+    }
+
     const footParts = [agency, guide ? guide + ' 가이드' : ''].filter(Boolean).join('  ·  ');
     if (footParts) html += `<div class="ir-foot">${escapeHtml(footParts)} 드림</div>`;
     return html;
@@ -1778,6 +1864,11 @@
     root.style.fontSize = imageFontPx + 'px';
     root.style.display = 'block';
     try {
+      // 첨부 사진 등 이미지가 모두 로드될 때까지 대기 (안 그러면 빈칸으로 캡처될 수 있음)
+      const imgs = Array.from(root.querySelectorAll('img'));
+      await Promise.all(imgs.map(im => (im.complete && im.naturalWidth)
+        ? Promise.resolve()
+        : new Promise(res => { im.onload = res; im.onerror = res; })));
       const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
       return canvas.toDataURL('image/png');
     } finally {
@@ -1952,6 +2043,29 @@
     } finally { b.disabled = false; b.textContent = o; }
   });
 
+  // 사진·지도 첨부 이벤트
+  loadAttach();
+  renderAttachList();
+  (function () {
+    const btn = document.getElementById('f-attach-btn');
+    const file = document.getElementById('f-attach-file');
+    if (!btn || !file) return;
+    btn.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const files = Array.from(file.files || []);
+      btn.disabled = true; const o = btn.textContent; btn.textContent = '추가하는 중…';
+      for (const f of files) {
+        if (attachImages.length >= ATTACH_MAX) { alert('사진은 최대 ' + ATTACH_MAX + '장까지 추가할 수 있어요.'); break; }
+        if (!/^image\//.test(f.type)) { alert('이미지 파일만 추가할 수 있어요: ' + f.name); continue; }
+        try { const durl = await compressImage(f, 1200, 0.82); attachImages.push(durl); }
+        catch (err) { alert('이미지를 불러오지 못했어요: ' + f.name); }
+      }
+      saveAttach(); renderAttachList();
+      btn.disabled = false; btn.textContent = o;
+      file.value = '';
+    });
+  })();
+
   document.getElementById('btn-reset').addEventListener('click', () => {
     if (confirm('정말로 모든 입력 정보를 지우시겠습니까?\n(가이드명, 연락처 등 저장된 정보가 사라집니다)\n※ 날씨 포맷은 유지됩니다')) {
       localStorage.removeItem(STORAGE_KEY);
@@ -1971,6 +2085,7 @@
       document.getElementById('period-display').textContent = '';
       updateMeetingDateDisplay();
       toggleRegionCustom();
+      attachImages = []; saveAttach(); renderAttachList();
       // 비운 상태를 localStorage + 클라우드에도 저장해서, 다시 열 때 옛 데이터가 되돌아오지 않게 함
       saveData();
     }
