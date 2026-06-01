@@ -606,6 +606,7 @@
   <div id="panel-input">
 
     <button type="button" id="btn-import-confirm" class="import-trigger">🤖 확정서로 자동 채우기</button>
+    <button type="button" id="btn-edit-template" class="tpl-trigger">✏️ 안내 포맷 편집</button>
 
     <div class="section-title">기본 정보</div>
 
@@ -839,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1240</div>
+  <div class="rev-info">rev_2026_0601_1259</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -1385,6 +1386,86 @@
   function getVal(id) { return document.getElementById(id).value.trim(); }
   function getChk(id) { return document.getElementById(id).checked; }
 
+  // ===== 안내 포맷(템플릿) =====
+  const TEMPLATE_KEY = 'happycall_templates_v1';
+  const TEMPLATE_FIELDS = [
+    { key: 'main',       label: '메인 문자 (인사·미팅·준비물·연락처)' },
+    { key: 'currency',   label: '화폐 · 금제품 · 식당' },
+    { key: 'quarantine', label: '검역' },
+    { key: 'onsen',      label: '온천 (\u2018온천 안내\u2019 켤 때 검역 뒤에 붙음)' },
+    { key: 'baggage',    label: '수하물 (\u2018수하물 안내\u2019 켤 때, 항공만)' }
+  ];
+  const PLACEHOLDERS = ['가이드명','기간','지역','일정','미팅일','미팅시각','미팅장소','공항','항구','미팅장소상세','피켓명','연락처_한국','연락처_일본','여행사','준비물'];
+
+  const DEFAULT_TEMPLATES = {
+    main: `안녕하세요. {기간} 일본 {지역} 일정을 함께하게 된 {가이드명} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
+
+* 미팅일시: {미팅일} {미팅시각} 미팅
+* 미팅장소: {미팅장소}
+* 피켓명: {피켓명}
+
+< 준비물 >
+{준비물}
+
+대표자님께서는 동행하시는 일행분들께 메세지 전달 부탁드립니다.
+
+메세지와 별도로 오늘 중 전화로 연락드릴 예정이나, 전화 연락이 필요 없으시면 카톡으로 회신 주시면 연락드리지 않겠습니다.
+
+즐거운 여행이 되도록 최선을 다하겠습니다. 감사합니다.
+
+-연락처-
+한국 {연락처_한국}
+일본 {연락처_일본}`,
+
+    currency: `< 화폐 >
+일본은 엔화로만 사용 가능하며, 신용카드가 안되는 곳이 많습니다. 사용하실 만큼 엔화로 준비해 오시면 됩니다. 면세점 등에서 사용 가능한 카드는 VISA, MASTER 등 해외 사용 가능한 카드로 준비해 주시기 바랍니다. (일반 체크카드는 사용 불가)
+
+< 금제품 안내 >
+일본 입국시 금목걸이, 팔찌, 고가의 시계 등에 세금이 부과되는 사례가 잦습니다. 수십만원에서 백만원이 넘는 세금이 나올 수 있으니 고가 제품 착용은 자제해 주시길 권해드립니다.
+
+< 식당 >
+일본 식당은 외부음식 및 주류 반입이 불가합니다. 한국 또는 식당 밖에서 구매하신 음식·주류는 식당 내 반입이 불가하오니 참고 부탁드립니다.`,
+
+    quarantine: `< 검역 >
+최근 일본 검역이 매우 까다로워졌습니다. 육류(고기, 햄, 소세지 등)뿐만 아니라 채소류(상추, 깻잎 등), 과일류를 소지한 채 입국 시 식물 검역 증명서가 필요합니다. 신고하지 않고 가져가다 적발되면 최대 100만엔(약 천만원)의 벌금이 부과될 수 있습니다.`,
+
+    onsen: `< 온천 >
+온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`,
+
+    baggage: `< 수하물 >
+모든 액체류는 캐리어에 넣고 위탁 수하물로 부쳐주세요. 라이타, 보조배터리, 전자담배, 무선 고데기 등 폭발 위험 제품은 위탁 불가이므로 반드시 기내 수하물로 반입하셔야 합니다.
+
+100ml 미만 액체류는 비닐에 넣어 1개까지만 기내 반입 가능합니다. 라이타 1개(지포 제외), 보조배터리는 반드시 기내에 들고 타셔야 합니다.
+
+※ 한국 다이슨 드라이기는 일본에서 작동하지 않습니다.
+※ 무선(충전식) 고데기는 일본 반입 불가, 유선 고데기만 위탁 가능합니다.
+※ 칼, 면도기, 손톱깍기, 가위 등은 반드시 위탁 수하물로 맡겨주세요.`
+  };
+
+  let templates = {};
+
+  function loadTemplates() {
+    try {
+      const raw = localStorage.getItem(TEMPLATE_KEY);
+      const saved = raw ? JSON.parse(raw) : {};
+      templates = Object.assign({}, DEFAULT_TEMPLATES, saved || {});
+    } catch (e) {
+      templates = Object.assign({}, DEFAULT_TEMPLATES);
+    }
+  }
+  function saveTemplates() {
+    try {
+      localStorage.setItem(TEMPLATE_KEY, JSON.stringify(templates));
+      window.dispatchEvent(new Event('happycall-data-changed'));
+    } catch (e) {}
+  }
+  function applyTemplate(tpl, vars) {
+    return String(tpl == null ? '' : tpl).replace(/\{([^{}]+)\}/g, (m, k) => {
+      const key = k.trim();
+      return Object.prototype.hasOwnProperty.call(vars, key) ? (vars[key] == null ? '' : vars[key]) : m;
+    });
+  }
+
   function buildBlocks() {
     const guide = getVal('f-guide');
     const period = getVal('f-period');
@@ -1395,8 +1476,8 @@
     const isShip = getVal('f-transport-type') === '선박';
     const airport = getVal('f-airport');
     const port = getVal('f-port');
-    const meetingDateRaw = getVal('f-meeting-date');
-    const meetingDate = formatMeetingDate(meetingDateRaw);
+    const agency = getVal('f-agency');
+    const meetingDate = formatMeetingDate(getVal('f-meeting-date'));
     const meetingTime = getVal('f-meeting-time');
     const meetingSpot = getVal('f-meeting-spot');
     const picketRaw = getVal('f-picket');
@@ -1411,74 +1492,45 @@
     if (getChk('opt-plug')) items.push(`${idx++}. 110V 전용 플러그 (일명 돼지코)`);
     if (getChk('opt-aizen')) items.push(`${idx++}. 아이젠 (눈길 미끄럼 방지)`);
 
+    const vars = {
+      '가이드명': guide, '기간': period, '지역': region, '일정': days,
+      '미팅일': meetingDate, '미팅시각': meetingTime,
+      '미팅장소': (meetingLoc + ' ' + meetingSpot).trim(),
+      '공항': airport, '항구': port, '미팅장소상세': meetingSpot,
+      '피켓명': picket, '연락처_한국': phoneKr, '연락처_일본': phoneJp,
+      '여행사': agency, '준비물': items.join('\n')
+    };
+
     const blocks = [];
 
     blocks.push({
       group: 'text',
       title: '인사 · 미팅 · 준비물 · 연락처',
-      text: `안녕하세요. ${period} 일본 ${region} 일정을 함께하게 된 ${guide} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
-
-* 미팅일시: ${meetingDate} ${meetingTime} 미팅
-* 미팅장소: ${meetingLoc} ${meetingSpot}
-* 피켓명: ${picket}
-
-< 준비물 >
-${items.join('\n')}
-
-대표자님께서는 동행하시는 일행분들께 메세지 전달 부탁드립니다.
-
-메세지와 별도로 오늘 중 전화로 연락드릴 예정이나, 전화 연락이 필요 없으시면 카톡으로 회신 주시면 연락드리지 않겠습니다.
-
-즐거운 여행이 되도록 최선을 다하겠습니다. 감사합니다.
-
--연락처-
-한국 ${phoneKr}
-일본 ${phoneJp}`
+      text: applyTemplate(templates.main, vars)
     });
 
     // 날씨 (이미지로 보냄)
     if (weather) {
-      blocks.push({
-        group: 'image',
-        title: '날씨',
-        text: weather
-      });
+      blocks.push({ group: 'image', title: '날씨', text: weather });
     }
 
     blocks.push({
       group: 'image',
       title: '화폐 · 금제품 · 식당',
-      text: `< 화폐 >
-일본은 엔화로만 사용 가능하며, 신용카드가 안되는 곳이 많습니다. 사용하실 만큼 엔화로 준비해 오시면 됩니다. 면세점 등에서 사용 가능한 카드는 VISA, MASTER 등 해외 사용 가능한 카드로 준비해 주시기 바랍니다. (일반 체크카드는 사용 불가)
-
-< 금제품 안내 >
-일본 입국시 금목걸이, 팔찌, 고가의 시계 등에 세금이 부과되는 사례가 잦습니다. 수십만원에서 백만원이 넘는 세금이 나올 수 있으니 고가 제품 착용은 자제해 주시길 권해드립니다.
-
-< 식당 >
-일본 식당은 외부음식 및 주류 반입이 불가합니다. 한국 또는 식당 밖에서 구매하신 음식·주류는 식당 내 반입이 불가하오니 참고 부탁드립니다.`
+      text: applyTemplate(templates.currency, vars)
     });
 
-    let block3 = `< 검역 >
-최근 일본 검역이 매우 까다로워졌습니다. 육류(고기, 햄, 소세지 등)뿐만 아니라 채소류(상추, 깻잎 등), 과일류를 소지한 채 입국 시 식물 검역 증명서가 필요합니다. 신고하지 않고 가져가다 적발되면 최대 100만엔(약 천만원)의 벌금이 부과될 수 있습니다.`;
-
+    let block3 = applyTemplate(templates.quarantine, vars);
     if (getChk('opt-onsen')) {
-      block3 += `\n\n< 온천 >\n온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`;
+      block3 += '\n\n' + applyTemplate(templates.onsen, vars);
     }
-
     blocks.push({ group: 'image', title: '검역' + (getChk('opt-onsen') ? ' · 온천' : ''), text: block3 });
 
     if (getChk('opt-baggage') && !isShip) {
       blocks.push({
         group: 'image',
         title: '수하물 안내',
-        text: `< 수하물 >
-모든 액체류는 캐리어에 넣고 위탁 수하물로 부쳐주세요. 라이타, 보조배터리, 전자담배, 무선 고데기 등 폭발 위험 제품은 위탁 불가이므로 반드시 기내 수하물로 반입하셔야 합니다.
-
-100ml 미만 액체류는 비닐에 넣어 1개까지만 기내 반입 가능합니다. 라이타 1개(지포 제외), 보조배터리는 반드시 기내에 들고 타셔야 합니다.
-
-※ 한국 다이슨 드라이기는 일본에서 작동하지 않습니다.
-※ 무선(충전식) 고데기는 일본 반입 불가, 유선 고데기만 위탁 가능합니다.
-※ 칼, 면도기, 손톱깍기, 가위 등은 반드시 위탁 수하물로 맡겨주세요.`
+        text: applyTemplate(templates.baggage, vars)
       });
     }
 
@@ -1800,12 +1852,14 @@ ${items.join('\n')}
 
   loadPresets();
   loadLocations();
+  loadTemplates();
   loadSaved();
 
   // 클라우드에서 데이터를 받아오면 화면을 다시 채움
   window.happycallReloadFromCloud = function () {
     loadPresets();
     loadLocations();
+    loadTemplates();
     loadSaved();
   };
   window.addEventListener('happycall-cloud-loaded', function () {
@@ -2154,6 +2208,87 @@ ${items.join('\n')}
   }
 
   document.getElementById('btn-import-confirm').addEventListener('click', openImportModal);
+
+  // ===== 안내 포맷 편집 모달 =====
+  (function setupTemplateEditor() {
+    let built = false;
+    const areas = {};
+    let lastFocused = null;
+
+    function insertAtCursor(text) {
+      const ta = lastFocused || areas['main'];
+      if (!ta) return;
+      ta.focus();
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+      const pos = s + text.length;
+      ta.setSelectionRange(pos, pos);
+    }
+
+    function buildOnce() {
+      if (built) return;
+      const chipsWrap = document.getElementById('tpl-chips');
+      const secWrap = document.getElementById('tpl-sections');
+      PLACEHOLDERS.forEach(p => {
+        const c = document.createElement('button');
+        c.type = 'button';
+        c.className = 'tpl-chip';
+        c.textContent = '{' + p + '}';
+        c.addEventListener('click', () => insertAtCursor('{' + p + '}'));
+        chipsWrap.appendChild(c);
+      });
+      TEMPLATE_FIELDS.forEach(f => {
+        const sec = document.createElement('div');
+        sec.className = 'tpl-sec';
+        const head = document.createElement('div');
+        head.className = 'tpl-sec-head';
+        const lab = document.createElement('span');
+        lab.className = 'tpl-sec-label';
+        lab.textContent = f.label;
+        const rst = document.createElement('button');
+        rst.type = 'button';
+        rst.className = 'tpl-sec-reset';
+        rst.textContent = '↺ 기본';
+        rst.addEventListener('click', () => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; });
+        head.appendChild(lab); head.appendChild(rst);
+        const ta = document.createElement('textarea');
+        ta.dataset.key = f.key;
+        ta.addEventListener('focus', () => { lastFocused = ta; });
+        areas[f.key] = ta;
+        sec.appendChild(head); sec.appendChild(ta);
+        secWrap.appendChild(sec);
+      });
+
+      const ov = document.getElementById('template-overlay');
+      document.getElementById('tpl-close').addEventListener('click', () => { ov.style.display = 'none'; });
+      ov.addEventListener('click', (e) => { if (e.target === ov) ov.style.display = 'none'; });
+      document.getElementById('tpl-save').addEventListener('click', () => {
+        TEMPLATE_FIELDS.forEach(f => { templates[f.key] = areas[f.key].value; });
+        saveTemplates();
+        const st = document.getElementById('tpl-status');
+        st.textContent = '✓ 저장됐어요. \u2018분할 문자 만들기\u2019를 누르면 이 포맷으로 만들어져요.';
+        setTimeout(() => { ov.style.display = 'none'; }, 1500);
+      });
+      document.getElementById('tpl-reset-all').addEventListener('click', () => {
+        if (confirm('모든 안내 포맷을 기본값으로 되돌릴까요?\n(저장하기를 눌러야 최종 반영됩니다)')) {
+          TEMPLATE_FIELDS.forEach(f => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; });
+        }
+      });
+      built = true;
+    }
+
+    function openModal() {
+      buildOnce();
+      loadTemplates();
+      TEMPLATE_FIELDS.forEach(f => {
+        areas[f.key].value = (templates[f.key] != null) ? templates[f.key] : DEFAULT_TEMPLATES[f.key];
+      });
+      document.getElementById('tpl-status').textContent = '';
+      document.getElementById('template-overlay').style.display = 'flex';
+    }
+
+    document.getElementById('btn-edit-template').addEventListener('click', openModal);
+  })();
 })();
 </script>
 <!-- ===== 이미지 안내 카드 (생성용 + 결과) ===== -->
@@ -2292,6 +2427,64 @@ ${items.join('\n')}
     background: transparent; color: #aeaeb2; border: none; font-size: 14px; cursor: pointer;
   }
   #import-overlay .import-status { font-size: 13px; margin-top: 10px; line-height: 1.5; }
+
+  /* 안내 포맷 편집 */
+  .tpl-trigger {
+    width: 100%; padding: 13px; margin-bottom: 18px;
+    background: #2f4636; color: #cde6d3; border: 1px solid #3f6a4d;
+    border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .tpl-trigger:active { background: #283b2d; }
+  #template-overlay {
+    position: fixed; inset: 0; z-index: 10001;
+    background: rgba(0,0,0,0.8); display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  #template-overlay .tpl-card {
+    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+    background: #3a3a3c; border: 1px solid #5a5a5e; border-radius: 16px; padding: 22px;
+  }
+  #template-overlay h3 { margin: 0 0 4px; font-size: 18px; color: #f2f2f7; }
+  #template-overlay .tpl-desc { font-size: 12.5px; color: #aeaeb2; margin: 0 0 14px; line-height: 1.6; }
+  #template-overlay .tpl-desc code { background: #4a4a4e; color: #cfe0ff; padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  #template-overlay .tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  #template-overlay .tpl-chip {
+    padding: 5px 9px; border-radius: 7px; font-size: 12px; cursor: pointer;
+    background: #4a4a4e; color: #cfe0ff; border: 1px solid #6a6a6e; font-family: inherit;
+  }
+  #template-overlay .tpl-chip:active { background: #0a84ff; color: #fff; }
+  #template-overlay .tpl-sec { margin-bottom: 16px; }
+  #template-overlay .tpl-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+  #template-overlay .tpl-sec-label { font-size: 13px; color: #c7c7cc; font-weight: 600; }
+  #template-overlay .tpl-sec-reset {
+    background: transparent; color: #8e8e93; border: 1px solid #5a5a5e; border-radius: 6px;
+    font-size: 11px; padding: 3px 8px; cursor: pointer; font-family: inherit;
+  }
+  #template-overlay .tpl-sec-reset:active { color: #fff; border-color: #8e8e93; }
+  #template-overlay textarea {
+    width: 100%; box-sizing: border-box;
+    min-height: 90px; padding: 11px; font-size: 13.5px; line-height: 1.55;
+    background: #4a4a4e; color: #f2f2f7; border: 1px solid #8e8e93; border-radius: 10px;
+    font-family: inherit; resize: vertical;
+  }
+  #template-overlay .tpl-save {
+    width: 100%; padding: 13px; margin-top: 6px;
+    background: #1e7e4f; color: #fff; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  #template-overlay .tpl-save:active { background: #18613d; }
+  #template-overlay .tpl-reset-all {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: transparent; color: #ff8a80; border: 1px solid #6a4a4a; border-radius: 10px;
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  #template-overlay .tpl-close {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: transparent; color: #aeaeb2; border: none; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  #template-overlay .tpl-status { font-size: 13px; margin-top: 10px; line-height: 1.5; color: #6dd58c; text-align: center; }
 </style>
 
 <div id="import-overlay">
@@ -2320,6 +2513,21 @@ ${items.join('\n')}
   </div>
 </div>
 <!-- ===== /확정서 자동 채우기 ===== -->
+
+<!-- ===== 안내 포맷 편집 ===== -->
+<div id="template-overlay">
+  <div class="tpl-card">
+    <h3>✏️ 안내 포맷 편집</h3>
+    <p class="tpl-desc">가이드마다 자기 말투로 안내 문구를 직접 쓸 수 있어요. 아래 <b>자리표시자</b>를 넣어두면, 확정서를 불러올 때 그 자리에 실제 값이 자동으로 채워집니다. (예: <code>{지역}</code> → 북해도)<br>입력칸을 누른 뒤 자리표시자를 탭하면 커서 위치에 삽입돼요.</p>
+    <div class="tpl-chips" id="tpl-chips"></div>
+    <div id="tpl-sections"></div>
+    <button type="button" class="tpl-save" id="tpl-save">저장하기</button>
+    <button type="button" class="tpl-reset-all" id="tpl-reset-all">↺ 전체 기본 포맷으로 되돌리기</button>
+    <div class="tpl-status" id="tpl-status"></div>
+    <button type="button" class="tpl-close" id="tpl-close">닫기</button>
+  </div>
+</div>
+<!-- ===== /안내 포맷 편집 ===== -->
 
 <!-- ===== Firebase 인증 로직 ===== -->
 <script type="module">
@@ -2352,7 +2560,8 @@ ${items.join('\n')}
   const HC_KEYS = {
     form: 'happycall_form_v4',
     presets: 'happycall_weather_presets_v1',
-    locations: 'happycall_location_presets_v1'
+    locations: 'happycall_location_presets_v1',
+    templates: 'happycall_templates_v1'
   };
   let currentUid = null;
   let pushTimer = null;
@@ -2372,6 +2581,7 @@ ${items.join('\n')}
         if (hc.form) writeLocal(HC_KEYS.form, hc.form);
         if (hc.presets) writeLocal(HC_KEYS.presets, hc.presets);
         if (hc.locations) writeLocal(HC_KEYS.locations, hc.locations);
+        if (hc.templates) writeLocal(HC_KEYS.templates, hc.templates);
         // 화면을 클라우드 데이터로 새로고침
         window.dispatchEvent(new Event('happycall-cloud-loaded'));
       } else {
@@ -2389,6 +2599,7 @@ ${items.join('\n')}
           form: readLocal(HC_KEYS.form) || {},
           presets: readLocal(HC_KEYS.presets) || [],
           locations: readLocal(HC_KEYS.locations) || [],
+          templates: readLocal(HC_KEYS.templates) || {},
           updatedAt: serverTimestamp()
         }
       }, { merge: true });
