@@ -54,6 +54,9 @@
 </script>
 <!-- ===== /Microsoft Clarity ===== -->
 
+<!-- 이미지 생성 라이브러리 (html2canvas) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -598,6 +601,8 @@
 
   <div id="panel-input">
 
+    <button type="button" id="btn-import-confirm" class="import-trigger">🤖 확정서로 자동 채우기</button>
+
     <div class="section-title">기본 정보</div>
 
     <div class="section">
@@ -812,7 +817,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_0749</div>
+  <div class="rev-info">rev_2026_0601_0925</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -900,6 +905,7 @@
   function savePresets() {
     try {
       localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+      window.dispatchEvent(new Event('happycall-data-changed'));
     } catch (e) {}
   }
 
@@ -1020,6 +1026,7 @@
   function saveLocations() {
     try {
       localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
+      window.dispatchEvent(new Event('happycall-data-changed'));
     } catch (e) {}
   }
 
@@ -1124,6 +1131,7 @@
     checkIds.forEach(id => { data[id] = document.getElementById(id).checked; });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      window.dispatchEvent(new Event('happycall-data-changed'));
       const s = document.getElementById('save-status');
       s.textContent = '✓ 자동 저장됨';
       setTimeout(() => { s.textContent = ''; }, 1500);
@@ -1384,7 +1392,8 @@
     const blocks = [];
 
     blocks.push({
-      title: '인사 · 미팅 · 준비물',
+      group: 'text',
+      title: '인사 · 미팅 · 준비물 · 연락처',
       text: `안녕하세요. ${period} 일본 ${region} 일정을 함께하게 된 ${guide} 가이드입니다. 이번 여행의 대표자님께 여행전 문자안내를 드립니다.
 
 * 미팅일시: ${meetingDate} ${meetingTime} 미팅
@@ -1394,11 +1403,28 @@
 < 준비물 >
 ${items.join('\n')}
 
-< 날씨 >
-${weather}`
+대표자님께서는 동행하시는 일행분들께 메세지 전달 부탁드립니다.
+
+메세지와 별도로 오늘 중 전화로 연락드릴 예정이나, 전화 연락이 필요 없으시면 카톡으로 회신 주시면 연락드리지 않겠습니다.
+
+즐거운 여행이 되도록 최선을 다하겠습니다. 감사합니다.
+
+-연락처-
+한국 ${phoneKr}
+일본 ${phoneJp}`
     });
 
+    // 날씨 (이미지로 보냄)
+    if (weather) {
+      blocks.push({
+        group: 'image',
+        title: '날씨',
+        text: weather
+      });
+    }
+
     blocks.push({
+      group: 'image',
       title: '화폐 · 금제품 · 식당',
       text: `< 화폐 >
 일본은 엔화로만 사용 가능하며, 신용카드가 안되는 곳이 많습니다. 사용하실 만큼 엔화로 준비해 오시면 됩니다. 면세점 등에서 사용 가능한 카드는 VISA, MASTER 등 해외 사용 가능한 카드로 준비해 주시기 바랍니다. (일반 체크카드는 사용 불가)
@@ -1417,10 +1443,11 @@ ${weather}`
       block3 += `\n\n< 온천 >\n온천 및 대욕장 입장 시 문신, 타투, 헤나 등이 있으신 분은 입장이 제한되오니 유념해 주시기 바랍니다.`;
     }
 
-    blocks.push({ title: '검역' + (getChk('opt-onsen') ? ' · 온천' : ''), text: block3 });
+    blocks.push({ group: 'image', title: '검역' + (getChk('opt-onsen') ? ' · 온천' : ''), text: block3 });
 
     if (getChk('opt-baggage') && !isShip) {
       blocks.push({
+        group: 'image',
         title: '수하물 안내',
         text: `< 수하물 >
 모든 액체류는 캐리어에 넣고 위탁 수하물로 부쳐주세요. 라이타, 보조배터리, 전자담배, 무선 고데기 등 폭발 위험 제품은 위탁 불가이므로 반드시 기내 수하물로 반입하셔야 합니다.
@@ -1433,50 +1460,45 @@ ${weather}`
       });
     }
 
-    blocks.push({
-      title: '마무리 · 연락처',
-      text: `대표자님께서는 동행하시는 일행분들께 메세지 전달 부탁드립니다.
-
-메세지와 별도로 오늘 중 전화로 연락드릴 예정이나, 전화 연락이 필요 없으시면 카톡으로 회신 주시면 연락드리지 않겠습니다.
-
-즐거운 여행이 되도록 최선을 다하겠습니다. 감사합니다.
-
--연락처-
-한국 ${phoneKr}
-일본 ${phoneJp}`
-    });
-
     return blocks;
+  }
+
+  let imageSections = []; // 이미지로 묶을 섹션들 [{idx, title}]
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function updateImgCount(idx) {
+    const len = document.getElementById('body-' + idx).value.length;
+    const el = document.getElementById('count-' + idx);
+    if (el) el.textContent = len + '자';
   }
 
   function renderBlocks(blocks) {
     const container = document.getElementById('messages-container');
     container.innerHTML = '';
-    blocks.forEach((block, i) => {
-      const card = document.createElement('div');
-      card.className = 'msg-card';
-      card.innerHTML = `
-        <div class="msg-header">
-          <span class="msg-title">${i+1}편. ${block.title}</span>
-          <div class="msg-meta">
-            <span class="msg-count" id="count-${i}">0자</span>
-            <button class="msg-copy" data-idx="${i}">복사</button>
-          </div>
-        </div>
-        <textarea class="msg-body-edit" id="body-${i}" rows="10"></textarea>
-        <div class="edit-hint">✏️ 위 내용을 직접 수정할 수 있습니다</div>
-      `;
-      container.appendChild(card);
-      const textarea = document.getElementById('body-' + i);
-      textarea.value = block.text;
-      updateCount(i);
-      autoResize(textarea);
-      textarea.addEventListener('input', () => {
-        updateCount(i);
-        autoResize(textarea);
-      });
-    });
-
+    imageSections = [];
+    let order = 0;
+    let i = 0;
+    while (i < blocks.length) {
+      if (blocks[i].group === 'image') {
+        // 연속된 이미지 블록을 한 그룹으로 묶음
+        order++;
+        const group = [];
+        while (i < blocks.length && blocks[i].group === 'image') {
+          group.push({ block: blocks[i], idx: i });
+          i++;
+        }
+        renderImageGroup(container, order, group);
+      } else {
+        order++;
+        renderTextCard(container, order, blocks[i], i);
+        i++;
+      }
+    }
+    // 텍스트 복사 버튼 연결
     container.querySelectorAll('.msg-copy').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.idx);
@@ -1484,6 +1506,148 @@ ${weather}`
         copyText(text, btn);
       });
     });
+  }
+
+  function renderTextCard(container, order, block, idx) {
+    const card = document.createElement('div');
+    card.className = 'msg-card';
+    card.innerHTML = `
+      <div class="msg-header">
+        <span class="msg-title">${order}. 📝 ${block.title}</span>
+        <div class="msg-meta">
+          <span class="msg-count" id="count-${idx}">0자</span>
+          <button class="msg-copy" data-idx="${idx}">복사</button>
+        </div>
+      </div>
+      <textarea class="msg-body-edit" id="body-${idx}" rows="10"></textarea>
+      <div class="edit-hint">✏️ 위 내용을 직접 수정할 수 있습니다</div>
+    `;
+    container.appendChild(card);
+    const ta = document.getElementById('body-' + idx);
+    ta.value = block.text;
+    updateCount(idx);
+    autoResize(ta);
+    ta.addEventListener('input', () => { updateCount(idx); autoResize(ta); });
+  }
+
+  function renderImageGroup(container, order, group) {
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-card img-group';
+    let inner = `
+      <div class="msg-header">
+        <span class="msg-title">${order}. 🖼️ 이미지로 보낼 안내</span>
+        <button class="img-make-btn" id="img-make-btn">이미지로 저장</button>
+      </div>
+      <div class="img-group-hint">아래 내용이 한 장의 이미지로 만들어집니다. 내용은 수정할 수 있어요.</div>
+    `;
+    group.forEach(g => {
+      inner += `
+        <div class="img-sub">
+          <div class="img-sub-head">
+            <span class="img-sub-title">${g.block.title}</span>
+            <span class="msg-count" id="count-${g.idx}">0자</span>
+          </div>
+          <textarea class="msg-body-edit" id="body-${g.idx}" rows="6"></textarea>
+        </div>`;
+    });
+    wrap.innerHTML = inner;
+    container.appendChild(wrap);
+
+    imageSections = group.map(g => ({ idx: g.idx, title: g.block.title }));
+
+    group.forEach(g => {
+      const ta = document.getElementById('body-' + g.idx);
+      ta.value = g.block.text;
+      updateImgCount(g.idx);
+      autoResize(ta);
+      ta.addEventListener('input', () => { updateImgCount(g.idx); autoResize(ta); });
+    });
+
+    document.getElementById('img-make-btn').addEventListener('click', generateImage);
+  }
+
+  // ===== 이미지 생성 =====
+  function buildImageHTML() {
+    const regionSel = getVal('f-region');
+    const region = regionSel === '__custom__' ? getVal('f-region-custom') : regionSel;
+    const period = getVal('f-period');
+    const guide = getVal('f-guide');
+    const subParts = [region, period].filter(Boolean).join('  ·  ');
+
+    let html = `<div class="ir-header">
+      <div class="ir-flag">🇯🇵</div>
+      <div class="ir-htext">
+        <div class="ir-title">일본 여행 안내</div>
+        ${subParts ? `<div class="ir-sub">${escapeHtml(subParts)}</div>` : ''}
+      </div>
+    </div>`;
+
+    imageSections.forEach(s => {
+      const ta = document.getElementById('body-' + s.idx);
+      if (!ta) return;
+      const text = ta.value.trim();
+      if (!text) return;
+      html += `<div class="ir-section">
+        <div class="ir-sec-title">${escapeHtml(s.title)}</div>
+        <div class="ir-sec-body">${escapeHtml(text)}</div>
+      </div>`;
+    });
+
+    if (guide) html += `<div class="ir-foot">${escapeHtml(guide)} 가이드 드림</div>`;
+    return html;
+  }
+
+  async function generateImage() {
+    if (typeof html2canvas !== 'function') {
+      alert('이미지 변환 기능을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    const btn = document.getElementById('img-make-btn');
+    const root = document.getElementById('img-render-root');
+    root.innerHTML = buildImageHTML();
+    root.style.display = 'block';
+    if (btn) { btn.disabled = true; btn.textContent = '만드는 중…'; }
+    try {
+      const canvas = await html2canvas(root, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const dataUrl = canvas.toDataURL('image/png');
+      showImageResult(dataUrl);
+    } catch (e) {
+      alert('이미지 생성에 실패했습니다: ' + (e && e.message ? e.message : e));
+    } finally {
+      root.style.display = 'none';
+      if (btn) { btn.disabled = false; btn.textContent = '이미지로 저장'; }
+    }
+  }
+
+  function showImageResult(dataUrl) {
+    const ov = document.getElementById('img-result-overlay');
+    document.getElementById('img-result-pic').src = dataUrl;
+
+    document.getElementById('img-close').onclick = () => { ov.style.display = 'none'; };
+    ov.onclick = (e) => { if (e.target === ov) ov.style.display = 'none'; };
+
+    const dl = document.getElementById('img-download');
+    dl.href = dataUrl;
+    dl.download = '일본여행안내.png';
+
+    const shareBtn = document.getElementById('img-share');
+    if (navigator.share && navigator.canShare) {
+      shareBtn.style.display = '';
+      shareBtn.onclick = async () => {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
+          const file = new File([blob], '일본여행안내.png', { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: '일본 여행 안내' });
+          } else {
+            alert('이 기기에서는 공유가 안 돼요. 다운로드하거나 이미지를 길게 눌러 저장하세요.');
+          }
+        } catch (e) { /* 사용자가 취소 등 */ }
+      };
+    } else {
+      shareBtn.style.display = 'none';
+    }
+    ov.style.display = 'flex';
   }
 
   function updateCount(idx) {
@@ -1581,8 +1745,302 @@ ${weather}`
   loadPresets();
   loadLocations();
   loadSaved();
+
+  // 클라우드에서 데이터를 받아오면 화면을 다시 채움
+  window.happycallReloadFromCloud = function () {
+    loadPresets();
+    loadLocations();
+    loadSaved();
+  };
+  window.addEventListener('happycall-cloud-loaded', function () {
+    if (window.happycallReloadFromCloud) window.happycallReloadFromCloud();
+  });
+
+  // ===== 확정서 자동 채우기 =====
+  const HC_IMPORT_PROMPT = `아래 첨부한 일본 여행 확정서에서 정보를 추출해, 아래 JSON 형식으로만 답해주세요. 설명·마크다운 없이 JSON만 출력하세요. 모르는 값은 빈 문자열("")로 두세요.
+
+{
+  "region": "여행 지역 (예: 오사카, 도쿄, 후쿠오카, 대마도, 오키나와, 북해도, 마츠야마, 나고야)",
+  "startDate": "출발일/첫날 (YYYY-MM-DD)",
+  "nights": "박수(숫자만, 예: 2)",
+  "transport": "항공 또는 선박",
+  "airport": "이용 공항 (항공일 때, 예: 김해국제공항)",
+  "airline": "항공사 (있으면)",
+  "port": "이용 항구 (선박일 때)",
+  "meetingDate": "미팅 날짜 (YYYY-MM-DD, 보통 첫날)",
+  "meetingTime": "미팅 시각 (예: 07시 또는 07:00)",
+  "meetingSpot": "미팅 장소 상세",
+  "picket": "피켓명/팀명/대표자명 (있으면)"
+}`;
+
+  function setSelectIfOption(id, value) {
+    if (!value) return false;
+    const el = document.getElementById(id);
+    if (!el) return false;
+    const v = String(value).trim();
+    const opts = Array.from(el.options);
+    let opt = opts.find(o => o.value === v);
+    if (!opt) opt = opts.find(o => o.value && o.value !== '__custom__' && (v.includes(o.value) || o.value.includes(v)));
+    if (opt) { el.value = opt.value; return true; }
+    return false;
+  }
+
+  function fillFromExtracted(d) {
+    const filled = [];
+    if (d.region) {
+      if (setSelectIfOption('f-region', d.region)) filled.push('지역');
+      else {
+        document.getElementById('f-region').value = '__custom__';
+        document.getElementById('f-region-custom').value = String(d.region).trim();
+        filled.push('지역(직접입력)');
+      }
+      toggleRegionCustom();
+    }
+    if (d.transport) {
+      const t = /선박|페리|크루즈|배편|선사/.test(String(d.transport)) ? '선박' : '항공';
+      document.getElementById('f-transport-type').value = t;
+      toggleTransport();
+      filled.push('교통수단');
+    }
+    if (d.startDate && /^\d{4}-\d{2}-\d{2}$/.test(d.startDate)) {
+      document.getElementById('f-period-start').value = d.startDate;
+      if (typeof syncPeriodStartText === 'function') syncPeriodStartText();
+      filled.push('시작일');
+    }
+    const nights = parseInt(d.nights);
+    if (!isNaN(nights)) {
+      const days = nights + 1;
+      if (days >= 1 && days <= 10) {
+        document.getElementById('f-period-days').value = String(days);
+        filled.push('기간');
+      }
+    }
+    if (typeof calculatePeriod === 'function') calculatePeriod();
+
+    let md = (d.meetingDate && /^\d{4}-\d{2}-\d{2}$/.test(d.meetingDate)) ? d.meetingDate : '';
+    if (!md && d.startDate && /^\d{4}-\d{2}-\d{2}$/.test(d.startDate)) md = d.startDate;
+    if (md) {
+      document.getElementById('f-meeting-date').value = md;
+      if (typeof syncDateText === 'function') syncDateText();
+      filled.push('미팅일');
+    }
+    if (d.meetingTime) { document.getElementById('f-meeting-time').value = String(d.meetingTime).trim(); filled.push('미팅시각'); }
+    if (d.meetingSpot) { document.getElementById('f-meeting-spot').value = String(d.meetingSpot).trim(); filled.push('미팅장소'); }
+    if (d.picket) { document.getElementById('f-picket').value = String(d.picket).trim(); filled.push('피켓명'); }
+    if (d.airport && setSelectIfOption('f-airport', d.airport)) filled.push('공항');
+    if (d.airline && setSelectIfOption('f-airline', d.airline)) filled.push('항공사');
+    if (d.port) { document.getElementById('f-port').value = String(d.port).trim(); filled.push('항구'); }
+    if (d.shipline) { document.getElementById('f-shipline').value = String(d.shipline).trim(); filled.push('선사'); }
+
+    if (typeof saveData === 'function') saveData();
+    return filled;
+  }
+
+  function parseConfirmText(text) {
+    const d = {};
+    const dm = text.match(/(20\d{2})\s*[.\-\/년]\s*(\d{1,2})\s*[.\-\/월]\s*(\d{1,2})/);
+    if (dm) d.startDate = `${dm[1]}-${String(dm[2]).padStart(2, '0')}-${String(dm[3]).padStart(2, '0')}`;
+    const nm = text.match(/(\d+)\s*박\s*\d*\s*일?/);
+    if (nm) d.nights = parseInt(nm[1]);
+    const regions = ['후쿠오카', '오사카', '도쿄', '오키나와', '대마도', '북해도', '마츠야마', '나고야'];
+    for (const r of regions) { if (text.includes(r)) { d.region = r; break; } }
+    if (!d.region && text.includes('삿포로')) d.region = '북해도';
+    if (/선박|페리|배편|크루즈/.test(text)) d.transport = '선박';
+    else if (/항공|비행|항공편|편명/.test(text)) d.transport = '항공';
+    return d;
+  }
+
+  function runImport() {
+    const raw = document.getElementById('import-text').value.trim();
+    const status = document.getElementById('import-status');
+    if (!raw) { status.style.color = '#ff8a80'; status.textContent = '확정서 내용 또는 Claude가 준 JSON을 붙여넣어 주세요.'; return; }
+    let data = null;
+    const jsonStr = raw.replace(/```json|```/g, '').trim();
+    if (jsonStr.startsWith('{')) { try { data = JSON.parse(jsonStr); } catch (e) { data = null; } }
+    if (!data) data = parseConfirmText(raw);
+    const filled = fillFromExtracted(data);
+    if (filled.length === 0) {
+      status.style.color = '#ff8a80';
+      status.textContent = '⚠ 자동으로 찾은 항목이 없어요. 이미지·한글이면 위 "프롬프트 복사" 후 Claude에 확정서를 첨부해 JSON을 받아 붙여넣어 주세요.';
+    } else {
+      status.style.color = '#7ee787';
+      status.textContent = '✓ 채운 항목: ' + filled.join(', ');
+      setTimeout(() => {
+        document.getElementById('import-overlay').style.display = 'none';
+        switchTab('input');
+      }, 1300);
+    }
+  }
+
+  function openImportModal() {
+    const ov = document.getElementById('import-overlay');
+    document.getElementById('import-status').textContent = '';
+    document.getElementById('import-text').value = '';
+    ov.style.display = 'flex';
+    document.getElementById('import-copy-prompt').onclick = async () => {
+      const b = document.getElementById('import-copy-prompt');
+      try { await navigator.clipboard.writeText(HC_IMPORT_PROMPT); }
+      catch (e) { const ta = document.getElementById('import-text'); ta.value = HC_IMPORT_PROMPT; ta.focus(); ta.select(); }
+      const o = b.textContent; b.textContent = '✓ 복사됨';
+      setTimeout(() => { b.textContent = o; }, 1500);
+    };
+    document.getElementById('import-run').onclick = runImport;
+    document.getElementById('import-close').onclick = () => { ov.style.display = 'none'; };
+    ov.onclick = (e) => { if (e.target === ov) ov.style.display = 'none'; };
+  }
+
+  document.getElementById('btn-import-confirm').addEventListener('click', openImportModal);
 })();
 </script>
+<!-- ===== 이미지 안내 카드 (생성용 + 결과) ===== -->
+<style>
+  /* 출력 화면의 이미지 그룹 카드 */
+  .img-group { border: 1px solid #30506e; }
+  .img-make-btn {
+    background: #0a84ff; color: #fff; border: none;
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .img-make-btn:active { background: #0066cc; }
+  .img-make-btn:disabled { opacity: 0.6; }
+  .img-group-hint { font-size: 12px; color: #aeaeb2; margin: 4px 0 10px; }
+  .img-sub { margin-bottom: 12px; }
+  .img-sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .img-sub-title { font-size: 14px; font-weight: 600; color: #5a9fd4; }
+
+  /* 화면 밖 렌더링용 카드 (실제 이미지로 캡처됨) */
+  #img-render-root {
+    position: fixed; left: -99999px; top: 0;
+    width: 720px; background: #ffffff; color: #1f2937;
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  #img-render-root .ir-header {
+    display: flex; align-items: center; gap: 16px;
+    background: #11254e; color: #fff; padding: 26px 32px;
+  }
+  #img-render-root .ir-flag { font-size: 40px; line-height: 1; }
+  #img-render-root .ir-title { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+  #img-render-root .ir-sub { font-size: 14px; color: #b9c4dd; margin-top: 4px; }
+  #img-render-root .ir-section { padding: 22px 32px; border-bottom: 1px solid #eef0f4; }
+  #img-render-root .ir-sec-title {
+    font-size: 18px; font-weight: 700; color: #11254e;
+    padding-left: 12px; border-left: 4px solid #0a84ff; margin-bottom: 10px;
+  }
+  #img-render-root .ir-sec-body {
+    font-size: 15.5px; line-height: 1.75; color: #374151;
+    white-space: pre-wrap; word-break: keep-all;
+  }
+  #img-render-root .ir-foot {
+    padding: 18px 32px; text-align: right; font-size: 13px; color: #6b7280; background: #f8fafc;
+  }
+
+  /* 결과 오버레이 */
+  #img-result-overlay {
+    position: fixed; inset: 0; z-index: 10001;
+    background: rgba(0,0,0,0.85); display: none;
+    flex-direction: column; align-items: center;
+    padding: 16px; overflow: auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  #img-result-overlay .ir-actions {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    margin-bottom: 12px; position: sticky; top: 0;
+  }
+  #img-result-overlay .ir-btn {
+    padding: 11px 18px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    border: none; cursor: pointer; text-decoration: none; display: inline-block;
+  }
+  #img-result-overlay .ir-btn-share { background: #30d158; color: #06310f; }
+  #img-result-overlay .ir-btn-dl { background: #0a84ff; color: #fff; }
+  #img-result-overlay .ir-btn-close { background: #48484a; color: #f2f2f7; }
+  #img-result-overlay .ir-savehint { color: #d1d1d6; font-size: 13px; margin-bottom: 10px; text-align: center; }
+  #img-result-overlay img {
+    max-width: 100%; width: auto; border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+</style>
+
+<div id="img-render-root"></div>
+
+<div id="img-result-overlay">
+  <div class="ir-actions">
+    <button class="ir-btn ir-btn-share" id="img-share">📲 카톡으로 공유</button>
+    <a class="ir-btn ir-btn-dl" id="img-download">💾 다운로드</a>
+    <button class="ir-btn ir-btn-close" id="img-close">닫기</button>
+  </div>
+  <div class="ir-savehint">휴대폰에서는 이미지를 길게 눌러 "사진 저장"을 선택해도 돼요.</div>
+  <img id="img-result-pic" alt="여행 안내 이미지">
+</div>
+<!-- ===== /이미지 안내 카드 ===== -->
+
+<!-- ===== 확정서 자동 채우기 ===== -->
+<style>
+  .import-trigger {
+    width: 100%; padding: 13px; margin-bottom: 18px;
+    background: #2c3e63; color: #cfe0ff; border: 1px solid #3f5a8a;
+    border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .import-trigger:active { background: #25344f; }
+  #import-overlay {
+    position: fixed; inset: 0; z-index: 10001;
+    background: rgba(0,0,0,0.8); display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+  #import-overlay .import-card {
+    width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto;
+    background: #3a3a3c; border: 1px solid #5a5a5e; border-radius: 16px; padding: 22px;
+  }
+  #import-overlay h3 { margin: 0 0 4px; font-size: 18px; color: #f2f2f7; }
+  #import-overlay .import-desc { font-size: 13px; color: #aeaeb2; margin: 0 0 16px; line-height: 1.6; }
+  #import-overlay .import-step { font-size: 13px; color: #c7c7cc; margin: 14px 0 6px; font-weight: 600; }
+  #import-overlay .import-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #import-overlay .ib {
+    padding: 10px 14px; border-radius: 9px; font-size: 14px; font-weight: 600;
+    border: none; cursor: pointer; text-decoration: none; display: inline-block; flex: 1; text-align: center;
+  }
+  #import-overlay .ib-copy { background: #5a5a5e; color: #fff; }
+  #import-overlay .ib-claude { background: #d97757; color: #fff; }
+  #import-overlay textarea {
+    width: 100%; box-sizing: border-box; margin-top: 6px;
+    min-height: 120px; padding: 12px; font-size: 14px;
+    background: #4a4a4e; color: #f2f2f7; border: 1px solid #8e8e93; border-radius: 10px;
+    font-family: inherit; resize: vertical;
+  }
+  #import-overlay .import-fill {
+    width: 100%; padding: 13px; margin-top: 12px;
+    background: #0a84ff; color: #fff; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  #import-overlay .import-fill:active { background: #0066cc; }
+  #import-overlay .import-close {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: transparent; color: #aeaeb2; border: none; font-size: 14px; cursor: pointer;
+  }
+  #import-overlay .import-status { font-size: 13px; margin-top: 10px; line-height: 1.5; }
+</style>
+
+<div id="import-overlay">
+  <div class="import-card">
+    <h3>🤖 확정서로 자동 채우기</h3>
+    <p class="import-desc">확정서 내용을 붙여넣으면 자동으로 채워요. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 프롬프트를 복사해 Claude에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣으세요.</p>
+
+    <div class="import-step">1) 이미지·한글·PDF라면 — Claude로 분석</div>
+    <div class="import-row">
+      <button type="button" class="ib ib-copy" id="import-copy-prompt">📋 프롬프트 복사</button>
+      <a class="ib ib-claude" id="import-open-claude" href="https://claude.ai/new" target="_blank" rel="noopener">Claude 열기 ↗</a>
+    </div>
+
+    <div class="import-step">2) 확정서 텍스트 또는 Claude가 준 JSON 붙여넣기</div>
+    <textarea id="import-text" placeholder="여기에 확정서 내용(엑셀/텍스트)을 붙여넣거나, Claude가 준 JSON을 붙여넣으세요"></textarea>
+
+    <button type="button" class="import-fill" id="import-run">채우기</button>
+    <div class="import-status" id="import-status"></div>
+    <button type="button" class="import-close" id="import-close">닫기</button>
+  </div>
+</div>
+<!-- ===== /확정서 자동 채우기 ===== -->
+
 <!-- ===== Firebase 인증 로직 ===== -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
@@ -1592,7 +2050,7 @@ ${weather}`
     GoogleAuthProvider, signInWithPopup, signOut, sendPasswordResetEmail,
     setPersistence, browserLocalPersistence
   } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
-  import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDqA0UG3aibV4AcQLHGNPBSNRLeN-jbtmM",
@@ -1609,6 +2067,60 @@ ${weather}`
   // 다음 단계(동기화)에서 쓰려고 전역에 노출
   window.fbAuth = auth;
   window.fbDb = db;
+
+  // ===== Firestore 데이터 동기화 =====
+  const HC_KEYS = {
+    form: 'happycall_form_v4',
+    presets: 'happycall_weather_presets_v1',
+    locations: 'happycall_location_presets_v1'
+  };
+  let currentUid = null;
+  let pushTimer = null;
+
+  function readLocal(key) {
+    try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+  }
+  function writeLocal(key, val) {
+    try { if (val !== null && val !== undefined) localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  async function pullFromCloud(uid) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists() && snap.data().happycall) {
+        const hc = snap.data().happycall;
+        if (hc.form) writeLocal(HC_KEYS.form, hc.form);
+        if (hc.presets) writeLocal(HC_KEYS.presets, hc.presets);
+        if (hc.locations) writeLocal(HC_KEYS.locations, hc.locations);
+        // 화면을 클라우드 데이터로 새로고침
+        window.dispatchEvent(new Event('happycall-cloud-loaded'));
+      } else {
+        // 클라우드에 데이터가 없으면 → 지금 로컬 데이터를 클라우드로 올림(최초 이전)
+        await pushToCloud(uid);
+      }
+    } catch (e) { console.warn('동기화 불러오기 실패:', e); }
+  }
+
+  async function pushToCloud(uid) {
+    if (!uid) return;
+    try {
+      await setDoc(doc(db, 'users', uid), {
+        happycall: {
+          form: readLocal(HC_KEYS.form) || {},
+          presets: readLocal(HC_KEYS.presets) || [],
+          locations: readLocal(HC_KEYS.locations) || [],
+          updatedAt: serverTimestamp()
+        }
+      }, { merge: true });
+    } catch (e) { console.warn('동기화 저장 실패:', e); }
+  }
+
+  // 로컬 데이터 변경 시 → 잠깐 모았다가 클라우드로 저장(디바운스)
+  window.addEventListener('happycall-data-changed', () => {
+    if (!currentUid) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => pushToCloud(currentUid), 1200);
+  });
 
   setPersistence(auth, browserLocalPersistence).catch(() => {});
 
@@ -1729,9 +2241,12 @@ ${weather}`
   // --- 로그인 상태 감지 (게이트 제어) ---
   onAuthStateChanged(auth, (user) => {
     if (user) {
+      currentUid = user.uid;
       gate.style.display = 'none';
       logoutBtn.style.display = 'flex';
+      pullFromCloud(user.uid);
     } else {
+      currentUid = null;
       gate.style.display = 'flex';
       loading.style.display = 'none';
       form.style.display = 'block';
