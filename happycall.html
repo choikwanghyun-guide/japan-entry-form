@@ -840,7 +840,7 @@
     <button class="btn-secondary" id="btn-back" style="margin-top: 10px;">← 입력 수정</button>
   </div>
 
-  <div class="rev-info">rev_2026_0601_1319</div>
+  <div class="rev-info">rev_2026_0601_1331</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -2213,7 +2213,22 @@
   (function setupTemplateEditor() {
     let built = false;
     const areas = {};
+    const backs = {};
     let lastFocused = null;
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function highlight(ta) {
+      const back = backs[ta.dataset.key];
+      if (!back) return;
+      back.innerHTML = escapeHtml(ta.value).replace(/\{[^{}]*\}/g, m => '<mark class="ph">' + m + '</mark>') + '\n';
+    }
+    function autoGrow(ta) {
+      ta.style.height = 'auto';
+      ta.style.height = (ta.scrollHeight) + 'px';
+    }
+    function refresh(ta) { highlight(ta); autoGrow(ta); }
 
     function insertAtCursor(text) {
       const ta = lastFocused || areas['main'];
@@ -2223,6 +2238,7 @@
       ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
       const pos = s + text.length;
       ta.setSelectionRange(pos, pos);
+      refresh(ta);
     }
 
     function buildOnce() {
@@ -2249,13 +2265,22 @@
         rst.type = 'button';
         rst.className = 'tpl-sec-reset';
         rst.textContent = '↺ 기본';
-        rst.addEventListener('click', () => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; });
+        rst.addEventListener('click', () => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; refresh(areas[f.key]); });
         head.appendChild(lab); head.appendChild(rst);
+
+        const field = document.createElement('div');
+        field.className = 'tpl-field';
+        const back = document.createElement('div');
+        back.className = 'tpl-backdrop';
         const ta = document.createElement('textarea');
         ta.dataset.key = f.key;
+        ta.spellcheck = false;
         ta.addEventListener('focus', () => { lastFocused = ta; });
+        ta.addEventListener('input', () => refresh(ta));
         areas[f.key] = ta;
-        sec.appendChild(head); sec.appendChild(ta);
+        backs[f.key] = back;
+        field.appendChild(back); field.appendChild(ta);
+        sec.appendChild(head); sec.appendChild(field);
         secWrap.appendChild(sec);
       });
 
@@ -2271,7 +2296,7 @@
       });
       document.getElementById('tpl-reset-all').addEventListener('click', () => {
         if (confirm('모든 안내 포맷을 기본값으로 되돌릴까요?\n(저장하기를 눌러야 최종 반영됩니다)')) {
-          TEMPLATE_FIELDS.forEach(f => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; });
+          TEMPLATE_FIELDS.forEach(f => { areas[f.key].value = DEFAULT_TEMPLATES[f.key]; refresh(areas[f.key]); });
         }
       });
       built = true;
@@ -2285,6 +2310,8 @@
       });
       document.getElementById('tpl-status').textContent = '';
       document.getElementById('template-overlay').style.display = 'flex';
+      // 표시된 뒤에 높이/하이라이트 계산 (숨김 상태에선 높이가 0이라 보임 후 실행)
+      requestAnimationFrame(() => { TEMPLATE_FIELDS.forEach(f => refresh(areas[f.key])); });
     }
 
     document.getElementById('btn-edit-template').addEventListener('click', openModal);
@@ -2470,12 +2497,24 @@
     font-size: 11px; padding: 3px 8px; cursor: pointer; font-family: inherit;
   }
   #template-overlay .tpl-sec-reset:active { color: #fff; border-color: #8e8e93; }
-  #template-overlay textarea {
-    width: 100%; box-sizing: border-box;
-    min-height: 90px; padding: 11px; font-size: 13.5px; line-height: 1.55;
-    background: #4a4a4e; color: #f2f2f7; border: 1px solid #8e8e93; border-radius: 10px;
-    font-family: inherit; resize: vertical;
+  #template-overlay .tpl-field { position: relative; }
+  #template-overlay .tpl-backdrop {
+    position: absolute; inset: 0; margin: 0; pointer-events: none; overflow: hidden;
+    box-sizing: border-box; padding: 11px; border: 1px solid transparent; border-radius: 10px;
+    font-size: 13.5px; line-height: 1.55; font-family: inherit;
+    white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+    color: #f2f2f7; background: #4a4a4e;
   }
+  #template-overlay .tpl-backdrop mark.ph { background: transparent; color: #ffb340; font-weight: 700; }
+  #template-overlay textarea {
+    position: relative; display: block; width: 100%; box-sizing: border-box;
+    min-height: 70px; padding: 11px; font-size: 13.5px; line-height: 1.55;
+    background: transparent; color: transparent; caret-color: #ffffff;
+    border: 1px solid #8e8e93; border-radius: 10px;
+    font-family: inherit; resize: none; overflow: hidden;
+    white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word;
+  }
+  #template-overlay textarea::selection { background: rgba(10,132,255,0.4); }
   #template-overlay .tpl-save {
     width: 100%; padding: 13px; margin-top: 6px;
     background: #1e7e4f; color: #fff; border: none; border-radius: 10px;
@@ -2527,7 +2566,7 @@
     <h3>✏️ 고객에게 보낼 내용 기입</h3>
     <p class="tpl-desc">가이드마다 자기 말투로 안내 문구를 직접 쓸 수 있어요. 아래 <b>자리표시자</b>를 넣어두면, 확정서를 불러올 때 그 자리에 실제 값이 자동으로 채워집니다. (예: <code>{지역}</code> → 북해도)<br>입력칸을 누른 뒤 자리표시자를 탭하면 커서 위치에 삽입돼요.</p>
     <div class="tpl-chips" id="tpl-chips"></div>
-    <div class="tpl-warn">⚠️ <b>{ } 중괄호 부분은 손대지 마세요!</b><br>확정서를 불러오면 그 자리에 날짜·지역·미팅시각 등이 <b>자동으로</b> 채워지는 칸이에요. 글자를 지우거나 바꾸면 자동 입력이 안 됩니다. (예: <code>{지역}</code> → 북해도)<br>중괄호 <b>바깥의 안내 문구만</b> 자유롭게 고쳐 주세요.</div>
+    <div class="tpl-warn">⚠️ <b>주황색 { } 글씨는 손대지 마세요!</b><br>확정서를 불러오면 그 자리에 날짜·지역·미팅시각 등이 <b>자동으로</b> 채워지는 칸이에요. 글자를 지우거나 바꾸면 자동 입력이 안 됩니다. (예: <code>{지역}</code> → 북해도)<br>주황색이 아닌 일반 글씨(안내 문구)만 자유롭게 고쳐 주세요.</div>
     <div id="tpl-sections"></div>
     <button type="button" class="tpl-save" id="tpl-save">저장하기</button>
     <button type="button" class="tpl-reset-all" id="tpl-reset-all">↺ 전체 기본 포맷으로 되돌리기</button>
