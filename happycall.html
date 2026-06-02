@@ -724,6 +724,53 @@
 
       <textarea id="f-weather" rows="4" placeholder="위 포맷을 탭하거나 직접 입력하세요"></textarea>
     </div>
+    <div class="divider"></div>
+    <style>
+      .wx-hint { font-size:11px; color:#8e8e93; margin-top:5px; }
+      .wx-row { display:flex; gap:10px; align-items:flex-end; }
+      .wx-fetch { width:100%; padding:13px; margin-top:12px; background:#0a84ff; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; font-family:inherit; }
+      .wx-fetch:active { background:#0066cc; transform:scale(0.99); }
+      .wx-fetch:disabled { opacity:0.6; }
+      .weather-status { margin:10px 0 0; font-size:13px; color:#aeaeb2; min-height:18px; line-height:1.5; }
+      .weather-status.error { color:#ff6b6b; }
+      .weather-status.warn { color:#ffb340; }
+      .weather-result { margin-top:10px; overflow-x:auto; }
+      .weather-result table { width:100%; border-collapse:collapse; background:#3a3a3c; border-radius:10px; overflow:hidden; }
+      .weather-result th, .weather-result td { padding:9px 8px; border-bottom:1px solid #5a5a5e; text-align:center; font-size:13px; color:#f2f2f7; white-space:nowrap; }
+      .weather-result th { background:#4a4a4e; color:#c7c7cc; font-weight:600; font-size:12px; }
+      .weather-result tr:last-child td { border-bottom:none; }
+      .weather-result .temp-high { color:#ff7a7a; font-weight:600; }
+      .weather-result .temp-low { color:#6db4ff; font-weight:600; }
+      .weather-result .snow-cell { color:#b5d4f4; }
+      .weather-result .wave-cell { color:#5bc2c2; }
+    </style>
+    <div class="section-title">🌤️ 현지 날씨 확인 <span style="font-weight:400;color:#8e8e93;font-size:13px;">(무료 · 오늘부터 16일 예보)</span></div>
+    <div class="section">
+      <label class="field-label">🏙️ 도시</label>
+      <input type="text" id="weatherCity" placeholder="예: Osaka / Fukuoka / Tsushima" autocomplete="off">
+      <div class="wx-hint">되도록 영어로 입력해 주세요~^^</div>
+    </div>
+    <div class="wx-row">
+      <div style="flex:1; min-width:140px;">
+        <label class="field-label">📅 시작일</label>
+        <div style="position:relative;">
+          <input type="text" id="weatherStartDate" placeholder="20260524 또는 2026-05-24" maxlength="10" oninput="wxFormatDate(this)">
+          <span onclick="(function(){var p=document.getElementById('weatherStartDatePicker'); p.showPicker?p.showPicker():p.click();})()"
+                style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:0.6; font-size:16px;" title="달력으로 선택">📅</span>
+          <input type="date" id="weatherStartDatePicker"
+                 onchange="document.getElementById('weatherStartDate').value=this.value;"
+                 style="position:absolute; right:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none; border:none; padding:0; min-height:0;">
+        </div>
+      </div>
+      <div style="width:84px;">
+        <label class="field-label">📆 일수</label>
+        <input type="number" id="weatherDays" min="1" max="16" value="5">
+      </div>
+    </div>
+    <button type="button" class="wx-fetch" id="weatherFetchBtn" onclick="fetchWeather()">🔍 조회</button>
+    <div id="weatherStatus" class="weather-status"></div>
+    <div id="weatherResult" class="weather-result"></div>
+
 
     <div class="divider"></div>
     <div class="section-title">교통편</div>
@@ -864,53 +911,6 @@
     <button class="btn-primary" id="btn-generate">그외 안내사항 안내하기</button>
     <div class="status" id="save-status"></div>
     <button class="reset-btn" id="btn-reset">전체 입력 초기화</button>
-
-    <div class="divider"></div>
-    <style>
-      .wx-hint { font-size:11px; color:#8e8e93; margin-top:5px; }
-      .wx-row { display:flex; gap:10px; align-items:flex-end; }
-      .wx-fetch { width:100%; padding:13px; margin-top:12px; background:#0a84ff; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; font-family:inherit; }
-      .wx-fetch:active { background:#0066cc; transform:scale(0.99); }
-      .wx-fetch:disabled { opacity:0.6; }
-      .weather-status { margin:10px 0 0; font-size:13px; color:#aeaeb2; min-height:18px; line-height:1.5; }
-      .weather-status.error { color:#ff6b6b; }
-      .weather-status.warn { color:#ffb340; }
-      .weather-result { margin-top:10px; overflow-x:auto; }
-      .weather-result table { width:100%; border-collapse:collapse; background:#3a3a3c; border-radius:10px; overflow:hidden; }
-      .weather-result th, .weather-result td { padding:9px 8px; border-bottom:1px solid #5a5a5e; text-align:center; font-size:13px; color:#f2f2f7; white-space:nowrap; }
-      .weather-result th { background:#4a4a4e; color:#c7c7cc; font-weight:600; font-size:12px; }
-      .weather-result tr:last-child td { border-bottom:none; }
-      .weather-result .temp-high { color:#ff7a7a; font-weight:600; }
-      .weather-result .temp-low { color:#6db4ff; font-weight:600; }
-      .weather-result .snow-cell { color:#b5d4f4; }
-      .weather-result .wave-cell { color:#5bc2c2; }
-    </style>
-    <div class="section-title">🌤️ 현지 날씨 확인 <span style="font-weight:400;color:#8e8e93;font-size:13px;">(무료 · 오늘부터 16일 예보)</span></div>
-    <div class="section">
-      <label class="field-label">🏙️ 도시</label>
-      <input type="text" id="weatherCity" placeholder="예: Osaka / Fukuoka / Tsushima" autocomplete="off">
-      <div class="wx-hint">되도록 영어로 입력해 주세요~^^</div>
-    </div>
-    <div class="wx-row">
-      <div style="flex:1; min-width:140px;">
-        <label class="field-label">📅 시작일</label>
-        <div style="position:relative;">
-          <input type="text" id="weatherStartDate" placeholder="20260524 또는 2026-05-24" maxlength="10" oninput="wxFormatDate(this)">
-          <span onclick="(function(){var p=document.getElementById('weatherStartDatePicker'); p.showPicker?p.showPicker():p.click();})()"
-                style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:0.6; font-size:16px;" title="달력으로 선택">📅</span>
-          <input type="date" id="weatherStartDatePicker"
-                 onchange="document.getElementById('weatherStartDate').value=this.value;"
-                 style="position:absolute; right:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none; border:none; padding:0; min-height:0;">
-        </div>
-      </div>
-      <div style="width:84px;">
-        <label class="field-label">📆 일수</label>
-        <input type="number" id="weatherDays" min="1" max="16" value="5">
-      </div>
-    </div>
-    <button type="button" class="wx-fetch" id="weatherFetchBtn" onclick="fetchWeather()">🔍 조회</button>
-    <div id="weatherStatus" class="weather-status"></div>
-    <div id="weatherResult" class="weather-result"></div>
   </div>
 
   <div id="panel-output" style="display: none;">
@@ -927,7 +927,7 @@
     </div>
   </div>
 
-  <div class="rev-info">rev_2026_0603_0001</div>
+  <div class="rev-info">rev_2026_0603_0017</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
