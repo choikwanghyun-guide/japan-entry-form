@@ -1055,7 +1055,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0603_0044</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0603_0105</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1638,8 +1638,8 @@ const CONVERT_PROMPT = `아래는 모두투어 여행상품 일정이야. 다음
 function copyConvertPrompt(btn) {
   const original = btn.innerHTML;
   const done = () => {
-    btn.innerHTML = '✅ 복사됐어요! Claude에 붙여넣으세요';
-    setTimeout(() => { btn.innerHTML = original; }, 1800);
+    btn.innerHTML = '✅ 복사됐어요! 챗GPT , 재미나이 , Claude 셋 중 하나에 붙여 넣어서 JSON 을 복사하세요.';
+    setTimeout(() => { btn.innerHTML = original; }, 2800);
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(CONVERT_PROMPT).then(done).catch(() => fallbackCopyPrompt(CONVERT_PROMPT, done));
