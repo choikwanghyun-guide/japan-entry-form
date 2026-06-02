@@ -864,6 +864,23 @@
     <span class="file-info-size" id="fileSize">-</span>
   </div>
 
+  <!-- 변환 프롬프트 복사 -->
+  <div style="margin-bottom:10px;">
+    <button onclick="copyConvertPrompt(this)" style="
+      width:100%; background:rgba(79,142,247,0.12);
+      color:var(--accent); border:1px solid rgba(79,142,247,0.4);
+      border-radius:8px; padding:10px 14px; font-size:13px; font-weight:600;
+      cursor:pointer; font-family:inherit; display:flex; align-items:center;
+      justify-content:center; gap:6px; transition:background 0.15s;
+    " onmouseover="this.style.background='rgba(79,142,247,0.2)'"
+       onmouseout="this.style.background='rgba(79,142,247,0.12)'">
+      📋 모두투어 변환 프롬프트 복사
+    </button>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;text-align:center;line-height:1.5;">
+      버튼을 누르면 프롬프트가 복사돼요. Claude에 붙여넣고 그 아래에 모두투어 일정을 붙여넣으면 JSON이 나옵니다.
+    </div>
+  </div>
+
   <!-- JSON 붙여넣기 -->
   <div style="margin-bottom:8px;">
     <div style="font-size:11px;color:var(--accent2);margin-bottom:6px;font-weight:600;">
@@ -1055,7 +1072,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0529_1230</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0602_2326</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1598,6 +1615,65 @@ function handleConfirmFile(input) {
   } else {
     showAlert('uploadAlert', 'error', '❌ 지원하지 않는 파일 형식이에요. xlsx, xls, docx, pdf, jpg, png를 사용해주세요.');
   }
+}
+
+// ── 변환 프롬프트 복사 ──
+const CONVERT_PROMPT = `아래는 모두투어 여행상품 일정이야. 다음 JSON 스키마로만 변환해줘. 설명 없이 JSON만 출력해.
+
+스키마:
+{
+  "title": 상품명,
+  "startDate": "YYYY-MM-DD",        // 여행기간 시작일
+  "nights": 박수(숫자),               // "2박3일" → 2
+  "departureFlight": "출발 편명",      // 항공여정 '출발' 줄의 편명 (예: BX134)
+  "returnFlight": "귀국 편명",         // 항공여정 '도착' 줄의 편명 (예: BX133)
+  "transport": "현지교통",            // 예: 대형버스
+  "pax": "예약인원",                  // '예약인원 현재 N명'의 N명 (예: 11명)
+  "region": "여행도시",               // '여행도시' 항목 그대로 (예: 마츠야마, 다카마츠)
+  "groupName": "상품코드",            // 페이지 상단 '상품코드' (예: BJP411BXA)
+  "days": [ { "dayNo": 1, "items": [
+    { "arrive": "도착 HH:MM 또는 빈값",
+      "depart": "출발 HH:MM 또는 빈값",
+      "transport": "항공편명 또는 전용버스/도보 등",
+      "place": "지명",
+      "desc": "일정 내용",
+      "meal": "조식/중식/석식 내용 또는 빈값",
+      "note": "비고",
+      "type": "flight/hotel/move/meal/tour/other 중 하나" } ] } ] }
+
+규칙:
+- 공항 출발/도착·탑승은 type:"flight", 일정 안의 transport에 편명
+- 호텔 체크인/숙박은 type:"hotel", 식사는 type:"meal"(meal 칸에 메뉴), 관광은 type:"tour", 단순 이동은 type:"move"
+- 최상위 departureFlight/returnFlight에는 편명만 (예: BX134), 항공사명 빼기
+- pax는 '예약인원 현재 N명'의 숫자만, region은 '여행도시' 값 그대로
+- groupName은 '단체번호'가 아니라 '상품코드'를 넣기
+- 시간 모르면 빈 문자열, 절대 지어내지 말 것
+
+[여기에 복사한 일정 붙여넣기]`;
+
+function copyConvertPrompt(btn) {
+  const original = btn.innerHTML;
+  const done = () => {
+    btn.innerHTML = '✅ 복사됐어요! Claude에 붙여넣으세요';
+    setTimeout(() => { btn.innerHTML = original; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(CONVERT_PROMPT).then(done).catch(() => fallbackCopyPrompt(CONVERT_PROMPT, done));
+  } else {
+    fallbackCopyPrompt(CONVERT_PROMPT, done);
+  }
+}
+
+function fallbackCopyPrompt(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  if (cb) cb();
 }
 
 // ── JSON 붙여넣기 ──
