@@ -1398,9 +1398,19 @@ function saveItineraryToArchive(silent) {
   if (!parsedData) { showSyncStatus('저장할 일정표가 없어요. 먼저 확정서를 변환해주세요.', 'error'); return; }
   if (!googleUser) { alert('먼저 위에서 구글 로그인을 해주세요.'); return; }
 
-  // 화면 입력값 반영
-  const titleEl = document.getElementById('infoTitle');
-  if (titleEl) parsedData.region = titleEl.value.trim();
+  // 화면 입력값 반영 (사용자가 상단 정보칸에서 수정한 내용도 모두 저장·동기화되도록)
+  const setFromInput = (inputId, key) => {
+    const el = document.getElementById(inputId);
+    if (el) parsedData[key] = el.value.trim();
+  };
+  setFromInput('infoTitle', 'region');
+  setFromInput('infoStartDate', 'startDate');
+  setFromInput('infoNights', 'nights');
+  setFromInput('infoDepartureFlight', 'departureFlight');
+  setFromInput('infoReturnFlight', 'returnFlight');
+  setFromInput('infoTransport', 'transport');
+  setFromInput('infoPax', 'pax');
+  setFromInput('infoGroupName', 'groupName');
 
   // 임시 키(_로 시작) 제외하고 복사
   const saveData = JSON.parse(JSON.stringify(parsedData, (k, v) => k.startsWith('_') ? undefined : v));
@@ -3360,7 +3370,7 @@ function renderRow(di, ii, item) {
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'desc')"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
     <td data-label="비고" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
-      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
+      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value); updateItem(${di},${ii},'meal',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.meal||item.note||''}</textarea></td>
   </tr>`;
 }
