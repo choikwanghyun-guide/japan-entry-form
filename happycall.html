@@ -864,6 +864,53 @@
     <button class="btn-primary" id="btn-generate">그외 안내사항 안내하기</button>
     <div class="status" id="save-status"></div>
     <button class="reset-btn" id="btn-reset">전체 입력 초기화</button>
+
+    <div class="divider"></div>
+    <style>
+      .wx-hint { font-size:11px; color:#8e8e93; margin-top:5px; }
+      .wx-row { display:flex; gap:10px; align-items:flex-end; }
+      .wx-fetch { width:100%; padding:13px; margin-top:12px; background:#0a84ff; color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; font-family:inherit; }
+      .wx-fetch:active { background:#0066cc; transform:scale(0.99); }
+      .wx-fetch:disabled { opacity:0.6; }
+      .weather-status { margin:10px 0 0; font-size:13px; color:#aeaeb2; min-height:18px; line-height:1.5; }
+      .weather-status.error { color:#ff6b6b; }
+      .weather-status.warn { color:#ffb340; }
+      .weather-result { margin-top:10px; overflow-x:auto; }
+      .weather-result table { width:100%; border-collapse:collapse; background:#3a3a3c; border-radius:10px; overflow:hidden; }
+      .weather-result th, .weather-result td { padding:9px 8px; border-bottom:1px solid #5a5a5e; text-align:center; font-size:13px; color:#f2f2f7; white-space:nowrap; }
+      .weather-result th { background:#4a4a4e; color:#c7c7cc; font-weight:600; font-size:12px; }
+      .weather-result tr:last-child td { border-bottom:none; }
+      .weather-result .temp-high { color:#ff7a7a; font-weight:600; }
+      .weather-result .temp-low { color:#6db4ff; font-weight:600; }
+      .weather-result .snow-cell { color:#b5d4f4; }
+      .weather-result .wave-cell { color:#5bc2c2; }
+    </style>
+    <div class="section-title">🌤️ 현지 날씨 확인 <span style="font-weight:400;color:#8e8e93;font-size:13px;">(무료 · 오늘부터 16일 예보)</span></div>
+    <div class="section">
+      <label class="field-label">🏙️ 도시</label>
+      <input type="text" id="weatherCity" placeholder="예: Osaka / Fukuoka / Tsushima" autocomplete="off">
+      <div class="wx-hint">되도록 영어로 입력해 주세요~^^</div>
+    </div>
+    <div class="wx-row">
+      <div style="flex:1; min-width:140px;">
+        <label class="field-label">📅 시작일</label>
+        <div style="position:relative;">
+          <input type="text" id="weatherStartDate" placeholder="20260524 또는 2026-05-24" maxlength="10" oninput="wxFormatDate(this)">
+          <span onclick="(function(){var p=document.getElementById('weatherStartDatePicker'); p.showPicker?p.showPicker():p.click();})()"
+                style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:0.6; font-size:16px;" title="달력으로 선택">📅</span>
+          <input type="date" id="weatherStartDatePicker"
+                 onchange="document.getElementById('weatherStartDate').value=this.value;"
+                 style="position:absolute; right:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none; border:none; padding:0; min-height:0;">
+        </div>
+      </div>
+      <div style="width:84px;">
+        <label class="field-label">📆 일수</label>
+        <input type="number" id="weatherDays" min="1" max="16" value="5">
+      </div>
+    </div>
+    <button type="button" class="wx-fetch" id="weatherFetchBtn" onclick="fetchWeather()">🔍 조회</button>
+    <div id="weatherStatus" class="weather-status"></div>
+    <div id="weatherResult" class="weather-result"></div>
   </div>
 
   <div id="panel-output" style="display: none;">
@@ -880,7 +927,7 @@
     </div>
   </div>
 
-  <div class="rev-info">rev_2026_0601_2231</div>
+  <div class="rev-info">rev_2026_0603_0001</div>
 </div>
 
 <!-- 프리셋 추가/편집 모달 -->
@@ -3089,5 +3136,258 @@
 </script>
 <!-- ===== /Firebase 인증 로직 ===== -->
 
+<script>
+// ── 현지 날씨 확인 (변환기에서 이식 · Open-Meteo, 무료, API 키 불필요) ──
+function wxFormatDate(input){
+  let val = input.value.replace(/[^0-9]/g,'');
+  if (val.length > 8) val = val.slice(0,8);
+  let f = val;
+  if (val.length >= 5) f = val.slice(0,4)+'-'+val.slice(4,6)+(val.length>6?'-'+val.slice(6):'');
+  else if (val.length >= 4) f = val.slice(0,4)+(val.length>4?'-'+val.slice(4):'');
+  input.value = f;
+}
+
+// 도시명이 대마도/후쿠오카/오사카면 대한해협 파도 표시
+function shouldShowKoreaStraitWave(cityRaw) {
+  const c = (cityRaw || '').toLowerCase();
+  const triggers = ['대마도','対馬','つしま','tsushima', '후쿠오카','福岡','ふくおか','fukuoka', '오사카','大阪','おおさか','osaka'];
+  return triggers.some(t => c.includes(t.toLowerCase()));
+}
+
+// 날짜 yyyy-mm-dd 더하기 (시간대 영향 없이 안전하게)
+function addDaysISO(iso, days) {
+  // UTC 정오 기준으로 처리해 시간대 경계 문제를 피함
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+// 상태 표시
+function setWeatherStatus(msg, kind) {
+  const el = document.getElementById('weatherStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'weather-status' + (kind ? ' ' + kind : '');
+}
+
+async function fetchWeather() {
+  const cityEl = document.getElementById('weatherCity');
+  const startEl = document.getElementById('weatherStartDate');
+  const daysEl = document.getElementById('weatherDays');
+  const resultEl = document.getElementById('weatherResult');
+  const btn = document.getElementById('weatherFetchBtn');
+  resultEl.innerHTML = '';
+
+  const city = (cityEl.value || '').trim();
+  const startDate = (startEl.value || '').trim();
+  let days = parseInt(daysEl.value || '5', 10);
+  if (!city) { setWeatherStatus('도시를 입력해 주세요.', 'error'); return; }
+  if (!startDate) { setWeatherStatus('시작일을 입력해 주세요.', 'error'); return; }
+  if (!days || days < 1) days = 1;
+  if (days > 16) days = 16;
+
+  // 예보 범위 안내: 오늘로부터 16일을 넘어가면 가능 범위까지만 보여줌
+  // (모든 비교를 'YYYY-MM-DD' 문자열로 처리해 시간대 영향 제거)
+  const todayISO = (() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  })();
+  const lastForecastableISO = addDaysISO(todayISO, 15);   // 오늘 포함 16일
+  const lastDateISO = addDaysISO(startDate, days - 1);    // 시작일 + (일수-1) = 종료일
+  let truncated = false;
+  let effectiveEnd = lastDateISO;
+  if (lastDateISO > lastForecastableISO) {
+    truncated = true;
+    effectiveEnd = lastForecastableISO;
+  }
+  // 시작일 자체가 예보 범위를 완전히 벗어난 경우
+  if (startDate > lastForecastableISO) {
+    setWeatherStatus(`예보는 오늘로부터 16일 뒤(${lastForecastableISO})까지만 가능해요. 시작일을 더 가깝게 맞춰 주세요.`, 'warn');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ 조회 중…';
+  setWeatherStatus('도시를 찾고 날씨를 가져오고 있어요…');
+
+  try {
+    // 1) 도시 → 좌표 (한국어/영어 모두 시도)
+    const geo = await geocodeCity(city);
+    if (!geo) {
+      setWeatherStatus('도시를 찾을 수 없어요. 영어 표기로 다시 시도해 보세요. (예: Osaka, Tsushima)', 'error');
+      return;
+    }
+
+    // 2) 날씨 예보
+    const wxParams = new URLSearchParams({
+      latitude: geo.lat, longitude: geo.lon, timezone: 'Asia/Tokyo',
+      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum',
+      start_date: startDate, end_date: effectiveEnd
+    });
+    const wxRes = await fetch('https://api.open-meteo.com/v1/forecast?' + wxParams.toString());
+    if (!wxRes.ok) throw new Error('날씨 API 응답 오류: ' + wxRes.status);
+    const wx = await wxRes.json();
+    if (!wx.daily || !wx.daily.time) throw new Error('날씨 데이터가 비어 있어요.');
+
+    // 3) 파도(해당 도시일 때만): 대한해championship 한 지점 고정 — 대마도 남쪽 부근
+    let wave = null;
+    const showWave = shouldShowKoreaStraitWave(city);
+    if (showWave) {
+      const wvParams = new URLSearchParams({
+        latitude: '34.3', longitude: '129.4', timezone: 'Asia/Tokyo',
+        daily: 'wave_height_max', start_date: startDate, end_date: effectiveEnd
+      });
+      try {
+        const wvRes = await fetch('https://marine-api.open-meteo.com/v1/marine?' + wvParams.toString());
+        if (wvRes.ok) {
+          const wvJson = await wvRes.json();
+          if (wvJson.daily && wvJson.daily.wave_height_max) wave = wvJson.daily;
+        }
+      } catch (e) { /* 파도는 실패해도 다른 정보는 보여줌 */ }
+    }
+
+    // 4) 표 그리기
+    renderWeatherTable(wx, wave, showWave, geo);
+
+    if (truncated) {
+      setWeatherStatus(`예보 가능 범위(오늘로부터 16일)까지만 표시했어요. ${effectiveEnd} 이후 날짜는 아직 예보가 나오지 않았어요.`, 'warn');
+    } else {
+      setWeatherStatus(`${geo.label} 기준 · ${startDate} ~ ${effectiveEnd}`);
+    }
+
+  } catch (err) {
+    console.error(err);
+    setWeatherStatus('날씨를 가져오는 중 문제가 발생했어요. 인터넷 연결을 확인하거나 잠시 후 다시 시도해 주세요.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 조회';
+  }
+}
+
+// 도시 → 좌표 변환 (Open-Meteo geocoding)
+// 가이드 자주 가는 도시 사전 등록 (정확한 좌표 + 한/일/영 이름)
+// 사용자가 어떤 표기로 입력해도 같은 좌표를 쓰도록 keys에 변형을 다 넣어둠
+const CITY_PRESETS = [
+  // 한일 항로 (파도 표시 트리거 도시)
+  { keys:['대마도','쓰시마','對馬','対馬','tsushima'], lat:34.5378, lon:129.3786, label:'대마도 (나가사키)' },
+  { keys:['후쿠오카','福岡','fukuoka'],               lat:33.5904, lon:130.4017, label:'후쿠오카' },
+  { keys:['오사카','大阪','osaka'],                   lat:34.6937, lon:135.5023, label:'오사카' },
+
+  // 그 외 자주 가는 곳
+  { keys:['오키나와','나하','沖縄','那覇','okinawa','naha'], lat:26.2124, lon:127.6809, label:'오키나와 (나하)' },
+  { keys:['마츠야마','마쓰야마','松山','matsuyama'],  lat:33.8392, lon:132.7657, label:'마쓰야마 (에히메)' },
+  { keys:['나고야','名古屋','nagoya'],                lat:35.1815, lon:136.9066, label:'나고야' },
+  { keys:['도쿄','東京','tokyo'],                     lat:35.6762, lon:139.6503, label:'도쿄' },
+  { keys:['도야마','富山','toyama'],                  lat:36.6953, lon:137.2113, label:'도야마' },
+  { keys:['요코하마','横浜','yokohama'],              lat:35.4437, lon:139.6380, label:'요코하마' },
+  { keys:['히로시마','広島','hiroshima'],             lat:34.3853, lon:132.4553, label:'히로시마' },
+  { keys:['야마구치','山口','yamaguchi'],             lat:34.1858, lon:131.4706, label:'야마구치' },
+  { keys:['가고시마','鹿児島','kagoshima'],           lat:31.5969, lon:130.5571, label:'가고시마' },
+  { keys:['나가사키','長崎','nagasaki'],              lat:32.7503, lon:129.8779, label:'나가사키' },
+  { keys:['구마모토','熊本','kumamoto'],              lat:32.8032, lon:130.7079, label:'구마모토' },
+  { keys:['유후인','由布院','湯布院','yufuin'],        lat:33.2647, lon:131.3556, label:'유후인 (오이타)' },
+  { keys:['벳부','벳푸','別府','beppu'],              lat:33.2846, lon:131.4910, label:'벳푸 (오이타)' },
+  { keys:['히타','日田','hita'],                      lat:33.3214, lon:130.9410, label:'히타 (오이타)' },
+
+  // 북해도
+  { keys:['삿포로','札幌','sapporo'],                 lat:43.0618, lon:141.3545, label:'삿포로 (홋카이도)' },
+  { keys:['도야','도야호','洞爺','洞爺湖','toya','lake toya'], lat:42.6090, lon:140.8580, label:'도야호 (홋카이도)' },
+  { keys:['노보리베츠','登別','noboribetsu'],         lat:42.4126, lon:141.1163, label:'노보리베츠 (홋카이도)' },
+  { keys:['오타루','小樽','otaru'],                   lat:43.1907, lon:140.9947, label:'오타루 (홋카이도)' },
+  { keys:['비에이','美瑛','biei'],                    lat:43.5882, lon:142.4669, label:'비에이 (홋카이도)' },
+  { keys:['후라노','富良野','furano'],                lat:43.3422, lon:142.3833, label:'후라노 (홋카이도)' },
+  { keys:['북해도','홋카이도','北海道','hokkaido'],    lat:43.0618, lon:141.3545, label:'홋카이도 (삿포로 기준)' },
+];
+
+function findCityPreset(input) {
+  const q = (input || '').trim().toLowerCase();
+  if (!q) return null;
+  return CITY_PRESETS.find(c => c.keys.some(k => k.toLowerCase() === q)) || null;
+}
+
+async function geocodeCity(name) {
+  // 1) 먼저 사전 등록 도시에서 찾기 (정확 매칭)
+  const preset = findCityPreset(name);
+  if (preset) return { lat: preset.lat, lon: preset.lon, label: preset.label };
+
+  // 2) 사전에 없으면 Open-Meteo 검색으로 떨어짐 (일본 결과 우선)
+  const tryLangs = ['ko', 'ja', 'en'];
+  let best = null;
+  for (const lang of tryLangs) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=${lang}&format=json`;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const j = await r.json();
+      if (!j.results || !j.results.length) continue;
+      // 일본 결과만 추리고, 그중 인구가 가장 많은 것 우선 (자주 가는 큰 도시 잡힘)
+      const jpResults = j.results.filter(x => x.country_code === 'JP');
+      const pick = (jpResults.length ? jpResults : j.results)
+        .sort((a, b) => (b.population || 0) - (a.population || 0))[0];
+      if (pick) {
+        best = {
+          lat: pick.latitude, lon: pick.longitude,
+          label: `${pick.name}${pick.admin1 ? ', ' + pick.admin1 : ''}${pick.country ? ' (' + pick.country + ')' : ''}`
+        };
+        break;
+      }
+    } catch (e) { /* 다음 언어 시도 */ }
+  }
+  return best;
+}
+
+function renderWeatherTable(wx, wave, showWave, geo) {
+  const t = wx.daily.time;
+  const tmax = wx.daily.temperature_2m_max;
+  const tmin = wx.daily.temperature_2m_min;
+  const pprob = wx.daily.precipitation_probability_max;
+  const psum = wx.daily.precipitation_sum;
+  const ssum = wx.daily.snowfall_sum;
+  const waveMap = {};
+  if (wave && wave.time) {
+    wave.time.forEach((d, i) => { waveMap[d] = wave.wave_height_max[i]; });
+  }
+
+  const dow = ['일','월','화','수','목','금','토'];
+  let html = '<table><thead><tr>';
+  html += '<th>날짜</th><th>최고/최저</th><th>강수/강설확률</th><th>강수량/강설량</th>';
+  if (showWave) html += '<th>대한해협 파도</th>';
+  html += '</tr></thead><tbody>';
+
+  for (let i = 0; i < t.length; i++) {
+    // 시간대 영향 없이 요일 계산 (UTC 정오 기준)
+    const [yy, mm, dd] = t[i].split('-').map(Number);
+    const dt = new Date(Date.UTC(yy, mm - 1, dd, 12, 0, 0));
+    const dateLabel = `${t[i].slice(5)} (${dow[dt.getUTCDay()]})`;
+    const avg = (tmax[i] + tmin[i]) / 2;
+    const isSnow = avg < 0; // 평균 영하면 강설 표시
+    const prob = (pprob[i] != null) ? pprob[i] + '%' : '-';
+    let amount;
+    if (isSnow) {
+      const sv = ssum[i];
+      amount = (sv != null) ? `<span class="snow-cell">❄️ ${sv} cm</span>` : '-';
+    } else {
+      const pv = psum[i];
+      amount = (pv != null) ? `🌧️ ${pv} mm` : '-';
+    }
+    let row = `<tr>
+      <td>${dateLabel}</td>
+      <td><span class="temp-high">${Math.round(tmax[i])}°</span> / <span class="temp-low">${Math.round(tmin[i])}°</span></td>
+      <td>${isSnow ? '❄️ ' : '🌧️ '}${prob}</td>
+      <td>${amount}</td>`;
+    if (showWave) {
+      const wv = waveMap[t[i]];
+      row += `<td class="wave-cell">${wv != null ? wv.toFixed(1) + ' m' : '-'}</td>`;
+    }
+    row += '</tr>';
+    html += row;
+  }
+  html += '</tbody></table>';
+  document.getElementById('weatherResult').innerHTML = html;
+}
+
+</script>
 </body>
 </html>
