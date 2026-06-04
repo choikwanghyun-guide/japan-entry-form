@@ -353,6 +353,7 @@
   .sched-input.trans-input { color: var(--text); width: 70px; }
   .sched-input.place-input { color: var(--text); }
   .sched-input.note-input  { color: var(--text); font-size: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; line-height: 1.5; }
+  .sched-input.desc-input  { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; }
 
   /* 내용·비고 textarea: 데스크톱·모바일 공통으로 내용에 맞춰 높이 자동 확장.
      (JS의 oninput / autoResizeAllTextareas가 scrollHeight로 실제 높이를 잡고,
@@ -1055,7 +1056,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0604_2228</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0604_2251</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3415,7 +3416,7 @@ function renderRow(di, ii, item) {
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'stay')"></td>
     <input type="hidden" class="sched-input trans-input" value="${item.transport||''}">
     <input type="hidden" class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}">
-    <td data-label="내용"><textarea class="sched-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
+    <td data-label="내용"><textarea class="sched-input desc-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'desc',this.value);"
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'desc')"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
@@ -3734,6 +3735,7 @@ function reRenderDay(di) {
   if (!tbody) return;
   tbody.innerHTML = parsedData.days[di].items.map((item, ii) => renderRow(di, ii, item)).join('');
   initColResize();
+  autoResizeAllTextareas();
 }
 
 // ── AI 이동시간 추정 ──
