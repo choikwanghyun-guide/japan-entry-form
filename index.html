@@ -102,6 +102,16 @@
   .passengers-table th { background:var(--surface2); color:var(--text2); padding:8px 10px; text-align:center; font-size:11px; border-bottom:1px solid var(--border); }
   .passengers-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); font-size:11px; vertical-align:middle; text-align:center; }
   .count-badge { background:var(--accent); color:white; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700; margin-left:auto; }
+  /* 모바일: 공통정보 2열 → 1열로 쌓기, 글자크기 슬라이더 줄 접힘, 가로 넘침 방지 */
+  @media (max-width: 640px) {
+    body { padding:14px; }
+    .header { padding:20px 18px; }
+    .card { padding:18px 16px; }
+    .form-grid { grid-template-columns:1fr; }
+    .form-group { min-width:0; }
+    .hotel-fontrow { flex-wrap:wrap; }
+    .hotel-fontctrl { max-width:none !important; flex:1 1 100% !important; flex-wrap:wrap; justify-content:flex-start; }
+  }
   @page { size:A4 portrait; margin:0; }
   @media print {
     .no-print { display:none !important; }
@@ -152,9 +162,9 @@
     <div class="card-title"><div class="step-badge">2</div> 공통 정보 입력</div>
     <div class="form-grid">
       <div class="form-group">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div class="hotel-fontrow" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <label class="form-label" style="margin-bottom:0;">🏨 호텔명</label>
-          <div style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
+          <div class="hotel-fontctrl" style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
             <span style="font-size:11px; color:var(--text3); white-space:nowrap;">글자 크기 조절</span>
             <span style="font-size:10px; color:var(--text3);">-4</span>
             <input type="range" id="hotelFontDelta" min="-4" max="4" step="1" value="0" style="flex:1; accent-color:#4f8ef7; min-width:60px;" oninput="document.getElementById('hotelFontDeltaVal').textContent = (this.value > 0 ? '+' : '') + this.value">
@@ -1898,7 +1908,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0601_0230</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0604_2053</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
