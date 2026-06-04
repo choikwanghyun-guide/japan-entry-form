@@ -1055,7 +1055,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0603_0117</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0604_2228</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3421,7 +3421,7 @@ function renderRow(di, ii, item) {
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
     <td data-label="비고" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
-      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.meal||item.note||''}</textarea></td>
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note||item.meal||''}</textarea></td>
   </tr>`;
 }
 
@@ -4338,7 +4338,7 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
     day.items.forEach(item => {
       const cls = item.type === 'hotel' ? ' class="hotel-row"' : item.type === 'flight' ? ' class="flight-row"' : item.type === 'meal' ? ' class="meal-row"' : '';
       const descText = (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'');
-      const noteText = item.meal || item.note || '';
+      const noteText = item.note || item.meal || '';
       html += `<tr${cls}>
 <td class="time-col">${item.arrive||''}</td>
 <td class="time-col">${item.depart||item.time||''}</td>
