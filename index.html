@@ -774,17 +774,17 @@ function detectColumns(rowCells) {
               && /영문/.test(c) && /이름/.test(c)) colMap.firstName = idx;
           // 영문 통합 이름: '영문명(/)','영문명','영문성명' 등 (성/이름이 따로 안 잡혔을 때)
           if (colMap.lastName === undefined && colMap.firstName === undefined && colMap.fullName === undefined
-              && /영문/.test(c) && /(명|이름|성명)/.test(c)) colMap.fullName = idx;
+              && /영문/.test(c) && (/(명|이름|성명)/.test(c) || /name/i.test(c))) colMap.fullName = idx;
           // 한글 이름: '한글명','한글 이름','한글성명' 등
           if (colMap.korName === undefined && /한글/.test(c) && /(명|이름|성명)/.test(c)) colMap.korName = idx;
           // 생년월일: '생년월일','생년 월일','생일','BIRTH','DOB'
-          if (colMap.birth === undefined && (/생년|생일/.test(c) || /birth/i.test(c) || /\bdob\b/i.test(c))) colMap.birth = idx;
+          if (colMap.birth === undefined && (/생년|생일|生年/.test(c) || /birth/i.test(c) || /\bdob\b/i.test(c))) colMap.birth = idx;
           // 여권번호: '여권번호','여권 번호','여권No','PASSPORT' (만료일은 제외)
-          if (colMap.passport === undefined && ((/여권/.test(c) && /(번호|no|number)/i.test(c)) || /passport/i.test(c)) && !/만료|만기|expir/i.test(c)) colMap.passport = idx;
+          if (colMap.passport === undefined && ((/여권/.test(c) && /(번호|no|number)/i.test(c)) || /passport/i.test(c)) && !/만료|만기|expir|\bexp\b|exp\./i.test(c)) colMap.passport = idx;
           // 여권만료일: '여권만료일','여권 만료','만기','EXPIRY'
-          if (colMap.expiry === undefined && (/만료|만기/.test(c) || /expir/i.test(c))) colMap.expiry = idx;
+          if (colMap.expiry === undefined && (/만료|만기/.test(c) || /expir/i.test(c) || /\bexp\b/i.test(c) || /exp\./i.test(c))) colMap.expiry = idx;
           // 성별
-          if (colMap.gender === undefined && (/성별/.test(c) || /sex/i.test(c) || /gender/i.test(c))) colMap.gender = idx;
+          if (colMap.gender === undefined && (/성별|性別/.test(c) || /sex/i.test(c) || /gender/i.test(c))) colMap.gender = idx;
           // 주민번호 (영문 헤더 제외)
           if (colMap.ssn === undefined && /주민/.test(c) && !/영문/.test(c)) colMap.ssn = idx;
           // 순번/번호
@@ -800,6 +800,10 @@ function detectColumns(rowCells) {
           const headerCell = row[colMap.lastName];
           if (/성명/.test(headerCell)) { colMap.fullName = colMap.lastName; delete colMap.lastName; }
         }
+  if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.korName !== undefined) {
+    const kc = String(row[colMap.korName] || '');
+    if (/name/i.test(kc) || /^[A-Za-z. ]+$/.test(kc)) { colMap.fullName = colMap.korName; delete colMap.korName; }
+  }
   return { isHeader: true, colMap };
 }
 
@@ -2097,12 +2101,14 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
         sheet=info.sheet||'';
         mapStr='영문이름='+(hasName?'O':'X')+', 생년월일='+(cm.birth!==undefined?'O':'X')+', 여권번호='+(cm.passport!==undefined?'O':'X')+', 성별='+(cm.gender!==undefined?'O':'X')+', 만료일='+(cm.expiry!==undefined?'O':'X');
       } else {
-        header='(헤더 행을 찾지 못함)'; mapStr='헤더 인식 실패';
+        return;
       }
       if(keyOK) return;
       var sig=sheet+'||'+header;
-      if(__reported[sig]) return;
-      __reported[sig]=true;
+      var __sent; try{ __sent=JSON.parse(localStorage.getItem('guideAutoReportSent_v1')||'{}'); }catch(e){ __sent={}; }
+      if(__sent[sig] || __reported[sig]) return;
+      __sent[sig]=Date.now(); __reported[sig]=true;
+      try{ localStorage.setItem('guideAutoReportSent_v1', JSON.stringify(__sent)); }catch(e){}
       var rs=document.getElementById('revStamp');
       var msg='[인식 실패 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
       submitToGoogleForm({ name:'⚙️자동보고', email:'', msg:msg });
@@ -2162,7 +2168,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1244</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_2057</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
