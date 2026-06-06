@@ -726,52 +726,11 @@ function parseTxtRoster(text) {
 }
 
 
-// ── 승객 파싱 ──
-function parsePassengers(wb) {
-  passengers = [];
-  let found = false;
-  // 데이터 문제로 제외된 행 목록 (가이드 알림용)
-  skippedPassengers = [];
-  const skipped = skippedPassengers;
-
-  for (const sheetName of wb.SheetNames) {
-    const sheet = wb.Sheets[sheetName];
-    if (!sheet) {
-      console.warn(`[parsePassengers] 시트 "${sheetName}"의 내용이 비어있음 (파일 손상 가능)`);
-      continue;
-    }
-    let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
-
-    // 폴백: sheet_to_json이 빈 배열을 반환할 때 (오류 셀이 있어 파싱 실패한 경우)
-    // 시트 객체에서 직접 셀을 읽어서 rows 재구성
-    if (rows.length === 0 && sheet['!ref']) {
-      console.log(`[parsePassengers] 빈 결과 → 직접 셀 스캔 시도. ref=${sheet['!ref']}`);
-      const range = XLSX.utils.decode_range(sheet['!ref']);
-      rows = [];
-      for (let r = range.s.r; r <= range.e.r; r++) {
-        const row = [];
-        for (let c = range.s.c; c <= range.e.c; c++) {
-          const addr = XLSX.utils.encode_cell({ r, c });
-          const cell = sheet[addr];
-          if (!cell) { row.push(''); continue; }
-          // 오류 셀(t='e')은 빈 문자열, 나머진 v(원본값) 또는 w(표시값)
-          if (cell.t === 'e') row.push('');
-          else row.push(cell.v !== undefined ? cell.v : (cell.w || ''));
-        }
-        rows.push(row);
-      }
-      console.log(`[parsePassengers] 직접 스캔 후 행 수: ${rows.length}`);
-    }
-
-    let headerRow = -1;
-    let colMap = {};
-
-    for (let i = 0; i < Math.min(rows.length, 30); i++) {
-      const row = rows[i].map(c => String(c).trim());
-      const rowStr = row.join(' ');
-
-      // 헤더 행 인식 - 다양한 키워드 조합으로 판단
-      const isHeader = (
+// 공용: 헤더 한 줄 → 열 매핑 (parsePassengers와 자가검사가 같은 로직을 사용)
+function detectColumns(rowCells) {
+  const row = (rowCells || []).map(c => String(c == null ? '' : c).trim());
+  const rowStr = row.join(' ');
+  const isHeader = (
         /여권번호/.test(rowStr) ||
         /passport/i.test(rowStr) ||
         /BIRTH/i.test(rowStr) ||
@@ -779,9 +738,9 @@ function parsePassengers(wb) {
         (/영문/.test(rowStr) && (/생년|주민|여권/.test(rowStr))) ||
         (/한글명/.test(rowStr) && /영문명/.test(rowStr))  // 한글명 + 영문명 명부 패턴
       );
-      if (isHeader) {
-        headerRow = i;
-        row.forEach((cell, idx) => {
+  if (!isHeader) return { isHeader: false, colMap: {} };
+  const colMap = {};
+  row.forEach((cell, idx) => {
           const c = cell.trim();
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
           if (/^영문이름$/.test(c) || (/영문명$/.test(c) && !/성/.test(c)) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
@@ -831,8 +790,7 @@ function parsePassengers(wb) {
           // 순번/번호
           if (colMap.no === undefined && (/순번/.test(c) || /^번호$/.test(c) || /^no\.?$/i.test(c))) colMap.no = idx;
         });
-
-        // 생년월일 컬럼이 없고 주민번호 컬럼만 있는 명부 대비:
+  // 생년월일 컬럼이 없고 주민번호 컬럼만 있는 명부 대비:
         // 주민번호 컬럼을 생년월일 파싱 소스로도 사용
         if (colMap.birth === undefined && colMap.ssn !== undefined) {
           colMap.birth = colMap.ssn;
@@ -842,8 +800,52 @@ function parsePassengers(wb) {
           const headerCell = row[colMap.lastName];
           if (/성명/.test(headerCell)) { colMap.fullName = colMap.lastName; delete colMap.lastName; }
         }
-        break;
+  return { isHeader: true, colMap };
+}
+
+// ── 승객 파싱 ──
+function parsePassengers(wb) {
+  passengers = [];
+  let found = false;
+  // 데이터 문제로 제외된 행 목록 (가이드 알림용)
+  skippedPassengers = [];
+  const skipped = skippedPassengers;
+
+  for (const sheetName of wb.SheetNames) {
+    const sheet = wb.Sheets[sheetName];
+    if (!sheet) {
+      console.warn(`[parsePassengers] 시트 "${sheetName}"의 내용이 비어있음 (파일 손상 가능)`);
+      continue;
+    }
+    let rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+
+    // 폴백: sheet_to_json이 빈 배열을 반환할 때 (오류 셀이 있어 파싱 실패한 경우)
+    // 시트 객체에서 직접 셀을 읽어서 rows 재구성
+    if (rows.length === 0 && sheet['!ref']) {
+      console.log(`[parsePassengers] 빈 결과 → 직접 셀 스캔 시도. ref=${sheet['!ref']}`);
+      const range = XLSX.utils.decode_range(sheet['!ref']);
+      rows = [];
+      for (let r = range.s.r; r <= range.e.r; r++) {
+        const row = [];
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = sheet[addr];
+          if (!cell) { row.push(''); continue; }
+          // 오류 셀(t='e')은 빈 문자열, 나머진 v(원본값) 또는 w(표시값)
+          if (cell.t === 'e') row.push('');
+          else row.push(cell.v !== undefined ? cell.v : (cell.w || ''));
+        }
+        rows.push(row);
       }
+      console.log(`[parsePassengers] 직접 스캔 후 행 수: ${rows.length}`);
+    }
+
+    let headerRow = -1;
+    let colMap = {};
+
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      const det = detectColumns(rows[i]);
+      if (det.isHeader) { headerRow = i; colMap = det.colMap; break; }
     }
 
     if (headerRow === -1) continue;
@@ -1956,8 +1958,182 @@ if (document.readyState !== 'loading') { cleanInvalidOffsets(); updateOrientUI()
 else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); });
 </script>
 
+
+<!-- ===== 개선 의견 (모든 가이드) ===== -->
+<div id="feedbackBox" class="no-print" style="max-width:760px; margin:24px auto 0; padding:18px 20px; background:#1a1d27; border:1px solid #2b2f3e; border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
+  <div style="font-size:15px; font-weight:700; color:#e8eaf0; margin-bottom:4px;">💬 개선 의견 남기기 <span style="font-size:12px; font-weight:400; color:#8b90a7;">(다른 사람한테 안보입니다.)</span></div>
+  <div style="font-size:12px; color:#8b90a7; margin-bottom:12px; line-height:1.6;">사용하다 불편한 점이나 제안이 있으면 남겨 주세요. 더 좋게 고치는 데 큰 도움이 됩니다.</div>
+  <input id="fbName" type="text" placeholder="이름 또는 닉네임 (선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit;">
+  <input id="fbEmail" type="email" placeholder="이메일 (회신용, 권장)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit;">
+  <textarea id="fbMsg" rows="3" placeholder="불편한 점 / 개선 아이디어를 적어 주세요" style="width:100%; box-sizing:border-box; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+  <button id="fbSend" style="margin-top:10px; padding:9px 22px; background:linear-gradient(135deg,#4f8ef7,#3a6fd0); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">남기기</button>
+  <div id="fbMsgAlert" style="display:none; margin-top:10px; font-size:12px;"></div>
+  <div id="fbList" style="margin-top:16px;"></div>
+</div>
+
+<!-- ===== 헤더 자가검사 (관리자 전용, 숨김) ===== -->
+<div id="selfTest" class="no-print" style="display:none; max-width:760px; margin:18px auto 0; padding:18px 20px; background:#161922; border:1px solid #3a3f52; border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+    <div style="font-size:15px; font-weight:700; color:#f7b84f;">🔧 명부 헤더 자가검사 (관리자)</div>
+    <button id="stClose" style="background:none; border:none; color:#8b90a7; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+  </div>
+  <div style="font-size:12px; color:#8b90a7; margin-bottom:10px; line-height:1.7;">
+    랜드사별 <b style="color:#e8eaf0;">헤더 한 줄씩</b> 입력 (한 줄 = 한 랜드사).<br>
+    형식: <code style="color:#7fd1b9;">랜드사이름 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일</code><br>
+    엑셀에서 <b style="color:#e8eaf0;">헤더 행만 선택→복사</b>해 붙여넣으면 칸이 탭으로 구분돼요(쉼표·탭 모두 인식). 개인정보 줄은 넣지 마세요.
+  </div>
+  <textarea id="stInput" rows="6" placeholder="예) A여행사 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일&#10;B랜드 | No, 한글성명, 영문성, 영문이름, 성별, 생년월일, 여권번호" style="width:100%; box-sizing:border-box; padding:10px 12px; background:#0e1016; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:12px; font-family:monospace; resize:vertical; line-height:1.6;"></textarea>
+  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+    <button id="stRun" style="padding:9px 22px; background:linear-gradient(135deg,#3ecf8e,#2eb87a); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">검사 실행</button>
+    <button id="stSave" style="padding:9px 18px; background:#2b2f3e; color:#e8eaf0; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">저장</button>
+    <button id="stClear" style="padding:9px 18px; background:#2b2f3e; color:#e8eaf0; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">전체 지우기</button>
+  </div>
+  <div id="stSummary" style="margin-top:12px; font-size:13px; font-weight:700; color:#e8eaf0;"></div>
+  <div id="stResult" style="margin-top:8px;"></div>
+</div>
+
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function colLetter(n){ var s=''; n=n+1; while(n>0){ var m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); } return s; }
+
+  // ---- 숨김 자가검사: rev 스탬프를 2초 안에 5번 탭하면 열림 ----
+  var taps=[];
+  var stPanel=document.getElementById('selfTest');
+  var rev=document.getElementById('revStamp');
+  if(rev){
+    rev.addEventListener('click', function(){
+      var now=Date.now(); taps.push(now);
+      taps=taps.filter(function(t){ return now-t<2000; });
+      if(taps.length>=5){
+        taps=[];
+        if(stPanel){
+          var open = stPanel.style.display==='none';
+          stPanel.style.display = open ? 'block' : 'none';
+          if(open){ loadST(); stPanel.scrollIntoView({behavior:'smooth'}); }
+        }
+      }
+    });
+  }
+  var stClose=document.getElementById('stClose');
+  if(stClose) stClose.addEventListener('click', function(){ if(stPanel) stPanel.style.display='none'; });
+
+  var ST_KEY='guideSelfTestHeaders_v1';
+  var stInput=document.getElementById('stInput');
+  function loadST(){ try{ var s=localStorage.getItem(ST_KEY); if(s!=null && stInput && !stInput.value) stInput.value=s; }catch(e){} }
+  function saveST(){ try{ if(stInput) localStorage.setItem(ST_KEY, stInput.value); }catch(e){} }
+
+  function runST(){
+    var res=document.getElementById('stResult');
+    var sum=document.getElementById('stSummary');
+    if(!res) return;
+    var lines=(stInput && stInput.value || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if(lines.length===0){ res.innerHTML='<div style="color:#8b90a7; font-size:13px;">검사할 헤더가 없어요. 위 칸에 한 줄씩 입력해 주세요.</div>'; if(sum) sum.textContent=''; return; }
+    var html='', passN=0;
+    lines.forEach(function(line){
+      var name='(이름없음)', cellsPart=line;
+      var bar=line.indexOf('|');
+      if(bar>-1){ name=line.slice(0,bar).trim()||name; cellsPart=line.slice(bar+1); }
+      var cells=cellsPart.split(/[\t,]/).map(function(c){ return c.trim(); }).filter(function(c){ return c.length; });
+      var det=(typeof detectColumns==='function')?detectColumns(cells):{isHeader:false,colMap:{}};
+      var cm=det.colMap||{};
+      function fld(label,key){
+        if(cm[key]===undefined) return '<span style="color:#f2777a;">⚠ '+label+'</span>';
+        return '<span style="color:#7fd1b9;">✓ '+label+'('+colLetter(cm[key])+'열)</span>';
+      }
+      var hasName = (cm.fullName!==undefined) || (cm.lastName!==undefined);
+      var nameCol = cm.fullName!==undefined ? cm.fullName : cm.lastName;
+      var nameFld = hasName ? '<span style="color:#7fd1b9;">✓ 영문이름('+colLetter(nameCol)+'열)</span>' : '<span style="color:#f2777a;">⚠ 영문이름</span>';
+      var pass = hasName && (cm.birth!==undefined) && (cm.passport!==undefined);
+      if(pass) passN++;
+      html += '<div style="padding:10px 12px; margin-bottom:8px; background:'+(pass?'#13241c':'#2a1a1a')+'; border:1px solid '+(pass?'#2c7a52':'#7a3a3a')+'; border-radius:8px;">'
+        + '<div style="font-size:13px; font-weight:700; color:#e8eaf0; margin-bottom:6px;">'+(pass?'✅':'⚠️')+' '+esc(name)+(det.isHeader?'':' <span style="color:#f7b84f; font-weight:400;">(헤더로 인식 안 됨)</span>')+'</div>'
+        + '<div style="font-size:12px; line-height:2;">'+nameFld+' &nbsp; '+fld('생년월일','birth')+' &nbsp; '+fld('여권번호','passport')+' &nbsp; '+fld('성별','gender')+' &nbsp; '+fld('여권만료일','expiry')+' &nbsp; '+fld('한글이름','korName')+'</div>'
+        + '</div>';
+    });
+    if(sum) sum.textContent='결과: 통과 '+passN+' / 주의 '+(lines.length-passN)+' (총 '+lines.length+')';
+    res.innerHTML=html;
+  }
+
+  var b;
+  if((b=document.getElementById('stRun'))) b.addEventListener('click', function(){ saveST(); runST(); });
+  if((b=document.getElementById('stSave'))) b.addEventListener('click', function(){ saveST(); alert('저장됐어요.'); });
+  if((b=document.getElementById('stClear'))) b.addEventListener('click', function(){ if(confirm('저장된 헤더 목록을 모두 지울까요?')){ if(stInput) stInput.value=''; saveST(); var r=document.getElementById('stResult'); if(r) r.innerHTML=''; var s=document.getElementById('stSummary'); if(s) s.textContent=''; } });
+  if(stInput) stInput.addEventListener('input', saveST);
+
+  // ---- 개선 의견 (모든 가이드) ----
+  // 구글폼 전송 설정 (미리 채워진 링크를 받으면 아래 4개 값을 채웁니다)
+  var GFORM_ACTION='https://docs.google.com/forms/d/e/1FAIpQLSdCEgI75rt1d8DSmnQph5xStyLsNig0I8vpcbE6M_OB6cnfgA/formResponse';
+  var GFORM_ENTRY_NAME='entry.1995044252';  // 이름 또는 닉네임
+  var GFORM_ENTRY_EMAIL='entry.2114123196'; // 이메일
+  var GFORM_ENTRY_MSG='entry.1028756479';   // 내용
+  function submitToGoogleForm(d){
+    if(!GFORM_ACTION) return false;
+    var sink=document.getElementById('gformSink');
+    if(!sink){ sink=document.createElement('iframe'); sink.name='gformSink'; sink.id='gformSink'; sink.style.display='none'; document.body.appendChild(sink); }
+    var f=document.createElement('form');
+    f.action=GFORM_ACTION; f.method='POST'; f.target='gformSink'; f.style.display='none';
+    function add(n,v){ if(!n) return; var i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=(v==null?'':v); f.appendChild(i); }
+    add(GFORM_ENTRY_NAME,d.name); add(GFORM_ENTRY_EMAIL,d.email); add(GFORM_ENTRY_MSG,d.msg);
+    document.body.appendChild(f); try{ f.submit(); }catch(e){ return false; }
+    setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 1500);
+    return true;
+  }
+  var FB_KEY='guideFeedback_v1';
+  var fbName=document.getElementById('fbName'), fbEmail=document.getElementById('fbEmail'), fbMsg=document.getElementById('fbMsg');
+  var fbSend=document.getElementById('fbSend'), fbList=document.getElementById('fbList'), fbAlert=document.getElementById('fbMsgAlert');
+  function loadFB(){ try{ var a=JSON.parse(localStorage.getItem(FB_KEY)||'[]'); var ch=false; a.forEach(function(x){ if(!x.id){ x.id=(x.date||'')+'_'+Math.random().toString(36).slice(2,7); ch=true; } }); if(ch){ try{ localStorage.setItem(FB_KEY, JSON.stringify(a)); }catch(e){} } return a; }catch(e){ return []; } }
+  function renderFB(){
+    if(!fbList) return;
+    var arr=loadFB();
+    if(!arr.length){ fbList.innerHTML=''; return; }
+    var h='<div style="font-size:12px; color:#8b90a7; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;"><span>남겨진 의견 ('+arr.length+')</span><button id="fbClearAll" style="background:none; border:none; color:#6b7088; font-size:11px; cursor:pointer; text-decoration:underline; font-family:inherit;">전체 삭제</button></div>';
+    arr.slice().reverse().forEach(function(it){
+      h += '<div style="position:relative; padding:9px 30px 9px 11px; margin-bottom:6px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px;">'
+        + '<button class="fbDel" data-id="'+esc(it.id||'')+'" title="삭제" style="position:absolute; top:6px; right:7px; background:none; border:none; color:#6b7088; font-size:14px; cursor:pointer; line-height:1; font-family:inherit;">✕</button>'
+        + '<div style="font-size:11px; color:#6b7088; margin-bottom:3px;">'+esc(it.date)+(it.name?(' · '+esc(it.name)):'')+(it.email?(' · '+esc(it.email)):'')+'</div>'
+        + '<div style="font-size:13px; color:#e8eaf0; white-space:pre-wrap; word-break:break-word;">'+esc(it.msg)+'</div></div>';
+    });
+    fbList.innerHTML=h;
+    var dels=fbList.querySelectorAll('.fbDel');
+    for(var di=0; di<dels.length; di++){
+      dels[di].addEventListener('click', function(){
+        var id=this.getAttribute('data-id');
+        if(!confirm('이 의견을 목록에서 지울까요?')) return;
+        var a=loadFB().filter(function(x){ return String(x.id)!==String(id); });
+        try{ localStorage.setItem(FB_KEY, JSON.stringify(a)); }catch(e){}
+        renderFB();
+      });
+    }
+    var ca=document.getElementById('fbClearAll');
+    if(ca) ca.addEventListener('click', function(){
+      if(!confirm('이 목록을 전체 삭제할까요? (이 화면에서만 지워집니다)')) return;
+      try{ localStorage.setItem(FB_KEY, '[]'); }catch(e){}
+      renderFB();
+    });
+  }
+  function fbToast(msg, ok){ if(!fbAlert) return; fbAlert.style.display='block'; fbAlert.style.color=ok?'#3ecf8e':'#f2777a'; fbAlert.textContent=msg; setTimeout(function(){ fbAlert.style.display='none'; }, 4500); }
+  if(fbSend) fbSend.addEventListener('click', function(){
+    var msg=(fbMsg && fbMsg.value || '').trim();
+    if(!msg){ fbToast('내용을 입력해 주세요.', false); return; }
+    var name=(fbName && fbName.value || '').trim();
+    var email=(fbEmail && fbEmail.value || '').trim();
+    var d=new Date();
+    var date=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+    var arr=loadFB(); arr.push({id:(Date.now()+'_'+Math.random().toString(36).slice(2,7)), name:name, email:email, msg:msg, date:date});
+    try{ localStorage.setItem(FB_KEY, JSON.stringify(arr)); }catch(e){}
+    var sent=submitToGoogleForm({name:(name||'익명'), email:email, msg:msg});
+    if(fbMsg) fbMsg.value=''; if(fbName) fbName.value=''; if(fbEmail) fbEmail.value='';
+    renderFB();
+    fbToast(sent ? '의견이 전송됐어요. 감사합니다!' : '의견이 저장됐어요. 감사합니다!', true);
+  });
+  if(document.readyState!=='loading') renderFB();
+  else document.addEventListener('DOMContentLoaded', renderFB);
+})();
+</script>
+
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1127</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1226</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
