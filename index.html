@@ -807,6 +807,7 @@ function detectColumns(rowCells) {
 function parsePassengers(wb) {
   passengers = [];
   let found = false;
+  let __hdr = null;
   // 데이터 문제로 제외된 행 목록 (가이드 알림용)
   skippedPassengers = [];
   const skipped = skippedPassengers;
@@ -862,6 +863,7 @@ function parsePassengers(wb) {
       if (!nextRowHasData) headerRow += 0; // 이미 headerRow+1부터 시작하므로 유지
     }
 
+    __hdr = { sheet: sheetName, header: rows[headerRow].map(function(c){ return String(c==null?'':c).trim(); }), colMap: colMap };
     for (let i = headerRow + 1; i < rows.length; i++) {
       const row = rows[i];
       if (!row || row.every(c => !c)) continue;
@@ -974,6 +976,7 @@ function parsePassengers(wb) {
   }
 
   renderPreview();
+  try { if (typeof window !== 'undefined' && typeof window.__autoReport === 'function') window.__autoReport({ info: __hdr, count: passengers.length }); } catch(e) {}
   
 }
 
@@ -2079,6 +2082,32 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
     setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 1500);
     return true;
   }
+  // ── 인식 실패 자동 보고 (헤더만 전송, 개인정보 없음, 세션 중복 방지) ──
+  var __reported={};
+  window.__autoReport=function(d){
+    try{
+      if(!GFORM_ACTION) return;
+      d=d||{};
+      var info=d.info, keyOK=false, header='', sheet='', mapStr='';
+      if(info && info.header){
+        var cm=info.colMap||{};
+        var hasName=(cm.fullName!==undefined)||(cm.lastName!==undefined);
+        keyOK=hasName && (cm.birth!==undefined) && (cm.passport!==undefined);
+        header=info.header.filter(function(x){ return x && String(x).trim(); }).join(' | ');
+        sheet=info.sheet||'';
+        mapStr='영문이름='+(hasName?'O':'X')+', 생년월일='+(cm.birth!==undefined?'O':'X')+', 여권번호='+(cm.passport!==undefined?'O':'X')+', 성별='+(cm.gender!==undefined?'O':'X')+', 만료일='+(cm.expiry!==undefined?'O':'X');
+      } else {
+        header='(헤더 행을 찾지 못함)'; mapStr='헤더 인식 실패';
+      }
+      if(keyOK) return;
+      var sig=sheet+'||'+header;
+      if(__reported[sig]) return;
+      __reported[sig]=true;
+      var rs=document.getElementById('revStamp');
+      var msg='[인식 실패 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
+      submitToGoogleForm({ name:'⚙️자동보고', email:'', msg:msg });
+    }catch(e){}
+  };
   var FB_KEY='guideFeedback_v1';
   var fbName=document.getElementById('fbName'), fbEmail=document.getElementById('fbEmail'), fbMsg=document.getElementById('fbMsg');
   var fbSend=document.getElementById('fbSend'), fbList=document.getElementById('fbList'), fbAlert=document.getElementById('fbMsgAlert');
@@ -2133,7 +2162,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1226</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1244</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
