@@ -807,12 +807,29 @@ function parsePassengers(wb) {
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
           if (/여권만료일|만료일|여권만료/.test(c)) colMap.expiry = idx;
           if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
-          // 폴백: '영문명(/)','영문명','영문 이름','영문성명' 등 표기 변형(괄호·슬래시 포함)으로
-          // 위 정규식에 안 걸린 영문 이름 헤더를 fullName으로 인식 (예전 인덱스 호환)
+          // ── 표기 변형에 너그러운 폴백 (이미 잡힌 항목은 안 건드리고, 혼동 항목은 가드) ──
+          // 영문 성/이름 분리: '영문성','영문 성' 등 (단 '영문성명'·'영문성별'은 제외)
+          if (colMap.lastName === undefined && colMap.fullName === undefined
+              && /영문/.test(c) && /성/.test(c) && !/성명/.test(c) && !/성별/.test(c)) colMap.lastName = idx;
+          if (colMap.firstName === undefined && colMap.fullName === undefined
+              && /영문/.test(c) && /이름/.test(c)) colMap.firstName = idx;
+          // 영문 통합 이름: '영문명(/)','영문명','영문성명' 등 (성/이름이 따로 안 잡혔을 때)
           if (colMap.lastName === undefined && colMap.firstName === undefined && colMap.fullName === undefined
-              && /영문/.test(c) && /(명|이름|성명)/.test(c)) {
-            colMap.fullName = idx;
-          }
+              && /영문/.test(c) && /(명|이름|성명)/.test(c)) colMap.fullName = idx;
+          // 한글 이름: '한글명','한글 이름','한글성명' 등
+          if (colMap.korName === undefined && /한글/.test(c) && /(명|이름|성명)/.test(c)) colMap.korName = idx;
+          // 생년월일: '생년월일','생년 월일','생일','BIRTH','DOB'
+          if (colMap.birth === undefined && (/생년|생일/.test(c) || /birth/i.test(c) || /\bdob\b/i.test(c))) colMap.birth = idx;
+          // 여권번호: '여권번호','여권 번호','여권No','PASSPORT' (만료일은 제외)
+          if (colMap.passport === undefined && ((/여권/.test(c) && /(번호|no|number)/i.test(c)) || /passport/i.test(c)) && !/만료|만기|expir/i.test(c)) colMap.passport = idx;
+          // 여권만료일: '여권만료일','여권 만료','만기','EXPIRY'
+          if (colMap.expiry === undefined && (/만료|만기/.test(c) || /expir/i.test(c))) colMap.expiry = idx;
+          // 성별
+          if (colMap.gender === undefined && (/성별/.test(c) || /sex/i.test(c) || /gender/i.test(c))) colMap.gender = idx;
+          // 주민번호 (영문 헤더 제외)
+          if (colMap.ssn === undefined && /주민/.test(c) && !/영문/.test(c)) colMap.ssn = idx;
+          // 순번/번호
+          if (colMap.no === undefined && (/순번/.test(c) || /^번호$/.test(c) || /^no\.?$/i.test(c))) colMap.no = idx;
         });
 
         // 생년월일 컬럼이 없고 주민번호 컬럼만 있는 명부 대비:
@@ -1940,7 +1957,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1121</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1127</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
