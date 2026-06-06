@@ -807,6 +807,12 @@ function parsePassengers(wb) {
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
           if (/여권만료일|만료일|여권만료/.test(c)) colMap.expiry = idx;
           if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
+          // 폴백: '영문명(/)','영문명','영문 이름','영문성명' 등 표기 변형(괄호·슬래시 포함)으로
+          // 위 정규식에 안 걸린 영문 이름 헤더를 fullName으로 인식 (예전 인덱스 호환)
+          if (colMap.lastName === undefined && colMap.firstName === undefined && colMap.fullName === undefined
+              && /영문/.test(c) && /(명|이름|성명)/.test(c)) {
+            colMap.fullName = idx;
+          }
         });
 
         // 생년월일 컬럼이 없고 주민번호 컬럼만 있는 명부 대비:
@@ -1934,7 +1940,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1024</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1121</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
