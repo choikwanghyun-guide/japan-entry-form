@@ -210,7 +210,7 @@
       <span class="count-badge" id="passengerCount">0명</span>
     </div>
     <div id="statsBox" style="display:none; margin-bottom:16px;">
-      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px;">
+      <div style="display:grid; grid-template-columns:repeat(8,1fr); gap:8px;">
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">전체</div>
           <div id="statTotal" style="font-size:24px;font-weight:700;color:var(--text);margin:2px 0;">0</div>
@@ -234,6 +234,11 @@
         <div style="background:var(--surface2);border:1px solid rgba(255,140,0,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">초등학생 미만</div>
           <div id="statInfant" style="font-size:24px;font-weight:700;color:#ff8c00;margin:2px 0;">0</div>
+          <div style="font-size:12px;color:var(--text2);">명</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
+          <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">초등학생</div>
+          <div id="statElem" style="font-size:24px;font-weight:700;color:#4f8ef7;margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
@@ -1366,6 +1371,22 @@ function generateEdCard() {
 
 
 // ── 출력 모드 선택 ──
+// 브라우저에서 직접 인쇄(Ctrl+P 등)했는데 인쇄할 내용이 없으면 안내 문구를 표시
+window.addEventListener('beforeprint', function() {
+  var pa = document.getElementById('printArea');
+  if (pa && pa.innerHTML.trim() === '') {
+    pa.setAttribute('data-empty-notice', '1');
+    pa.innerHTML = '<div class="print-page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#333;font-size:22px;line-height:1.7;">인쇄할 내용이 없습니다.<br><span style="font-size:16px;color:#666;margin-top:8px;">입국신고서 또는 세관신고서 인쇄 버튼을 눌러 주세요.</span></div>';
+  }
+});
+
+// 인쇄가 끝나면(또는 취소되면) 인쇄영역을 비워, 다음에 브라우저 인쇄 시 이전 내용이 다시 출력되는 문제 방지
+window.addEventListener('afterprint', function() {
+  var pa = document.getElementById('printArea');
+  if (pa) pa.innerHTML = '';
+  document.body.classList.remove('imm-portrait');
+});
+
 function setMode(mode) {
   currentMode = mode;
   const modeMap = { immigration:'btnImmigration', customs:'btnCustoms' };
@@ -1479,14 +1500,14 @@ function renderPreview() {
       if (age < 8) child++;
     }
   });
-  let infant = 0, middle = 0, high = 0;
+  let infant = 0, elem = 0, middle = 0, high = 0;
   passengers.forEach(p => {
     if (p.birthYear) {
       let age = statToday.getFullYear() - parseInt(p.birthYear);
       const md2 = statToday.getMonth() - (parseInt(p.birthMonth)-1);
       if (md2 < 0 || (md2 === 0 && statToday.getDate() < parseInt(p.birthDay))) age--;
       if (age < 8)               infant++;
-      if (age >= 8  && age <= 12) {} // 초등학생 (별도 표기 없음)
+      if (age >= 8  && age <= 12) elem++; // 초등학생
       if (age >= 13 && age <= 15) middle++;
       if (age >= 16 && age <= 18) high++;
     }
@@ -1496,6 +1517,7 @@ function renderPreview() {
   document.getElementById('statFemale').textContent = female;
   document.getElementById('statSenior').textContent = senior;
   document.getElementById('statInfant').textContent = infant;
+  document.getElementById('statElem').textContent   = elem;
   document.getElementById('statMiddle').textContent = middle;
   document.getElementById('statHigh').textContent   = high;
   document.getElementById('statsBox').style.display = 'block';
@@ -1912,7 +1934,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0604_2107</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_1024</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
