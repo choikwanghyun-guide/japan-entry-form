@@ -1126,7 +1126,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0005</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0021</span>
 </div>
 
 <script>
@@ -2810,7 +2810,7 @@ async function mapTcenter(wb, data) {
     }
     const r = MEAL_ROWS[idx];
     setCell(ws, "B" + r, tcenterDate(data.info.dateStart, m.day));
-    setCell(ws, "D" + r, `${m._type}식 ${m.name||""}`.trim());
+    setCell(ws, "D" + r, v(m.name));   // 식당명만 (중식/석식 접두어 제거)
     setCell(ws, "J" + r, v(m.people));
     setCell(ws, "L" + r, v(m.unitPrice));
     setCell(ws, "N" + r, v(m.amount, false));
@@ -3043,6 +3043,10 @@ function makeHanasakuPatcher(sheetXmlStr) {
         cell.appendChild(v);
       }
     },
+    setStyle(addr, sIdx) {
+      if (sIdx === null || sIdx === undefined) return;
+      getOrCreateCell(addr).setAttribute('s', String(sIdx));
+    },
     clearCell(addr) {
       const { rowNum } = parseAddr(addr);
       const rows = sheetData.getElementsByTagNameNS(NS, 'row');
@@ -3193,7 +3197,10 @@ function mapHanasakuCells(p, data) {
     }
     const r = MEAL_ROWS[idx];
     p.setStr("B" + r, hanasakuDate(data.info.dateStart, m.day));
-    p.setStr("C" + r, `${m._type}식 ${m.name||""}`.trim());
+    if ((m.name || "").trim()) {
+      p.setStr("C" + r, m.name.trim());   // 식당명만 (중식/석식 접두어 제거)
+      p.setStyle("C" + r, 65);            // 폰트 통일(9, Yu Gothic) — 행마다 다른 폰트 방지
+    }
     const peopleNum = parsePersonCount(m.people);
     const unitNum = parseNumericPrice(m.unitPrice);
     if (unitNum > 0) p.setNum("E" + r, unitNum);            // 단가(1인)
