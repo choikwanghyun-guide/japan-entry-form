@@ -772,6 +772,10 @@ function detectColumns(rowCells) {
               && /영문/.test(c) && /성/.test(c) && !/성명/.test(c) && !/성별/.test(c)) colMap.lastName = idx;
           if (colMap.firstName === undefined && colMap.fullName === undefined
               && /영문/.test(c) && /이름/.test(c)) colMap.firstName = idx;
+          // 영어 헤더: Last/First/Surname/Given/Family Name → 성·이름 분리, Full/English/Romaji Name → 통합
+          if (colMap.lastName === undefined && colMap.fullName === undefined && (/last\s*name/i.test(c) || /surname/i.test(c) || /family\s*name/i.test(c))) colMap.lastName = idx;
+          if (colMap.firstName === undefined && colMap.fullName === undefined && (/first\s*name/i.test(c) || /given\s*name/i.test(c))) colMap.firstName = idx;
+          if (colMap.lastName === undefined && colMap.firstName === undefined && colMap.fullName === undefined && (/full\s*name/i.test(c) || /eng(?:lish)?\s*name/i.test(c) || /romaji/i.test(c))) colMap.fullName = idx;
           // 영문 통합 이름: '영문명(/)','영문명','영문성명' 등 (성/이름이 따로 안 잡혔을 때)
           if (colMap.lastName === undefined && colMap.firstName === undefined && colMap.fullName === undefined
               && /영문/.test(c) && (/(명|이름|성명)/.test(c) || /name/i.test(c))) colMap.fullName = idx;
@@ -2168,7 +2172,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0606_2057</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2034</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
