@@ -1126,7 +1126,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0021</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0141</span>
 </div>
 
 <script>
@@ -3093,7 +3093,7 @@ async function exportHanasaku(data, filename) {
 
   // 양식에 칸이 없어 누락된 항목 → 시트 맨 아래에 자동 추가
   const overflowItems = parseOverflowItems(overflow.map(s => "• " + s));
-  const appended = appendOverflowToPatcher(p, overflowItems, 100);
+  const appended = appendOverflowToPatcher(p, overflowItems, 51);   // 폼 바로 뒤(다음 페이지 첫 줄)부터
 
   // 패치된 sheet 다시 zip에
   zip.file(sheetPath, p.serialize());
@@ -3307,25 +3307,25 @@ function mapHanasakuCells(p, data) {
     }
   });
 
-  // ===== 일본 TAX (rows 30-32) — 지출금액만 (M에 직접) =====
+  // ===== 일본 TAX (rows 30-32, M=지출금액) — 세금 항목만 (라벨은 템플릿 유지) =====
+  const TAX_NAMES = ["출국세","부두세","터미널 Fee","터미널Fee","항만세","일본 항만세","유류세","일본 유류세"];
   const etcYenMapped = new Set();
   (data.ground.etcYen || []).forEach(e => {
     if (!e.item || (e.amount||0) <= 0) return;
     if (e.item === "출국세") {
       p.clearCell("K31"); p.clearCell("L31");
       p.setNum("M31", e.amount);
-      etcYenMapped.add("출국세");
-    } else if (e.item === "부두세" || e.item === "터미널 Fee" || e.item === "터미널Fee") {
-      if (e.item === "부두세") p.setStr("J30", "부두세");
+      etcYenMapped.add(e.item);
+    } else if (["부두세","터미널 Fee","터미널Fee","항만세","일본 항만세"].includes(e.item)) {
       p.clearCell("K30"); p.clearCell("L30");
       p.setNum("M30", e.amount);
       etcYenMapped.add(e.item);
     }
   });
-  // 추가 etcYen → row 32
+  // 추가 세금 항목(유류세 등)만 row 32 로
   let taxExtraUsed = false;
   (data.ground.etcYen || []).forEach(e => {
-    if (!e.item || (e.amount||0) <= 0 || etcYenMapped.has(e.item)) return;
+    if (!e.item || (e.amount||0) <= 0 || etcYenMapped.has(e.item) || !TAX_NAMES.includes(e.item)) return;
     if (!taxExtraUsed) {
       p.setStr("J32", e.item);
       p.clearCell("K32"); p.clearCell("L32");
@@ -3333,8 +3333,23 @@ function mapHanasakuCells(p, data) {
       etcYenMapped.add(e.item);
       taxExtraUsed = true;
     } else {
-      overflow.push(`기타(엔/일본TAX) / ${e.item}: ¥${(e.amount||0).toLocaleString()} (행 부족)`);
+      overflow.push(`일본TAX / ${e.item}: ¥${(e.amount||0).toLocaleString()} (행 부족)`);
     }
+  });
+
+  // ===== 기타 블록 (rows 39-42: J=내역 / M=지출금액) — 세금 아닌 기타 항목 =====
+  const ETC_BLOCK_ROWS = [39, 40, 41, 42];
+  let etcBlockIdx = 0;
+  (data.ground.etcYen || []).forEach(e => {
+    if (!e.item || (e.amount||0) <= 0 || etcYenMapped.has(e.item)) return;
+    if (etcBlockIdx >= ETC_BLOCK_ROWS.length) {
+      overflow.push(`기타 / ${e.item}: ¥${(e.amount||0).toLocaleString()} (기타 행 부족)`);
+      return;
+    }
+    const r = ETC_BLOCK_ROWS[etcBlockIdx++];
+    p.setStr("J" + r, e.item);
+    p.setNum("M" + r, e.amount);
+    etcYenMapped.add(e.item);
   });
 
   // ===== 원화 항목 — 양식에 자리 없음 =====
