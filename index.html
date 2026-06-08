@@ -2114,7 +2114,8 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
       __sent[sig]=Date.now(); __reported[sig]=true;
       try{ localStorage.setItem('guideAutoReportSent_v1', JSON.stringify(__sent)); }catch(e){}
       var rs=document.getElementById('revStamp');
-      var msg='[인식 실패 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
+      var label=(hasName && cm.passport!==undefined && cm.birth===undefined) ? '생년월일 미기재 (공란 출력)' : '인식 실패';
+      var msg='['+label+' 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
       submitToGoogleForm({ name:'⚙️자동보고', email:'', msg:msg });
     }catch(e){}
   };
@@ -2172,7 +2173,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2034</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2040</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
