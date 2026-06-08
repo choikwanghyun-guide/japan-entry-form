@@ -924,21 +924,21 @@
         <!-- TB 옵션 / SP -->
         <tr>
           <td class="lbl">계산옵션</td>
-          <td colspan="2">
+          <td class="yen-symbol"></td>
+          <td>
             <label class="tb-checkbox-wrap" style="white-space:nowrap;">
               <input type="checkbox" id="m-tb-use" onchange="recalcMemo()">
               <span>TB포함</span>
             </label>
-            <div class="formula-note" id="m-formula-note">엔잔액 = 엔화전도금 − 엔화지출금</div>
+            <div class="formula-note" id="m-formula-note" style="white-space:normal;">엔잔액 = 엔화전도금 − 엔화지출금</div>
           </td>
           <td class="lbl">SP</td>
           <td colspan="2"><input type="text" id="m-sp" placeholder="SP 메모"></td>
         </tr>
-        <!-- 초과식대 / TB (제일 하단) -->
+        <!-- 면세점 / TB (제일 하단) -->
         <tr>
-          <td class="lbl">초과식대</td>
-          <td class="yen-symbol">¥</td>
-          <td><input type="number" id="m-extra-meal" min="0" step="100" placeholder="0" oninput="recalcMemo()"></td>
+          <td class="lbl">면세점</td>
+          <td colspan="2"><input type="text" id="m-dutyfree" placeholder="면세점 이름 (안 가면: 노쇼핑)"></td>
           <td class="lbl">TB</td>
           <td class="yen-symbol" style="padding:0;">
             <select id="m-tb-currency" class="tb-cur-sel" onchange="onTbCurrencyChange()">
@@ -1126,7 +1126,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2306</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0005</span>
 </div>
 
 <script>
@@ -1608,7 +1608,8 @@ function recalcUnitPrices() {
       td.innerHTML = `<span style="color:#dc2626;">형식 오류</span>`;
     } else if (people > 0 && amount > 0) {
       const unit = Math.round(amount / people);
-      td.textContent = `¥${fmt(unit)} / 명 (${people}명)`;
+      td.textContent = fmt(unit);
+      td.title = `${people}명 기준 1인 단가`;
     } else {
       td.textContent = "";
     }
@@ -1835,7 +1836,7 @@ function collectTourEdits() {
 // 입력값 자동 저장/복원 (브라우저 localStorage)
 const SAVE_IDS = [
   "info-agency","info-group","info-date-start","info-date-end","info-people","info-host","info-guide",
-  "m-yen-advance","m-won-advance","m-extra-meal","m-tb","m-tb-currency","m-sp"
+  "m-yen-advance","m-won-advance","m-dutyfree","m-tb","m-tb-currency","m-sp"
 ];
 function saveAll() {
   const data = {};
@@ -2233,7 +2234,7 @@ function collectAllData() {
   const memo = {
     yenAdvance: Number(val("m-yen-advance")) || 0,
     wonAdvance: Number(val("m-won-advance")) || 0,
-    extraMeal:  Number(val("m-extra-meal")) || 0,
+    dutyFree:   (document.getElementById("m-dutyfree") ? document.getElementById("m-dutyfree").value.trim() : ""),
     tb:         Number(val("m-tb")) || 0,
     tbCurrency: document.getElementById("m-tb-currency").value,
     useTB:      document.getElementById("m-tb-use").checked,
@@ -2318,6 +2319,7 @@ async function mapJapanTravel(wb, data) {
   setCell(ws, "A2", "단체명 : " + (data.info.group || ""));
   setCell(ws, "A3", "행사기간 : " + (data.info.dateStart || "") + (data.info.dateEnd ? " ~ " + data.info.dateEnd : ""));
   setCell(ws, "A4", "인 원 : " + (data.info.people || ""));
+  setCell(ws, "C36", v(data.memo.dutyFree));   // 방문 면세점 (노쇼핑 또는 면세점 이름)
 
   // 일자별 데이터 매핑
   const hotelByDay  = {}; data.ground.hotel .forEach(c => { (hotelByDay [c.day] = hotelByDay [c.day] || []).push(c); });
@@ -2525,7 +2527,7 @@ async function mapItsumo(wb, data) {
   // ===== 메모 =====
   // M4(엔화지출금), M6(엔화노코리)는 템플릿 수식 유지
   setCell(ws, "M3", v(data.memo.yenAdvance, false));  // 엔화전도금
-  setCell(ws, "M5", v(data.memo.extraMeal, false));   // 초과식대
+  // (초과식대 칸은 더 이상 사용하지 않음 — M5 비움)
 
   // TB 표시 (M7:N7 merged)
   if (data.memo.useTB && (data.memo.tb||0) > 0) {
@@ -2766,7 +2768,7 @@ async function mapTcenter(wb, data) {
   setCell(ws, "N6", data.info.guide || "");
 
   // ===== 행 8: 면세점/투어피/기가팁/잔금(수식) =====
-  // 면세점은 우리 데이터에 없음
+  setCell(ws, "C8", v(data.memo.dutyFree));            // 면세점 (노쇼핑 또는 면세점 이름)
   setCell(ws, "G8", v(data.memo.yenAdvance, false));   // 투어피
   if (data.memo.useTB && data.memo.tbCurrency === "yen") {
     setCell(ws, "J8", v(data.memo.tb, false));         // 기가팁(엔)
@@ -3194,13 +3196,10 @@ function mapHanasakuCells(p, data) {
     p.setStr("C" + r, `${m._type}식 ${m.name||""}`.trim());
     const peopleNum = parsePersonCount(m.people);
     const unitNum = parseNumericPrice(m.unitPrice);
-    if (unitNum > 0 && peopleNum && peopleNum > 0) {
-      p.setNum("E" + r, unitNum);
-      p.setNum("F" + r, peopleNum);
-      p.setFormula("G" + r, `E${r}*F${r}`, m.amount || (unitNum * peopleNum));
-    } else if ((m.amount||0) > 0) {
-      p.setNum("G" + r, m.amount);
-    }
+    if (unitNum > 0) p.setNum("E" + r, unitNum);            // 단가(1인)
+    if (m.people) p.setStr("F" + r, String(m.people));      // 인원: 원문 그대로("13+1")
+    if ((m.amount || 0) > 0) p.setNum("G" + r, m.amount);   // 지출금액: 실제 금액(수식X → #VALUE! 방지)
+    else if (unitNum > 0 && peopleNum > 0) p.setNum("G" + r, unitNum * peopleNum);
   });
 
   // ===== 관광지 (rows 30-36, 7행) =====
@@ -3641,7 +3640,7 @@ function clearAllEntries() {
   });
 
   // 2. 메모 입력 초기화
-  ["m-yen-advance","m-won-advance","m-extra-meal","m-tb","m-sp"].forEach(id => {
+  ["m-yen-advance","m-won-advance","m-dutyfree","m-tb","m-sp"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
