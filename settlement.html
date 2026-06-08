@@ -1089,6 +1089,7 @@
         <option value="itsumo">이쯔모</option>
         <option value="tcenter">티센터</option>
         <option value="hanasaku">하나사쿠</option>
+        <option value="kta">KTA</option>
       </select>
       <button class="landsa-export-btn" onclick="exportSelectedLandsa(this)">🇯🇵 엑셀 내보내기</button>
     </div>
@@ -1126,7 +1127,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0141</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0235</span>
 </div>
 
 <script>
@@ -2926,6 +2927,126 @@ async function mapTcenter(wb, data) {
   }
 }
 
+// =====[ KTA 매핑 ]=====
+// sheet "정산서_251022" (인쇄영역 A1:P32). 템플릿에 현대차 샘플이 박혀 있어 데이터 영역을 먼저 비운다.
+//  상단(7-13): 일자별 HOTEL(B이름/C인원/F금액) + 중식(G/H/I/K) + 석식(L/M/N/P), 소계 F14/K14/P14
+//  하단(17-24): 通行料B 駐車料C 食事D お茶代E 宿泊代F | 観光地 G/H/I/K | GUIDE Fee L 食事N 通信費O 交通費P, 소계 B25:P25
+//  버스/가이드는 합계라 첫 하단행(17)에 컬럼별로 기재
+//  푸터: 行事費 N28(투어피), 기타 G/K(28-30), 支出 N29(수식), 殘高 N30(수식), 쇼핑장소(면세점) B31
+async function mapKta(wb, data) {
+  const ws = wb.getWorksheet("정산서_251022") || wb.worksheets[0];
+  const overflow = [];
+  const clr = (a) => { ws.getCell(a).value = null; };
+  const COLS = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"];
+
+  // 0) 샘플 잔여 데이터 비우기 (소계/수식 행 14·25·N29·N30, 라벨 행은 건드리지 않음)
+  for (let r = 7;  r <= 13; r++) COLS.forEach(c => clr(c + r));
+  for (let r = 17; r <= 24; r++) COLS.forEach(c => clr(c + r));
+  ["A4","F4","K4","N28","G28","G29","G30","K28","K29","K30","B28","B29","B30","B31","D31","H31"].forEach(clr);
+  for (let r = 6; r <= 18; r++) ["R","S","T","U","V"].forEach(c => clr(c + r));   // 우측 스크래치(인쇄영역 밖)
+
+  // 1) 헤더
+  setCell(ws, "A4", "■ 団体名 : " + (data.info.group || ""));
+  setCell(ws, "F4", "■ 人員 : " + (data.info.people ? data.info.people + "명" : ""));
+  setCell(ws, "K4", "■ GUIDE : " + (data.info.guide || ""));
+
+  // 일자별 그룹
+  const byDay = (arr) => { const m = {}; (arr||[]).forEach(c => { (m[c.day] = m[c.day] || []).push(c); }); return m; };
+  const hotelByDay = byDay(data.ground.hotel);
+  const lunchByDay = byDay(data.ground.lunch);
+  const dinnerByDay = byDay(data.ground.dinner);
+  const tourByDay = byDay(data.ground.tour);
+
+  // 2) 상단 블록 (7-13): 호텔 + 중식 + 석식
+  const TOP_ROWS = [7,8,9,10,11,12,13];
+  for (let d = 1; d <= 7; d++) {
+    const r = TOP_ROWS[d-1];
+    const H = hotelByDay[d] || [], L = lunchByDay[d] || [], D = dinnerByDay[d] || [];
+    if (!H.length && !L.length && !D.length) continue;
+    const ds = tcenterDate(data.info.dateStart, d); if (ds) setCell(ws, "A" + r, ds);
+    if (H.length) {
+      setCell(ws, "B" + r, v(H.map(h=>h.name).filter(Boolean).join(" / ")));
+      const p = H.map(h=>h.people).filter(Boolean).join(" / "); if (p) setCell(ws, "C" + r, p);
+      setCell(ws, "F" + r, v(H.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+    if (L.length) {
+      setCell(ws, "G" + r, v(L.map(h=>h.name).filter(Boolean).join(" / ")));
+      const p = L.map(h=>h.people).filter(Boolean).join(" / "); if (p) setCell(ws, "H" + r, p);
+      const u = L.map(h=>h.unitPrice).filter(Boolean).join(" / "); if (u) setCell(ws, "I" + r, u);
+      setCell(ws, "K" + r, v(L.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+    if (D.length) {
+      setCell(ws, "L" + r, v(D.map(h=>h.name).filter(Boolean).join(" / ")));
+      const p = D.map(h=>h.people).filter(Boolean).join(" / "); if (p) setCell(ws, "M" + r, p);
+      const u = D.map(h=>h.unitPrice).filter(Boolean).join(" / "); if (u) setCell(ws, "N" + r, u);
+      setCell(ws, "P" + r, v(D.reduce((s,h)=>s+(h.amount||0),0), false));
+    }
+  }
+  for (let d = 8; d <= 20; d++) {
+    (hotelByDay[d]||[]).forEach(h => overflow.push(`호텔(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+    (lunchByDay[d]||[]).forEach(h => overflow.push(`중식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+    (dinnerByDay[d]||[]).forEach(h => overflow.push(`석식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+  }
+
+  // 3) 하단 블록 (17-24): 관광지 일자순 → G/H/I/K
+  const BOT_ROWS = [17,18,19,20,21,22,23,24];
+  let bi = 0;
+  for (let d = 1; d <= 20; d++) {
+    (tourByDay[d]||[]).slice().sort((a,b)=>(a.slot||0)-(b.slot||0)).forEach(t => {
+      if (bi >= BOT_ROWS.length) { overflow.push(`관광지 / ${t.name||""}: ¥${(t.amount||0).toLocaleString()} (하단 행 부족)`); return; }
+      const r = BOT_ROWS[bi++];
+      const ds = tcenterDate(data.info.dateStart, d); if (ds) setCell(ws, "A" + r, ds);
+      setCell(ws, "G" + r, v(t.name));
+      if (t.people) setCell(ws, "H" + r, String(t.people));
+      if (t.unitPrice) setCell(ws, "I" + r, t.unitPrice);
+      setCell(ws, "K" + r, v(t.amount, false));
+    });
+  }
+
+  // 버스/가이드 합계 → 첫 하단행(17)에 컬럼별로 (소계 B25:P25 가 합산)
+  const busTotal = (n) => data.ground.bus.filter(b=>b.item===n).reduce((s,b)=>s+(b.amount||0),0);
+  const guideTotal = (n) => data.ground.guide.filter(g=>g.item===n).reduce((s,g)=>s+(g.amount||0),0);
+  const put17 = (col, amt) => { if (amt > 0) setCell(ws, col + "17", v(amt, false)); };
+  put17("B", busTotal("도로비") + busTotal("회송대"));         // 通行料
+  put17("C", busTotal("주차대"));                              // 駐車料
+  put17("D", busTotal("기사식대"));                            // 食事(D/V)
+  put17("E", busTotal("오차다이") + busTotal("오차대"));        // お茶代
+  put17("F", busTotal("기사 숙박") + busTotal("기사숙박"));     // 宿泊代
+  put17("L", guideTotal("출장비"));                            // GUIDE Fee
+  put17("N", guideTotal("식대"));                              // 食事(가이드)
+  put17("O", guideTotal("통신료"));                            // 通信費
+  put17("P", guideTotal("교통비") + busTotal("기사 교통비") + busTotal("기사교통비")); // 交通費
+  const busBi = busTotal("버스비") + busTotal("버스대") + busTotal("전세버스대");
+  if (busBi > 0) overflow.push(`버스비: ¥${busBi.toLocaleString()} (KTA 양식에 버스비 칸 없음)`);
+  const KTA_BUS = ["도로비","회송대","주차대","기사식대","오차다이","오차대","기사 숙박","기사숙박","기사 교통비","기사교통비","버스비","버스대","전세버스대"];
+  data.ground.bus.forEach(b => { if (b.item && (b.amount||0)>0 && !KTA_BUS.includes(b.item)) overflow.push(`${b.item}: ¥${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+  const KTA_GUIDE = ["출장비","식대","통신료","교통비"];
+  data.ground.guide.forEach(g => { if (g.item && (g.amount||0)>0 && !KTA_GUIDE.includes(g.item)) overflow.push(`가이드 / ${g.item}: ¥${(g.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+
+  // 4) 푸터
+  setCell(ws, "N28", v(data.memo.yenAdvance, false));   // 行事費 (투어피/전도금)
+  const ETC_ROWS = [28,29,30];
+  let ei = 0;
+  (data.ground.etcYen||[]).forEach(e => {
+    if (!e.item || (e.amount||0)<=0) return;
+    if (ei >= ETC_ROWS.length) { overflow.push(`기타 / ${e.item}: ¥${(e.amount||0).toLocaleString()} (기타 행 부족)`); return; }
+    const r = ETC_ROWS[ei++];
+    setCell(ws, "G" + r, v(e.item));
+    setCell(ws, "K" + r, v(e.amount, false));
+  });
+  setCell(ws, "B31", v(data.memo.dutyFree));   // 쇼핑장소 (면세점)
+  (data.ground.etc||[]).forEach(e => { if (e.item && (e.amount||0)>0) overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (KTA에 원화 칸 없음)`); });
+
+  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
+
+  if (overflow.length) {
+    alert("[KTA 양식에 자동 배치되지 못한 항목]\n" +
+          overflow.map(s => "  • " + s).join("\n") +
+          "\n\n→ 저장된 엑셀 하단에 자동 기재했습니다. 직접 위치를 조정해 주세요.");
+  }
+  return overflow;
+}
+
 // =====[ 하나사쿠 매핑 ]=====
 // Sheet "Sheet1 (2)" 사용 (실제 작업용 양식)
 //
@@ -3457,7 +3578,7 @@ async function exportToLandsa(landsaKey, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "변환중…";
 
-  const LANDSA_NAMES = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠" };
+  const LANDSA_NAMES = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠", kta: "KTA" };
   const landsaName = LANDSA_NAMES[landsaKey] || landsaKey;
   const _alert = window.alert;
   const captured = [];
@@ -3500,6 +3621,7 @@ async function exportToLandsa(landsaKey, btnEl) {
       case "japan_travel": await mapJapanTravel(wb, data); break;
       case "itsumo":       await mapItsumo(wb, data); break;
       case "tcenter":      await mapTcenter(wb, data); break;
+      case "kta":          await mapKta(wb, data); break;
     }
     window.alert = _alert;
 
