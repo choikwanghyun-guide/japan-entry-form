@@ -512,6 +512,81 @@
     opacity: 0.55;
     cursor: wait;
   }
+  /* 랜드사 드롭다운 + 내보내기 */
+  .landsa-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .landsa-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e3a8a;
+    background: #fff;
+    border: 1px solid #2563eb;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .landsa-export-btn {
+    padding: 10px 18px;
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .landsa-export-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+  .landsa-export-btn:disabled { opacity: 0.55; cursor: wait; }
+  /* 결과 박스 (팝업 대신 화면에 유지) */
+  .landsa-result {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .landsa-result .lr-head { font-weight: 800; color: #111827; margin-bottom: 6px; }
+  .landsa-result .lr-file { font-weight: 600; color: #6b7280; }
+  .landsa-result .lr-ok { color: #047857; font-weight: 700; }
+  .landsa-result .lr-warn { color: #b45309; font-weight: 800; margin: 8px 0 4px; }
+  .landsa-result .lr-pre {
+    white-space: pre-wrap;
+    background: #fff;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 4px 0;
+    font-family: inherit;
+    color: #374151;
+  }
+  .landsa-result .lr-note {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    color: #065f46;
+    font-weight: 600;
+  }
+  .landsa-result .lr-close {
+    margin-top: 10px;
+    padding: 6px 14px;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: pointer;
+  }
 
   /* 위험 영역 (전체 삭제) */
   .danger-zone {
@@ -1005,12 +1080,17 @@
       현재 입력된 데이터를 각 랜드사 정산서 양식에 맞게 자동으로 채워 새 엑셀 파일로 저장합니다.
       데이터가 없는 칸은 <b style="color:#dc2626;">빨간색 "확인"</b>으로 표시됩니다.
     </div>
-    <div class="landsa-buttons">
-      <button onclick="exportToLandsa('japan_travel', this)">🇯🇵 제펜트레블</button>
-      <button onclick="exportToLandsa('itsumo', this)">🇯🇵 이쯔모</button>
-      <button onclick="exportToLandsa('tcenter', this)">🇯🇵 티센터</button>
-      <button onclick="exportToLandsa('hanasaku', this)">🇯🇵 하나사쿠</button>
+    <div class="landsa-controls">
+      <select id="landsaSelect" class="landsa-select">
+        <option value="">랜드사 선택…</option>
+        <option value="japan_travel">제펜트레블</option>
+        <option value="itsumo">이쯔모</option>
+        <option value="tcenter">티센터</option>
+        <option value="hanasaku">하나사쿠</option>
+      </select>
+      <button class="landsa-export-btn" onclick="exportSelectedLandsa(this)">🇯🇵 엑셀 내보내기</button>
     </div>
+    <div id="landsaResult" class="landsa-result" style="display:none;"></div>
   </div>
 
   <!-- 전체 입력 항목 삭제 -->
@@ -1044,7 +1124,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2054</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2223</span>
 </div>
 
 <script>
@@ -2978,6 +3058,10 @@ async function exportHanasaku(data, filename) {
   // ===== 매핑 로직 =====
   const overflow = mapHanasakuCells(p, data);
 
+  // 양식에 칸이 없어 누락된 항목 → 시트 맨 아래에 자동 추가
+  const overflowItems = parseOverflowItems(overflow.map(s => "• " + s));
+  const appended = appendOverflowToPatcher(p, overflowItems, 100);
+
   // 패치된 sheet 다시 zip에
   zip.file(sheetPath, p.serialize());
 
@@ -3014,13 +3098,13 @@ async function exportHanasaku(data, filename) {
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
-  // 검증 알람
+  // 검증 알람 (가로채여 결과 박스로 표시됨)
   if (overflow.length > 0) {
     alert("⚠️ 양식에 자동 매핑되지 못한 항목 (하나사쿠)\n\n" +
           overflow.map(s => "  • " + s).join("\n") +
           "\n\n→ 저장된 엑셀을 열어 직접 추가/조정해 주세요.");
   }
-  return true;
+  return { ok: true, appended };
 }
 
 // 하나사쿠 셀 매핑 로직 (sheet patcher 사용)
@@ -3231,6 +3315,87 @@ function mapHanasakuCells(p, data) {
 }
 
 // 공통 내보내기 함수
+// ===== 공통: 미분류(양식에 칸 없는) 항목 처리 + 결과 표시 =====
+function escapeHtmlLite(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 경고 메시지(여러 줄)에서 "• 라벨: ¥금액" 형태의 미매핑 항목만 추출
+// (요약줄은 가운뎃점 '·', 항목줄은 불릿 '•' 으로 구분됨)
+function parseOverflowItems(messages) {
+  const items = [];
+  (messages || []).forEach(msg => {
+    String(msg).split("\n").forEach(line => {
+      if (line.indexOf("•") === -1) return;
+      const m = line.match(/•\s*(.+?):\s*([¥₩]?)\s*([\d,]+)/);
+      if (m) {
+        const amount = Number(m[3].replace(/,/g, "")) || 0;
+        if (amount > 0) items.push({ label: m[1].trim(), cur: m[2] || "", amount });
+      }
+    });
+  });
+  return items;
+}
+
+// ExcelJS 워크시트 맨 아래에 미분류 항목을 [라벨][금액] 줄로 추가
+function appendOverflowToWs(ws, items) {
+  if (!items || !items.length) return 0;
+  let lastRow = 1;
+  ws.eachRow({ includeEmpty: false }, (row, n) => { if (n > lastRow) lastRow = n; });
+  let r = lastRow + 2;
+  ws.getCell("A" + r).value = "■ 미분류 (양식에 칸 없음 — 위치 직접 조정)";
+  r++;
+  items.forEach(it => {
+    ws.getCell("A" + r).value = (it.cur ? it.cur + " " : "") + it.label;
+    ws.getCell("C" + r).value = it.amount;
+    r++;
+  });
+  return items.length;
+}
+
+// 하나사쿠(JSZip 패처) 맨 아래에 미분류 항목 추가
+function appendOverflowToPatcher(p, items, startRow) {
+  if (!items || !items.length) return 0;
+  let r = startRow || 100;
+  p.setStr("A" + r, "■ 미분류 (양식에 칸 없음 — 위치 직접 조정)");
+  r++;
+  items.forEach(it => {
+    p.setStr("A" + r, (it.cur ? it.cur + " " : "") + it.label);
+    p.setNum("C" + r, it.amount);
+    r++;
+  });
+  return items.length;
+}
+
+// 결과를 화면 박스에 표시 (팝업 대신 — 직접 닫을 때까지 유지)
+function renderLandsaResult(landsaName, captured, appendedCount, filename) {
+  const box = document.getElementById("landsaResult");
+  if (!box) return;
+  const warnText = (captured || []).join("\n\n").trim();
+  let html = `<div class="lr-head">📄 ${escapeHtmlLite(landsaName)} 내보내기 완료 &nbsp;<span class="lr-file">${escapeHtmlLite(filename)}</span></div>`;
+  if (warnText) {
+    html += `<div class="lr-warn">⚠️ 확인 필요</div>`;
+    html += `<div class="lr-pre">${escapeHtmlLite(warnText)}</div>`;
+    if (appendedCount > 0) {
+      html += `<div class="lr-note">↳ 위 미분류 ${appendedCount}건은 <b>엑셀 맨 아래에 "미분류" 줄로 자동 추가</b>해 뒀어요. 엑셀을 열어 알맞은 칸으로 옮겨 주세요.</div>`;
+    }
+  } else {
+    html += `<div class="lr-ok">✅ 모든 항목이 양식에 정상 매핑됐어요.</div>`;
+  }
+  html += `<button class="lr-close" onclick="this.parentElement.style.display='none'">닫기</button>`;
+  box.innerHTML = html;
+  box.style.display = "block";
+}
+
+// 드롭다운 선택 → 내보내기
+function exportSelectedLandsa(btnEl) {
+  const sel = document.getElementById("landsaSelect");
+  const key = sel ? sel.value : "";
+  if (!key) { alert("내보낼 랜드사를 먼저 선택해 주세요."); return; }
+  return exportToLandsa(key, btnEl);
+}
+
+// ===== 공통 내보내기 함수 =====
 async function exportToLandsa(landsaKey, btnEl) {
   if (typeof LANDSA_TEMPLATES === "undefined" || !LANDSA_TEMPLATES[landsaKey]) {
     alert("랜드사 양식 파일이 없습니다: " + landsaKey);
@@ -3241,16 +3406,26 @@ async function exportToLandsa(landsaKey, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "변환중…";
 
+  const LANDSA_NAMES = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠" };
+  const landsaName = LANDSA_NAMES[landsaKey] || landsaKey;
+  const _alert = window.alert;
+  const captured = [];
+  let appendedCount = 0;
+  let filename = `${landsaName}.xlsx`;
+
   try {
     const data = collectAllData();
     const today = new Date().toISOString().slice(0,10).replace(/-/g,"");
     const groupName = (data.info.group || "정산서").replace(/[\/\\:*?"<>|]/g, "");
-    const landsaName = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠" }[landsaKey];
-    const filename = `${landsaName}_${groupName}_${today}.xlsx`;
+    filename = `${landsaName}_${groupName}_${today}.xlsx`;
 
     // 하나사쿠는 JSZip 직접 패치 방식 (ExcelJS 우회 - styles 무손상)
     if (landsaKey === "hanasaku") {
-      await exportHanasaku(data, filename);
+      window.alert = (m) => captured.push(m);     // 경고 팝업 가로채기 → 결과 박스로
+      const res = await exportHanasaku(data, filename);
+      window.alert = _alert;
+      appendedCount = (res && typeof res.appended === "number") ? res.appended : parseOverflowItems(captured).length;
+      renderLandsaResult(landsaName, captured, appendedCount, filename);
       return;
     }
 
@@ -3268,12 +3443,18 @@ async function exportToLandsa(landsaKey, btnEl) {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buf.buffer);
 
-    // 랜드사별 매핑
+    // 매핑 중 발생하는 경고 팝업을 가로채 결과 박스로 모은다
+    window.alert = (m) => captured.push(m);
     switch (landsaKey) {
       case "japan_travel": await mapJapanTravel(wb, data); break;
       case "itsumo":       await mapItsumo(wb, data); break;
       case "tcenter":      await mapTcenter(wb, data); break;
     }
+    window.alert = _alert;
+
+    // 양식에 칸이 없어 누락된 항목 → 시트 맨 아래에 자동 추가
+    const overflowItems = parseOverflowItems(captured);
+    appendedCount = appendOverflowToWs(wb.worksheets[0], overflowItems);
 
     // 파일 저장 — File System Access API (가능하면) → 사용자가 위치 선택, 아니면 다운로드 폴더
     const out = await wb.xlsx.writeBuffer();
@@ -3307,10 +3488,14 @@ async function exportToLandsa(landsaKey, btnEl) {
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
+
+    renderLandsaResult(landsaName, captured, appendedCount, filename);
   } catch(e) {
+    window.alert = _alert;
     console.error(e);
     alert("내보내기 실패: " + e.message);
   } finally {
+    window.alert = _alert;
     btnEl.disabled = false;
     btnEl.textContent = originalText;
   }
