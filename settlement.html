@@ -1124,7 +1124,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2223</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2249</span>
 </div>
 
 <script>
@@ -2379,15 +2379,8 @@ async function mapJapanTravel(wb, data) {
 
   // 이미 매핑된 etcYen 항목들 (중복 카운트 방지용)
   const MAPPED_ETCYEN = ["부두세","출국세","일본 항만세","항만세","유류세","일본 유류세"];
-  // 아직 매핑 안 된 etcYen 항목 → L36 비고에 표시 + 1일차 누적
-  const otherEtc = data.ground.etcYen.filter(e => e.item && !MAPPED_ETCYEN.includes(e.item) && (e.amount||0) > 0);
-  let otherTotal = 0;
-  if (otherEtc.length > 0) {
-    const note = otherEtc.map(e => `${e.item}:¥${(e.amount||0).toLocaleString()}`).join(" / ");
-    setCell(ws, "L36", "기타(미매핑): " + note);
-    otherTotal = otherEtc.reduce((s,e)=>s+(e.amount||0),0);
-    addToDayTotal(1, otherTotal);
-  }
+  // 양식에 칸이 없는 etcYen 항목은 우측 메모(L36)에 쓰지 않는다.
+  // 아래 검증부에서 allUnmapped 에 모아 '하단 자동 기재 + 팝업'으로 처리.
 
   // 일자별 합계 (row 29) — SUM 수식으로 입력 (사용자가 셀 수정시 자동 재계산)
   // 행 7,9,11,13,15,17,18~27 (호텔비/중식비/석식비/입장료×3/버스/도로/전화/항만/유류/가이드식사/D식사/D팁/선물/금액)
@@ -2447,15 +2440,17 @@ async function mapJapanTravel(wb, data) {
   });
 
   const ETCYEN_MAPPED = ["부두세","출국세","일본 항만세","항만세","유류세","일본 유류세"];
+  const etcYenUnmapped = [];
   data.ground.etcYen.forEach(e => {
-    // 매핑된 항목은 B21/B22에, 미매핑은 L36에 들어감 — 둘 다 합계엔 포함됨
-    mappedSum += (e.amount || 0);
+    if (ETCYEN_MAPPED.includes(e.item)) mappedSum += (e.amount || 0);   // B21/B22 매핑됨
+    else if ((e.amount || 0) > 0) etcYenUnmapped.push(e);              // 칸 없음 → 하단 기재
   });
 
   const diff = grandTotal - mappedSum;
   const allUnmapped = [
-    ...busUnmapped.map(b => `버스 / ${b.item}: ¥${(b.amount||0).toLocaleString()}`),
-    ...guideUnmapped.map(g => `가이드 / ${g.item}: ¥${(g.amount||0).toLocaleString()}`)
+    ...busUnmapped.map(b => `${b.item}: ¥${(b.amount||0).toLocaleString()}`),
+    ...guideUnmapped.map(g => `${g.item}: ¥${(g.amount||0).toLocaleString()}`),
+    ...etcYenUnmapped.map(e => `${e.item}: ¥${(e.amount||0).toLocaleString()}`)
   ];
 
   if (Math.abs(diff) > 0.5 || allUnmapped.length > 0) {
@@ -3270,7 +3265,7 @@ function mapHanasakuCells(p, data) {
       p.setNum("M" + DV_ROW[item], amt);
       busMapped.add(item);
     } else {
-      overflow.push(`버스(미매핑) / ${item}: ¥${amt.toLocaleString()}`);
+      overflow.push(`${item}: ¥${amt.toLocaleString()} (양식에 없음)`);
     }
   });
 
@@ -3327,10 +3322,11 @@ function parseOverflowItems(messages) {
   (messages || []).forEach(msg => {
     String(msg).split("\n").forEach(line => {
       if (line.indexOf("•") === -1) return;
-      const m = line.match(/•\s*(.+?):\s*([¥₩]?)\s*([\d,]+)/);
+      const m = line.match(/•\s*(.+?)[:：]?\s*([¥₩])\s*([\d,]+)\s*(?:\(.*\))?\s*$/);
       if (m) {
         const amount = Number(m[3].replace(/,/g, "")) || 0;
-        if (amount > 0) items.push({ label: m[1].trim(), cur: m[2] || "", amount });
+        const label = m[1].trim().replace(/[:：]\s*$/, "");
+        if (amount > 0) items.push({ label, cur: m[2] || "", amount });
       }
     });
   });
@@ -3343,24 +3339,26 @@ function appendOverflowToWs(ws, items) {
   let lastRow = 1;
   ws.eachRow({ includeEmpty: false }, (row, n) => { if (n > lastRow) lastRow = n; });
   let r = lastRow + 2;
-  ws.getCell("A" + r).value = "■ 미분류 (양식에 칸 없음 — 위치 직접 조정)";
+  ws.getCell("A" + r).value = "■ 양식에 칸 없는 항목 (직접 배치)";
   r++;
   items.forEach(it => {
-    ws.getCell("A" + r).value = (it.cur ? it.cur + " " : "") + it.label;
+    ws.getCell("A" + r).value = it.label;
+    if (it.cur) ws.getCell("B" + r).value = it.cur;
     ws.getCell("C" + r).value = it.amount;
     r++;
   });
   return items.length;
 }
 
-// 하나사쿠(JSZip 패처) 맨 아래에 미분류 항목 추가
+// 하나사쿠(JSZip 패처) 맨 아래에 미배치 항목 추가
 function appendOverflowToPatcher(p, items, startRow) {
   if (!items || !items.length) return 0;
   let r = startRow || 100;
-  p.setStr("A" + r, "■ 미분류 (양식에 칸 없음 — 위치 직접 조정)");
+  p.setStr("A" + r, "■ 양식에 칸 없는 항목 (직접 배치)");
   r++;
   items.forEach(it => {
-    p.setStr("A" + r, (it.cur ? it.cur + " " : "") + it.label);
+    p.setStr("A" + r, it.label);
+    if (it.cur) p.setStr("B" + r, it.cur);
     p.setNum("C" + r, it.amount);
     r++;
   });
@@ -3425,7 +3423,7 @@ async function exportToLandsa(landsaKey, btnEl) {
       const res = await exportHanasaku(data, filename);
       window.alert = _alert;
       appendedCount = (res && typeof res.appended === "number") ? res.appended : parseOverflowItems(captured).length;
-      renderLandsaResult(landsaName, captured, appendedCount, filename);
+      if (captured.length) _alert(captured.join("\n\n"));   // 경고 팝업 (처음처럼)
       return;
     }
 
@@ -3455,6 +3453,9 @@ async function exportToLandsa(landsaKey, btnEl) {
     // 양식에 칸이 없어 누락된 항목 → 시트 맨 아래에 자동 추가
     const overflowItems = parseOverflowItems(captured);
     appendedCount = appendOverflowToWs(wb.worksheets[0], overflowItems);
+
+    // 경고 메시지 팝업 (처음처럼) — 저장 전에 먼저 표시
+    if (captured.length) _alert(captured.join("\n\n"));
 
     // 파일 저장 — File System Access API (가능하면) → 사용자가 위치 선택, 아니면 다운로드 폴더
     const out = await wb.xlsx.writeBuffer();
@@ -3489,7 +3490,6 @@ async function exportToLandsa(landsaKey, btnEl) {
       setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     }
 
-    renderLandsaResult(landsaName, captured, appendedCount, filename);
   } catch(e) {
     window.alert = _alert;
     console.error(e);
