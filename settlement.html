@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0609_2305"></script>
+<script src="landsa_templates.js?v=2026_0610_0053"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1040,19 +1040,22 @@
   <h3 class="section-title" style="margin-top:32px;">📎 영수증 첨부 (스캔/사진)</h3>
 
   <details class="api-settings" id="api-settings">
-    <summary>🤖 Claude API 자동 분석 설정 (선택 사항)</summary>
+    <summary>🤖 AI 자동 분석 설정 (선택 사항)</summary>
     <div class="api-body">
-      <label>Anthropic API 키 (sk-ant-...)</label>
-      <input type="password" id="api-key-input" placeholder="sk-ant-api-... (이 칸을 비우면 자동 분석 비활성)" autocomplete="off">
       <label>모델</label>
       <select id="api-model-input">
-        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (저렴, 영수증 1장 ~5원)</option>
-        <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 (정확, 영수증 1장 ~15원) — 추천</option>
+        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (추천 · 영수증 1장 ~2원)</option>
+        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (최저가 · ~0.5원, 깨끗한 영수증용)</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (~5원)</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (정확 · ~15원)</option>
       </select>
+      <label>API 키</label>
+      <input type="password" id="api-key-input" placeholder="이 칸을 비우면 자동 분석 비활성" autocomplete="off">
+      <div class="api-warning" id="api-keyhelp">
+        🔑 <b>Gemini 키 받는 법</b>: Google AI Studio(aistudio.google.com) 접속 → 구글 로그인 → 좌측 <b>"Get API key / API 키 만들기"</b> → 키 복사해서 위 칸에 붙여넣기 (무료 사용량 있음).
+      </div>
       <div class="api-warning">
-        ⚠️ API 키는 이 브라우저(localStorage)에만 저장되며 외부로 전송되지 않습니다.
-        단, HTML 파일을 다른 사람과 공유한다면 키도 함께 공유되니 주의하세요.
-        키를 빈 칸으로 만들면 자동 분석이 즉시 비활성화됩니다.
+        ⚠️ API 키는 이 브라우저(localStorage)에만 저장됩니다. HTML 파일을 남과 공유하면 키도 함께 넘어가니, 가이드마다 본인 키를 각자 넣게 하세요. 빈 칸으로 두면 자동 분석이 즉시 꺼집니다.
       </div>
       <div class="api-status" id="api-status">API 키 미설정 — 자동 분석 비활성</div>
     </div>
@@ -1131,7 +1134,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_2305</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_0053</span>
 </div>
 
 <script>
@@ -2148,15 +2151,21 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeReceiptModal({target: document.getElementById("receipt-modal")});
 });
 
-// ===== Claude API 자동 분석 =====
+// ===== AI 자동 분석 =====
+// 프록시(관리자 서버) 주소. 여기에 Cloudflare Worker 주소를 넣으면,
+// 가이드는 키 없이 이 서버로 분석합니다 (관리자 키는 서버에만 저장 → 노출 0).
+// 비워두면 각자 API 키를 넣는 기존 방식으로 동작합니다.
+const RECEIPT_PROXY_URL = "https://receipt-proxy.multichampnet.workers.dev";   // 관리자 서버(Cloudflare Worker)
+
 const apiKeyInput = document.getElementById("api-key-input");
 const apiModelInput = document.getElementById("api-model-input");
 const apiStatusEl = document.getElementById("api-status");
 
 // 저장된 키/모델 복원
 apiKeyInput.value = localStorage.getItem("apiKey") || "";
-apiModelInput.value = localStorage.getItem("apiModel") || "claude-sonnet-4-6";
+apiModelInput.value = localStorage.getItem("apiModel") || "gemini-2.5-flash";
 updateApiStatus();
+updateKeyHelp();
 
 apiKeyInput.addEventListener("input", () => {
   localStorage.setItem("apiKey", apiKeyInput.value);
@@ -2164,14 +2173,39 @@ apiKeyInput.addEventListener("input", () => {
 });
 apiModelInput.addEventListener("change", () => {
   localStorage.setItem("apiModel", apiModelInput.value);
+  updateApiStatus();
+  updateKeyHelp();
 });
+
+function isGeminiModel() { return apiModelInput.value.startsWith("gemini"); }
+
+function updateKeyHelp() {
+  const help = document.getElementById("api-keyhelp");
+  if (!help) return;
+  if (RECEIPT_PROXY_URL) {
+    help.innerHTML = '✅ 이 도구는 <b>관리자 서버</b>로 영수증을 분석합니다. <b>키를 넣을 필요가 없어요</b> — 바로 영수증을 올리고 🤖 분석을 누르세요.';
+  } else if (isGeminiModel()) {
+    help.innerHTML = '🔑 <b>Gemini 키 받는 법</b>: Google AI Studio(aistudio.google.com) 접속 → 구글 로그인 → 좌측 <b>"Get API key / API 키 만들기"</b> → 키 복사해서 위 칸에 붙여넣기 (무료 사용량 있음).';
+  } else {
+    help.innerHTML = '🔑 <b>Claude 키 받는 법</b>: console.anthropic.com 접속 → API Keys → 키 생성(sk-ant-…) → 위 칸에 붙여넣기 (결제 등록 필요).';
+  }
+}
 
 function updateApiStatus() {
   const key = apiKeyInput.value.trim();
+  const gem = isGeminiModel();
+  if (RECEIPT_PROXY_URL) {
+    apiStatusEl.textContent = "✓ 관리자 서버 연결됨 — 키 입력 불필요";
+    apiStatusEl.className = "api-status ok";
+    return;
+  }
   if (!key) {
     apiStatusEl.textContent = "API 키 미설정 — 자동 분석 비활성";
     apiStatusEl.className = "api-status";
-  } else if (!key.startsWith("sk-ant-")) {
+  } else if (gem && !key.startsWith("AIza")) {
+    apiStatusEl.textContent = "⚠ Google(Gemini) 키는 보통 AIza 로 시작합니다. 확인해 주세요.";
+    apiStatusEl.className = "api-status error";
+  } else if (!gem && !key.startsWith("sk-ant-")) {
     apiStatusEl.textContent = "⚠ Anthropic 키는 보통 sk-ant- 로 시작합니다. 확인해 주세요.";
     apiStatusEl.className = "api-status error";
   } else {
@@ -2182,8 +2216,8 @@ function updateApiStatus() {
 
 async function analyzeReceiptWithAI(id, btnEl) {
   const key = apiKeyInput.value.trim();
-  if (!key) {
-    alert("먼저 위쪽 'Claude API 자동 분석 설정'에서 API 키를 입력해 주세요.");
+  if (!RECEIPT_PROXY_URL && !key) {
+    alert("먼저 위쪽 'AI 자동 분석 설정'에서 API 키를 입력해 주세요.");
     document.getElementById("api-settings").open = true;
     return;
   }
@@ -2218,33 +2252,72 @@ async function analyzeReceiptWithAI(id, btnEl) {
       "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
       "JSON 외 다른 텍스트는 절대 출력하지 마세요.";
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        model: apiModelInput.value,
-        max_tokens: 512,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
-            { type: "text", text: prompt }
-          ]
-        }]
-      })
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`API 오류 (${res.status}): ${errText.slice(0, 200)}`);
+    let text = "";
+    const model = apiModelInput.value;
+    if (RECEIPT_PROXY_URL) {
+      // ===== 프록시(관리자 서버) — 가이드는 키 불필요, 관리자 키는 서버에만 =====
+      const res = await fetch(RECEIPT_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: model.startsWith("gemini") ? model : "gemini-2.5-flash",
+          mediaType, b64, prompt
+        })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`서버 오류 (${res.status}): ${errText.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      text = data.text || "";
+    } else if (model.startsWith("gemini")) {
+      // ===== Gemini (Google AI Studio) =====
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "x-goog-api-key": key, "content-type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [ { text: prompt }, { inline_data: { mime_type: mediaType, data: b64 } } ] }],
+          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 512 }
+        })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Gemini API 오류 (${res.status}): ${errText.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (data?.usageMetadata) console.log("Gemini usage:", data.usageMetadata);
+    } else {
+      // ===== Claude (Anthropic) =====
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 512,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`API 오류 (${res.status}): ${errText.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      text = data?.content?.[0]?.text || "";
+      if (data?.usage) console.log("Token usage:", data.usage);
     }
-    const data = await res.json();
-    const text = data?.content?.[0]?.text || "";
 
     // JSON 파싱 (모델이 코드블록으로 감싸도 처리)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -2261,12 +2334,6 @@ async function analyzeReceiptWithAI(id, btnEl) {
     saveUploadedReceipts();
     renderUploadedReceipts();
     recalcGround();
-
-    // 사용량 정보 (있으면)
-    const usage = data?.usage;
-    if (usage) {
-      console.log("Token usage:", usage);
-    }
   } catch(e) {
     alert("분석 실패: " + e.message);
     console.error(e);
