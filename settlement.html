@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0609_0945"></script>
+<script src="landsa_templates.js?v=2026_0609_1004"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1128,7 +1128,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0945</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_1004</span>
 </div>
 
 <script>
@@ -3078,115 +3078,106 @@ function jtpPeople(str) {
   }
   return { guest, guide, driver };
 }
-async function mapJtp(wb, data) {
-  const ws = wb.getWorksheet("가이드정산서 (부산팀)") || wb.worksheets[1] || wb.worksheets[0];
+// 부산팀 셀 패치 (JSZip 패처 p 사용) — ExcelJS 우회
+function mapJtpCells(p, data) {
   const overflow = [];
   const realItems = (arr) => (arr||[]).filter(x => (x.name && String(x.name).trim()) || (x.amount||0) > 0);
   const byDay = (arr) => { const m={}; realItems(arr).forEach(c=>{(m[c.day]=m[c.day]||[]).push(c);}); return m; };
+  const pStr = (a,s) => { if (s!==null&&s!==undefined&&String(s).trim()!=="") p.setStr(a, String(s)); };
+  const pNum = (a,n) => { n=Number(n); if (n) p.setNum(a, n); };
+  const pPeople = (a,val) => { if (val===null||val===undefined||String(val).trim()==="") return; const s=String(val).trim(); if (/^\d+$/.test(s)) p.setNum(a, Number(s)); else p.setStr(a, s); };
 
-  // 헤더
-  setCell(ws, "D3", v(data.info.group));
-  setCell(ws, "D4", v((data.info.dateStart||"") + (data.info.dateEnd ? " ~ " + data.info.dateEnd : "")));
-  ws.getCell("D6").value = data.info.people ? data.info.people : null;   // 손님 인원(템플릿 잔여 41 제거)
-  if (data.info.guide) setCell(ws, "M4", data.info.guide);
+  pStr("D3", data.info.group);
+  pStr("D4", (data.info.dateStart||"") + (data.info.dateEnd ? " ~ " + data.info.dateEnd : ""));
+  p.clearCell("D6"); pPeople("D6", data.info.people);
+  if (data.info.guide) pStr("M4", data.info.guide);
 
-  const hotelByDay = byDay(data.ground.hotel);
-  const lunchByDay = byDay(data.ground.lunch);
-  const dinnerByDay = byDay(data.ground.dinner);
-  const tourByDay = byDay(data.ground.tour);
+  const hotelByDay = byDay(data.ground.hotel), lunchByDay = byDay(data.ground.lunch),
+        dinnerByDay = byDay(data.ground.dinner), tourByDay = byDay(data.ground.tour);
 
-  // 좌측: 호텔 (10-15)
-  let hr = 10;
-  for (let d=1; d<=15; d++) (hotelByDay[d]||[]).forEach(h => {
-    if (hr > 15) { overflow.push(`호텔 / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (호텔 행 부족)`); return; }
-    setCell(ws, "A"+hr, jtpDate(data.info.dateStart, d)); setCell(ws, "B"+hr, v(h.name));
-    if (h.people) setCell(ws, "F"+hr, h.people);
-    setCell(ws, "I"+hr, v(h.amount, false)); hr++;
-  });
-  // 중식 (20-25)
-  let lr = 20;
-  for (let d=1; d<=15; d++) (lunchByDay[d]||[]).forEach(m => {
-    if (lr > 25) { overflow.push(`중식 / ${m.name||""}: ¥${(m.amount||0).toLocaleString()} (중식 행 부족)`); return; }
-    const pp = jtpPeople(m.people);
-    setCell(ws, "A"+lr, jtpDate(data.info.dateStart, d)); setCell(ws, "B"+lr, v(m.name));
-    if (pp.guest) setCell(ws, "F"+lr, pp.guest);
-    if (pp.guide) setCell(ws, "G"+lr, pp.guide);
-    if (pp.driver) setCell(ws, "H"+lr, pp.driver);
-    setCell(ws, "I"+lr, v(m.amount, false)); lr++;
-  });
-  // 석식 (30-35)
-  let er = 30;
-  for (let d=1; d<=15; d++) (dinnerByDay[d]||[]).forEach(m => {
-    if (er > 35) { overflow.push(`석식 / ${m.name||""}: ¥${(m.amount||0).toLocaleString()} (석식 행 부족)`); return; }
-    const pp = jtpPeople(m.people);
-    setCell(ws, "A"+er, jtpDate(data.info.dateStart, d)); setCell(ws, "B"+er, v(m.name));
-    if (pp.guest) setCell(ws, "F"+er, pp.guest);
-    if (pp.guide) setCell(ws, "G"+er, pp.guide);
-    if (pp.driver) setCell(ws, "H"+er, pp.driver);
-    setCell(ws, "I"+er, v(m.amount, false)); er++;
-  });
-  // 관광지 (39-43)
-  let trw = 39;
-  for (let d=1; d<=15; d++) (tourByDay[d]||[]).slice().sort((a,b)=>(a.slot||0)-(b.slot||0)).forEach(t => {
-    if (trw > 43) { overflow.push(`관광지 / ${t.name||""}: ¥${(t.amount||0).toLocaleString()} (관광지 행 부족)`); return; }
-    setCell(ws, "A"+trw, jtpDate(data.info.dateStart, d)); setCell(ws, "B"+trw, v(t.name));
-    if (t.people) setCell(ws, "F"+trw, t.people);
-    setCell(ws, "I"+trw, v(t.amount, false)); trw++;
-  });
+  let hr=10;
+  for (let d=1; d<=15; d++) (hotelByDay[d]||[]).forEach(h=>{
+    if (hr>15){ overflow.push(`호텔 / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (호텔 행 부족)`); return; }
+    pStr("A"+hr, jtpDate(data.info.dateStart,d)); pStr("B"+hr, h.name);
+    pPeople("F"+hr, h.people); pNum("I"+hr, h.amount); hr++; });
+  let lr=20;
+  for (let d=1; d<=15; d++) (lunchByDay[d]||[]).forEach(m=>{
+    if (lr>25){ overflow.push(`중식 / ${m.name||""}: ¥${(m.amount||0).toLocaleString()} (중식 행 부족)`); return; }
+    const pp=jtpPeople(m.people);
+    pStr("A"+lr, jtpDate(data.info.dateStart,d)); pStr("B"+lr, m.name);
+    pNum("F"+lr, pp.guest); pNum("G"+lr, pp.guide); pNum("H"+lr, pp.driver); pNum("I"+lr, m.amount); lr++; });
+  let drr=30;
+  for (let d=1; d<=15; d++) (dinnerByDay[d]||[]).forEach(m=>{
+    if (drr>35){ overflow.push(`석식 / ${m.name||""}: ¥${(m.amount||0).toLocaleString()} (석식 행 부족)`); return; }
+    const pp=jtpPeople(m.people);
+    pStr("A"+drr, jtpDate(data.info.dateStart,d)); pStr("B"+drr, m.name);
+    pNum("F"+drr, pp.guest); pNum("G"+drr, pp.guide); pNum("H"+drr, pp.driver); pNum("I"+drr, m.amount); drr++; });
+  let trw=39;
+  for (let d=1; d<=15; d++) (tourByDay[d]||[]).slice().sort((a,b)=>(a.slot||0)-(b.slot||0)).forEach(t=>{
+    if (trw>43){ overflow.push(`관광지 / ${t.name||""}: ¥${(t.amount||0).toLocaleString()} (관광지 행 부족)`); return; }
+    pStr("A"+trw, jtpDate(data.info.dateStart,d)); pStr("B"+trw, t.name);
+    pPeople("F"+trw, t.people); pNum("I"+trw, t.amount); trw++; });
 
-  // 우측: 버스/가이드 합계
-  const busTotal = (n) => data.ground.bus.filter(b=>b.item===n).reduce((s,b)=>s+(b.amount||0),0);
-  const guideTotal = (n) => data.ground.guide.filter(g=>g.item===n).reduce((s,g)=>s+(g.amount||0),0);
-  const busFare = busTotal("버스비")+busTotal("버스대")+busTotal("전세버스대");
-  const roadEtc = busTotal("도로비")+busTotal("주차대")+busTotal("회송대");
-  if (busFare > 0) setCell(ws, "M10", v(busFare, false));   // 버스비
-  if (roadEtc > 0) setCell(ws, "P10", v(roadEtc, false));   // 도로비/주차비/회송
-  const dvMeal = busTotal("기사식대");
-  const ochadai = busTotal("오차다이")+busTotal("오차대");
-  const taxiLodge = busTotal("기사 숙박")+busTotal("기사숙박")+busTotal("기사 교통비")+busTotal("기사교통비");
-  if (dvMeal > 0) setCell(ws, "M20", v(dvMeal, false));     // 기사식대
-  if (ochadai > 0) setCell(ws, "P20", v(ochadai, false));   // 오차다이
-  if (taxiLodge > 0) setCell(ws, "R20", v(taxiLodge, false)); // 택시비+숙박
-  if (guideTotal("출장비") > 0) setCell(ws, "R28", v(guideTotal("출장비"), false));  // 일비
-  if (guideTotal("통신료") > 0) setCell(ws, "R30", v(guideTotal("통신료"), false));  // 통신비
-  if (guideTotal("식대") > 0)  setCell(ws, "R31", v(guideTotal("식대"), false));    // 가이드 식대
-  // etcYen → 가이드+기타: 부두세 R33 / 출국세 R34 / 화과자 R35(지정), 그 외 기타는 빈 행(32~35) 순서대로
-  const etcUsed = new Set();
-  const placeEtc = (amt, row, label) => { if (label) setCell(ws, "M"+row, v(label)); setCell(ws, "R"+row, v(amt, false)); etcUsed.add(row); };
-  const isNamed = (n) => n === "부두세" || n === "출국세" || /화과자|시로이|코이비토/.test(n);
-  (data.ground.etcYen||[]).forEach(e => {
-    if (!e.item || (e.amount||0)<=0) return;
-    if (e.item === "부두세" && !etcUsed.has("33")) placeEtc(e.amount, "33", null);          // M33 라벨 '부두세' 유지
-    else if (e.item === "출국세" && !etcUsed.has("34")) placeEtc(e.amount, "34", null);      // M34 '출국세'
-    else if (/화과자|시로이|코이비토/.test(e.item) && !etcUsed.has("35")) placeEtc(e.amount, "35", e.item);
-  });
-  const freeEtcRows = ["32","33","34","35"].filter(r => !etcUsed.has(r));
-  let fei = 0;
-  (data.ground.etcYen||[]).forEach(e => {
-    if (!e.item || (e.amount||0)<=0 || isNamed(e.item)) return;
-    if (fei < freeEtcRows.length) placeEtc(e.amount, freeEtcRows[fei++], e.item);
-    else overflow.push(`기타 / ${e.item}: ¥${(e.amount||0).toLocaleString()} (기타 행 부족)`);
-  });
+  const busTotal=(n)=>data.ground.bus.filter(b=>b.item===n).reduce((s,b)=>s+(b.amount||0),0);
+  const guideTotal=(n)=>data.ground.guide.filter(g=>g.item===n).reduce((s,g)=>s+(g.amount||0),0);
+  pNum("M10", busTotal("버스비")+busTotal("버스대")+busTotal("전세버스대"));
+  pNum("P10", busTotal("도로비")+busTotal("주차대")+busTotal("회송대"));
+  pNum("M20", busTotal("기사식대"));
+  pNum("P20", busTotal("오차다이")+busTotal("오차대"));
+  pNum("R20", busTotal("기사 숙박")+busTotal("기사숙박")+busTotal("기사 교통비")+busTotal("기사교통비"));
+  pNum("R28", guideTotal("출장비"));
+  pNum("R30", guideTotal("통신료"));
+  pNum("R31", guideTotal("식대"));
+  const etcUsed=new Set();
+  const placeEtc=(amt,row,label)=>{ if(label) pStr("M"+row,label); pNum("R"+row,amt); etcUsed.add(row); };
+  const isNamed=(n)=> n==="부두세"||n==="출국세"||/화과자|시로이|코이비토/.test(n);
+  (data.ground.etcYen||[]).forEach(e=>{ if(!e.item||(e.amount||0)<=0)return;
+    if(e.item==="부두세"&&!etcUsed.has("33")) placeEtc(e.amount,"33",null);
+    else if(e.item==="출국세"&&!etcUsed.has("34")) placeEtc(e.amount,"34",null);
+    else if(/화과자|시로이|코이비토/.test(e.item)&&!etcUsed.has("35")) placeEtc(e.amount,"35",e.item); });
+  const freeEtcRows=["32","33","34","35"].filter(r=>!etcUsed.has(r)); let fei=0;
+  (data.ground.etcYen||[]).forEach(e=>{ if(!e.item||(e.amount||0)<=0||isNamed(e.item))return;
+    if(fei<freeEtcRows.length) placeEtc(e.amount, freeEtcRows[fei++], e.item);
+    else overflow.push(`기타 / ${e.item}: ¥${(e.amount||0).toLocaleString()} (기타 행 부족)`); });
 
-  // 미매핑 → 넘침
-  const JTP_BUS = ["버스비","버스대","전세버스대","도로비","주차대","회송대","기사식대","오차다이","오차대","기사 숙박","기사숙박","기사 교통비","기사교통비"];
-  data.ground.bus.forEach(b => { if (b.item && (b.amount||0)>0 && !JTP_BUS.includes(b.item)) overflow.push(`${b.item}: ¥${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
-  const JTP_GUIDE = ["출장비","통신료","식대"];
-  data.ground.guide.forEach(g => { if (g.item && (g.amount||0)>0 && !JTP_GUIDE.includes(g.item)) overflow.push(`가이드 / ${g.item}: ¥${(g.amount||0).toLocaleString()} (양식에 칸 없음)`); });
-  (data.ground.etc||[]).forEach(e => { if (e.item && (e.amount||0)>0) overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (JTP에 원화 칸 없음)`); });
+  const JTP_BUS=["버스비","버스대","전세버스대","도로비","주차대","회송대","기사식대","오차다이","오차대","기사 숙박","기사숙박","기사 교통비","기사교통비"];
+  data.ground.bus.forEach(b=>{ if(b.item&&(b.amount||0)>0&&!JTP_BUS.includes(b.item)) overflow.push(`${b.item}: ¥${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+  const JTP_GUIDE=["출장비","통신료","식대"];
+  data.ground.guide.forEach(g=>{ if(g.item&&(g.amount||0)>0&&!JTP_GUIDE.includes(g.item)) overflow.push(`가이드 / ${g.item}: ¥${(g.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+  (data.ground.etc||[]).forEach(e=>{ if(e.item&&(e.amount||0)>0) overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (JTP에 원화 칸 없음)`); });
 
-  // 준비금(투어피) C45
-  setCell(ws, "C45", v(data.memo.yenAdvance, false));
-
-  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
-
-  if (overflow.length) {
-    alert("[JTP 양식에 자동 배치되지 못한 항목]\n" + overflow.map(s=>"  • "+s).join("\n") +
-          "\n\n→ 저장된 엑셀 하단에 자동 기재했습니다. 직접 위치를 조정해 주세요.");
-  }
+  pNum("C45", data.memo.yenAdvance);
   return overflow;
 }
 
+// JTP 내보내기 - JSZip + DOM 직접 패치 (부산팀 = sheet2.xml). 로고·외부링크·calcChain 보존
+async function exportJtp(data, filename) {
+  if (typeof JSZip === "undefined") { alert("JSZip 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요."); return false; }
+  const bin = atob(LANDSA_TEMPLATES.jtp);
+  const buf = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+  const zip = await JSZip.loadAsync(buf.buffer);
+  const sheetPath = 'xl/worksheets/sheet2.xml';
+  const sheetXml = await zip.file(sheetPath).async('string');
+  const p = makeHanasakuPatcher(sheetXml);
+  const overflow = mapJtpCells(p, data);
+  const overflowItems = parseOverflowItems(overflow.map(s => "• " + s));
+  const appended = appendOverflowToPatcher(p, overflowItems, 50);
+  zip.file(sheetPath, p.serialize());
+  const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  let saved=false;
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({ suggestedName: filename, types:[{description:"Excel 파일", accept:{"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":[".xlsx"]}}] });
+      const w = await handle.createWritable(); await w.write(blob); await w.close(); saved=true;
+    } catch(e){ if (e.name!=="AbortError") console.warn("저장 위치 선택 실패:", e); }
+  }
+  if (!saved) { const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),5000); }
+  if (overflow.length > 0) {
+    alert("[JTP 양식에 자동 배치되지 못한 항목]\n" + overflow.map(s=>"  • "+s).join("\n") + "\n\n→ 저장된 엑셀 하단에 자동 기재했습니다. 직접 위치를 조정해 주세요.");
+  }
+  return { ok:true, appended };
+}
 // =====[ 하나사쿠 매핑 ]=====
 // Sheet "Sheet1 (2)" 사용 (실제 작업용 양식)
 //
@@ -3731,10 +3722,10 @@ async function exportToLandsa(landsaKey, btnEl) {
     const groupName = (data.info.group || "정산서").replace(/[\/\\:*?"<>|]/g, "");
     filename = `${landsaName}_${groupName}_${today}.xlsx`;
 
-    // 하나사쿠는 JSZip 직접 패치 방식 (ExcelJS 우회 - styles 무손상)
-    if (landsaKey === "hanasaku") {
+    // 하나사쿠·JTP는 JSZip 직접 패치 방식 (ExcelJS 우회 - styles/로고/외부링크 무손상)
+    if (landsaKey === "hanasaku" || landsaKey === "jtp") {
       window.alert = (m) => captured.push(m);     // 경고 팝업 가로채기 → 결과 박스로
-      const res = await exportHanasaku(data, filename);
+      const res = (landsaKey === "jtp") ? await exportJtp(data, filename) : await exportHanasaku(data, filename);
       window.alert = _alert;
       appendedCount = (res && typeof res.appended === "number") ? res.appended : parseOverflowItems(captured).length;
       if (captured.length) _alert(captured.join("\n\n"));   // 경고 팝업 (처음처럼)
@@ -3762,7 +3753,6 @@ async function exportToLandsa(landsaKey, btnEl) {
       case "itsumo":       await mapItsumo(wb, data); break;
       case "tcenter":      await mapTcenter(wb, data); break;
       case "kta":          await mapKta(wb, data); break;
-      case "jtp":          await mapJtp(wb, data); break;
     }
     window.alert = _alert;
 
