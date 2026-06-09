@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0609_1537"></script>
+<script src="landsa_templates.js?v=2026_0609_1554"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1092,6 +1092,7 @@
         <option value="kta">KTA</option>
         <option value="jtp">JTP (부산팀)</option>
         <option value="geukdong">극동</option>
+        <option value="landjapan">랜드제팬</option>
       </select>
       <button class="landsa-export-btn" onclick="exportSelectedLandsa(this)">🇯🇵 엑셀 내보내기</button>
     </div>
@@ -1129,7 +1130,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_1537</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_1554</span>
 </div>
 
 <script>
@@ -3316,6 +3317,106 @@ async function mapGeukdong(wb, data) {
   return overflow;
 }
 
+
+// =====[ 랜드제팬 (소망여행사 가이드정산서) 매핑 ]=====
+// 시트 "Sheet1 (2)". 좌측: 호텔(6-11) 식사(14-24) 관광(27-34) 가이드(37-40 고정: 일당/통신비/식사비/교통비)
+//   좌측 데이터행: B월/일, C명칭, F인원, H지출금액. 소계 G12/G25/G35/G41.
+// 우측: 회송대(6-11) TIP·식사·숙박(14-16) 도로&주차(19-24) 열차&교통(27-30) 공항세(32-34) 기타(36-40)
+//   우측: K월/일 or 항목, L지역/내역, O지출금액. 소계 O12/O17/O25/O31/O35/O41.
+// 하단: D43 전도금, D46 지출총액(수식), D47 잔액(수식). 버스대 칸 없음 → 도로&주차에 라인으로.
+async function mapLandJapan(wb, data) {
+  const ws = wb.getWorksheet("Sheet1 (2)") || wb.worksheets[0];
+  const overflow = [];
+  const realItems = (arr) => (arr||[]).filter(x => (x.name && String(x.name).trim()) || (x.amount||0) > 0);
+  const busTotal = (n) => data.ground.bus.filter(b=>b.item===n).reduce((s,b)=>s+(b.amount||0),0);
+  const guideTotal = (n) => data.ground.guide.filter(g=>g.item===n).reduce((s,g)=>s+(g.amount||0),0);
+  const mdDate = (day) => { const s=data.info.dateStart; if(!s||!day) return ""; const d=new Date(s); d.setDate(d.getDate()+(Number(day)-1)); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const yymmdd = (iso) => { if(!iso) return ""; const d=new Date(iso); return `${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`; };
+  const setO = (addr, amt) => { if (amt > 0) setCell(ws, addr, v(amt, false)); };
+
+  // 헤더 (잔여 샘플 제거 후 채움)
+  ["D4","H4","L4","O4"].forEach(a => { ws.getCell(a).value = null; });
+  setCell(ws, "D4", v(data.info.agency || data.info.group));
+  setCell(ws, "H4", v(data.info.people));
+  setCell(ws, "L4", v((yymmdd(data.info.dateStart)||"") + (data.info.dateEnd ? " ~ " + yymmdd(data.info.dateEnd) : "")));
+  if (data.info.guide) setCell(ws, "O4", data.info.guide);
+
+  // 좌측 호텔 6-11
+  let hr=6;
+  realItems(data.ground.hotel).sort((a,b)=>(a.day-b.day)).forEach(h=>{
+    if (hr>11){ overflow.push(`호텔 / ${h.name||""}: \u00a5${(h.amount||0).toLocaleString()} (호텔 행 부족)`); return; }
+    setCell(ws,"B"+hr, mdDate(h.day)); setCell(ws,"C"+hr, v(h.name));
+    if (h.people) setCell(ws,"F"+hr, h.people); setCell(ws,"H"+hr, v(h.amount,false)); hr++;
+  });
+  // 좌측 식사 14-24 (중식+석식)
+  const meals=[...realItems(data.ground.lunch),...realItems(data.ground.dinner)].sort((a,b)=>(a.day-b.day)||((a.slot||0)-(b.slot||0)));
+  let fr=14;
+  meals.forEach(m=>{
+    if (fr>24){ overflow.push(`식사 / ${m.name||""}: \u00a5${(m.amount||0).toLocaleString()} (식사 행 부족)`); return; }
+    setCell(ws,"B"+fr, mdDate(m.day)); setCell(ws,"C"+fr, v(m.name));
+    if (m.people) setCell(ws,"F"+fr, m.people); setCell(ws,"H"+fr, v(m.amount,false)); fr++;
+  });
+  // 좌측 관광 27-34
+  let tr=27;
+  realItems(data.ground.tour).sort((a,b)=>(a.day-b.day)||((a.slot||0)-(b.slot||0))).forEach(t=>{
+    if (tr>34){ overflow.push(`관광 / ${t.name||""}: \u00a5${(t.amount||0).toLocaleString()} (관광 행 부족)`); return; }
+    setCell(ws,"B"+tr, mdDate(t.day)); setCell(ws,"C"+tr, v(t.name));
+    if (t.people) setCell(ws,"F"+tr, t.people); setCell(ws,"H"+tr, v(t.amount,false)); tr++;
+  });
+  // 좌측 가이드 37-40 (고정 라벨)
+  setO("H37", guideTotal("출장비")+guideTotal("일당"));   // 일당
+  setO("H38", guideTotal("통신료"));                       // 통신비
+  setO("H39", guideTotal("식대"));                         // 식사비
+  setO("H40", guideTotal("교통비"));                       // 교통비
+
+  // 우측 회송대 6
+  if (busTotal("회송대")>0){ setCell(ws,"L6","회송대"); setO("O6", busTotal("회송대")); }
+  // 우측 TIP/식사/숙박 14-16 (기사 관련)
+  setO("O14", busTotal("오차다이")+busTotal("오차대"));    // TIP
+  setO("O15", busTotal("기사식대"));                        // 식사
+  setO("O16", busTotal("기사 숙박")+busTotal("기사숙박"));  // 숙박
+  // 우측 도로&주차 19-24 (도로비/주차대/버스비)
+  let rr=19;
+  [["도로비",busTotal("도로비")+busTotal("고속대")],["주차대",busTotal("주차대")],
+   ["버스비",busTotal("버스비")+busTotal("버스대")+busTotal("전세버스대")]].forEach(([nm,amt])=>{
+    if (amt>0 && rr<=24){ setCell(ws,"L"+rr,nm); setO("O"+rr,amt); rr++; }
+  });
+  // 우측 열차&교통 27 (기사 교통비)
+  const taxi=busTotal("기사 교통비")+busTotal("기사교통비");
+  if (taxi>0){ setCell(ws,"L27","기사 교통비"); setO("O27", taxi); }
+  // 우측 공항세 32-34 (출국세/부두세)
+  let apr=32;
+  realItems(data.ground.etcYen).filter(e=>/출국세|부두세|공항/.test(e.item)).forEach(e=>{
+    if (apr>34) return; setCell(ws,"K"+apr, v(e.item)); setO("O"+apr, e.amount); apr++;
+  });
+  // 우측 기타 36-40 (그 외 etcYen)
+  let xr=36;
+  realItems(data.ground.etcYen).filter(e=>!/출국세|부두세|공항/.test(e.item)).forEach(e=>{
+    if (xr>40){ overflow.push(`기타 / ${e.item}: \u00a5${(e.amount||0).toLocaleString()} (기타 행 부족)`); return; }
+    setCell(ws,"K"+xr, v(e.item)); setO("O"+xr, e.amount); xr++;
+  });
+
+  // 전도금
+  setCell(ws,"D43", v(data.memo.yenAdvance, false));
+
+  // 누락 소계 수식 보강 (양식 결함 → D46 합계에 호텔/열차/공항세 포함되도록)
+  ws.getCell("G12").value = { formula: "SUM(H6:I11)" };
+  ws.getCell("O31").value = { formula: "SUM(O27:O30)" };
+  ws.getCell("O35").value = { formula: "SUM(O32:O34)" };
+
+  // 미매핑
+  realItems(data.ground.bus).forEach(b=>{ const known=["회송대","오차다이","오차대","기사식대","기사 숙박","기사숙박","도로비","고속대","주차대","버스비","버스대","전세버스대","기사 교통비","기사교통비"]; if(b.item&&(b.amount||0)>0&&!known.includes(b.item)) overflow.push(`${b.item}: \u00a5${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+  realItems(data.ground.guide).forEach(g=>{ const known=["출장비","일당","통신료","식대","교통비"]; if(g.item&&(g.amount||0)>0&&!known.includes(g.item)) overflow.push(`가이드 / ${g.item}: \u00a5${(g.amount||0).toLocaleString()} (양식에 칸 없음)`); });
+  (data.ground.etc||[]).forEach(e=>{ if(e.item&&(e.amount||0)>0) overflow.push(`원화 / ${e.item}: \u20a9${(e.amount||0).toLocaleString()} (랜드제팬은 엔화 양식)`); });
+
+  if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
+  if (overflow.length) {
+    alert("[랜드제팬 양식에 자동 배치되지 못한 항목]\n" + overflow.map(s=>"  • "+s).join("\n") +
+          "\n\n→ 저장된 엑셀 하단에 자동 기재했습니다. 직접 위치를 조정해 주세요.");
+  }
+  return overflow;
+}
+
 // =====[ 하나사쿠 매핑 ]=====
 // Sheet "Sheet1 (2)" 사용 (실제 작업용 양식)
 //
@@ -3847,7 +3948,7 @@ async function exportToLandsa(landsaKey, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "변환중…";
 
-  const LANDSA_NAMES = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠", kta: "KTA", jtp: "JTP", geukdong: "극동" };
+  const LANDSA_NAMES = { japan_travel: "제펜트레블", itsumo: "이쯔모", tcenter: "티센터", hanasaku: "하나사쿠", kta: "KTA", jtp: "JTP", geukdong: "극동", landjapan: "랜드제팬" };
   const landsaName = LANDSA_NAMES[landsaKey] || landsaKey;
   const _alert = window.alert;
   const captured = [];
@@ -3892,6 +3993,7 @@ async function exportToLandsa(landsaKey, btnEl) {
       case "tcenter":      await mapTcenter(wb, data); break;
       case "kta":          await mapKta(wb, data); break;
       case "geukdong":     await mapGeukdong(wb, data); break;
+      case "landjapan":    await mapLandJapan(wb, data); break;
     }
     window.alert = _alert;
 
