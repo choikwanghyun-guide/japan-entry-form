@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_0820"></script>
+<script src="landsa_templates.js?v=2026_0610_0825"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1147,7 +1147,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_0820</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_0825</span>
 </div>
 
 <script>
@@ -2275,6 +2275,7 @@ async function analyzeReceiptWithAI(id, btnEl) {
       "우선순위 규칙: 포스트잇에 손글씨 금액 > 볼펜으로 V 체크된 금액 > 인쇄된 금액. 가장 높은 우선순위 금액을 amount에 넣어주세요.\n" +
       "카테고리 판단: 영수증 상단/주변에 손글씨로 적힌 텍스트(예: '호텔비', '식대', '기사식대', '오차대', '출국세')가 있으면 그것을 우선 참고하세요.\n" +
       "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
+      "여러 항목이 있더라도 반드시 JSON 객체 하나로만 답하고, 배열([ ])로 감싸지 마세요.\n" +
       "JSON 외 다른 텍스트는 절대 출력하지 마세요.";
 
     let text = "";
@@ -2344,10 +2345,17 @@ async function analyzeReceiptWithAI(id, btnEl) {
       if (data?.usage) console.log("Token usage:", data.usage);
     }
 
-    // JSON 파싱 (모델이 코드블록으로 감싸도 처리)
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("응답에서 JSON을 찾지 못했습니다.\n" + text);
-    const parsed = JSON.parse(jsonMatch[0]);
+    // JSON 파싱 (코드블록/배열/객체 모두 처리)
+    let raw = (text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      const m = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      if (!m) throw new Error("응답에서 JSON을 찾지 못했습니다.\n" + (text || "").slice(0, 300));
+      parsed = JSON.parse(m[0]);
+    }
+    if (Array.isArray(parsed)) parsed = parsed[0] || {};
 
     // 결과 반영
     if (parsed.date) item.date = parsed.date;
