@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0609_1023"></script>
+<script src="landsa_templates.js?v=2026_0609_1537"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1129,7 +1129,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_1023</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_1537</span>
 </div>
 
 <script>
@@ -1688,6 +1688,7 @@ function fullRender() {
   const yenSpent = renderGroundTable() + sumUploadedByCurrency("yen");
   const wonSpent = renderEtcTable() + sumUploadedByCurrency("won");
   updateMemoFromTotal(yenSpent, wonSpent);
+  saveGroundDebounced();
 }
 
 // 기타경비(원화) 표 렌더링
@@ -1853,6 +1854,63 @@ function loadAll() {
     SAVE_IDS.forEach(id => { if (data[id] !== undefined) document.getElementById(id).value = data[id]; });
     if (data["m-tb-use"]) document.getElementById("m-tb-use").checked = true;
   } catch(e) {}
+}
+
+
+// ===== 지상비/기타경비 표 자동 저장·복원 (localStorage) =====
+// receipts(불러오기 시드)만으론 사용자 편집이 안 남으므로, 현재 표(DOM)를 읽어 receipts 형태로 저장.
+const GROUND_KEY = "guideGroundSnapshot";
+let _groundReady = false;
+let _groundSaveTimer = null;
+
+// collectAllData().ground(배열형) → receipts 형태로 변환
+function groundToReceipts(ground, start) {
+  const out = { hotel:[], lunch:[], dinner:[], tour:[], bus:{}, guide:{}, etcYen:{}, etc:{} };
+  ["hotel","lunch","dinner","tour"].forEach(sec => {
+    (ground[sec]||[]).forEach(it => {
+      const name=(it.name||"").trim(), people=(it.people||"").trim(), cond=(it.condition||"").trim();
+      const amt=Number(it.amount)||0;
+      if (!name && !people && !cond && !amt) return;
+      out[sec].push({
+        date: start ? addDaysISO(start, (Number(it.day)||1)-1) : "",
+        slot: Number(it.slot)||1,
+        name: it.name||"", condition: it.condition||"", people: it.people||"", unitPrice: it.unitPrice||"",
+        amount_postit:null, amount_v_mark:null, amount_printed: amt||null, file:""
+      });
+    });
+  });
+  ["bus","guide","etcYen","etc"].forEach(sec => {
+    (ground[sec]||[]).forEach(it => {
+      const key=(it.item||it.extraName||"").trim();
+      if (!key) return;
+      const amt=Number(it.amount)||0;
+      if (!amt && !(it.note||"").trim()) return;
+      out[sec][key] = { unitPrice: it.unitPrice||"", note: it.note||"",
+        amount_postit:null, amount_v_mark:null, amount_printed: amt||null, file:"" };
+    });
+  });
+  return out;
+}
+function saveGround() {
+  if (!_groundReady) return;
+  try {
+    const start = document.getElementById("info-date-start").value;
+    const r = groundToReceipts(collectAllData().ground, start);
+    localStorage.setItem(GROUND_KEY, JSON.stringify({ dayCols: DAY_COLS, tourSlots: TOUR_SLOTS, receipts: r }));
+  } catch(e) { console.warn("지상비 저장 실패:", e); }
+}
+function saveGroundDebounced() { clearTimeout(_groundSaveTimer); _groundSaveTimer = setTimeout(saveGround, 400); }
+function restoreGround() {
+  let snap;
+  try { snap = JSON.parse(localStorage.getItem(GROUND_KEY) || "null"); } catch(e) { return false; }
+  if (!snap || !snap.receipts) return false;
+  try {
+    if (snap.dayCols) DAY_COLS = snap.dayCols;
+    if (snap.tourSlots) TOUR_SLOTS = snap.tourSlots;
+    Object.keys(receipts).forEach(k => { delete receipts[k]; });
+    Object.assign(receipts, snap.receipts);
+    return true;
+  } catch(e) { console.warn("지상비 복원 실패:", e); return false; }
 }
 
 document.addEventListener("input", saveAll);
@@ -4019,6 +4077,7 @@ function clearAllEntries() {
 
   // 5. localStorage 정리 (입력값 저장본)
   localStorage.removeItem("guideSettlement");
+  localStorage.removeItem("guideGroundSnapshot");
 
   // 6. 전체 리렌더
   fullRender();
@@ -4030,9 +4089,13 @@ function clearAllEntries() {
 
 loadAll();
 onTbCurrencyChange();  // 저장된 TB 통화 상태에 맞춰 체크박스 활성/비활성 적용
+restoreGround();       // 저장된 지상비 표 복원 (receipts 시드 채움)
 fullRender();
 updateDateRange();
 renderUploadedReceipts();
+// 편집 시 자동 저장 (입력 위임) + 초기화 완료 표시
+["ground-body","etc-body"].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener("input", saveGroundDebounced); });
+_groundReady = true;
 </script>
 
 <script>
