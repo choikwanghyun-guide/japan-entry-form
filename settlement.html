@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js"></script>
+<script src="landsa_templates.js?v=2026_0609_0922"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1127,7 +1127,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0235</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0609_0922</span>
 </div>
 
 <script>
@@ -3570,7 +3570,7 @@ function exportSelectedLandsa(btnEl) {
 // ===== 공통 내보내기 함수 =====
 async function exportToLandsa(landsaKey, btnEl) {
   if (typeof LANDSA_TEMPLATES === "undefined" || !LANDSA_TEMPLATES[landsaKey]) {
-    alert("랜드사 양식 파일이 없습니다: " + landsaKey);
+    alert("랜드사 양식 파일이 없습니다: " + landsaKey + "\n\n브라우저 강력 새로고침(Ctrl+Shift+R) 후 다시 시도해 보세요. (templates 파일 캐시 문제일 수 있어요)");
     return;
   }
 
