@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1119"></script>
+<script src="landsa_templates.js?v=2026_0610_1124"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1148,7 +1148,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1119</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1124</span>
 </div>
 
 <script>
@@ -2300,12 +2300,14 @@ async function analyzeReceiptWithAI(id, btnEl) {
       '  "amount": 금액 숫자만 (콤마/통화기호 없이; 같은 항목 여러 장이면 합계),\n' +
       '  "currency": "yen 또는 won",\n' +
       '  "place": "사용처/상호명",\n' +
-      '  "note": "내용 요약 (메뉴/인원/영수증 장수 등)"\n' +
+      '  "people": "인원/수량 (식대·입장료 등에서 명·人·名·枚·수량이 있으면 그 숫자; 없으면 빈 문자열)",\n' +
+      '  "note": "내용 요약 (메뉴/특이사항 등; 인원 수는 note 말고 people에 넣기)"\n' +
       "}\n\n" +
       "우선순위 규칙: 포스트잇에 손글씨 금액 > 볼펜으로 V 체크된 금액 > 인쇄된 금액. 가장 높은 우선순위 금액을 amount에 넣어주세요.\n" +
       "카테고리 판단: 영수증 위/주변에 손글씨로 적힌 항목 이름(예: '중식','석식','호텔','버스비','고속대','도로비','주차대','오차대','기사식대','기사숙박','기사교통비','출장비','통신비','지방교통비','입장료','출국세')이 있으면 그것을 최우선으로 그대로 반영하세요.\n" +
       "동의어는 표준 이름으로 통일: 고속대/통행료→도로비, 오차다이→오차대, 버스대/전세버스대→버스비, 공항세/부두세→출국세, 일당→출장비, 통신료→통신비, 관광/관광지→입장료. '가이드 식대'는 가이드식대, '기사 식대'는 기사식대로 구분. 한국 결제(원화) 영수증은 기타경비.\n" +
       "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
+      "인원 인식: 중식·석식·입장료처럼 인원/수량이 적힌 영수증은 people에 인원 수를 넣으세요. (예: '@1,530 ×14' → \"14\", '客数 4名様' → \"4\", '일반11명+시니어4명' → \"15\")\n" +
       "반드시 JSON 배열([ ])로만 답하고, 그 외 텍스트는 절대 출력하지 마세요.";
 
     let text = "";
@@ -2395,7 +2397,9 @@ async function analyzeReceiptWithAI(id, btnEl) {
       if (p.date) target.date = p.date;
       if (p.category) target.category = p.category;
       if (p.amount !== undefined && p.amount !== null) target.amount = String(p.amount);
-      const placeNote = [p.place, p.note].filter(Boolean).join(" / ");
+      const peopleStr = (p.people !== undefined && p.people !== null && String(p.people).trim())
+        ? "인원 " + String(p.people).trim() + "명" : "";
+      const placeNote = [p.place, peopleStr, p.note].filter(Boolean).join(" / ");
       if (placeNote) target.note = placeNote;
     };
 
