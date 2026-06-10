@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_0825"></script>
+<script src="landsa_templates.js?v=2026_0610_1009"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1147,7 +1147,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_0825</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1009</span>
 </div>
 
 <script>
@@ -3500,10 +3500,27 @@ async function mapLandJapan(wb, data) {
   // 전도금
   setCell(ws,"D43", v(data.memo.yenAdvance, false));
 
-  // 누락 소계 수식 보강 (양식 결함 → D46 합계에 호텔/열차/공항세 포함되도록)
-  ws.getCell("G12").value = { formula: "SUM(H6:I11)" };
-  ws.getCell("O31").value = { formula: "SUM(O27:O30)" };
-  ws.getCell("O35").value = { formula: "SUM(O32:O34)" };
+  // 소계·총액·잔액: 수식 + 계산된 결과값(캐시)을 함께 기록.
+  // (양식이 fullCalcOnLoad에 의존하면 일부 Excel/뷰어에서 총액이 0/빈칸으로 보임 → result를 직접 채워 항상 표시되게)
+  const cellNum = (addr) => { const x = ws.getCell(addr).value; return (typeof x === "number") ? x : 0; };
+  const sumRange = (col, r1, r2) => { let s = 0; for (let r = r1; r <= r2; r++) s += cellNum(col + r); return s; };
+  const subtotals = {
+    G12: { f: "SUM(H6:I11)",  r: sumRange("H", 6, 11) },   // 호텔
+    G25: { f: "SUM(H14:I24)", r: sumRange("H", 14, 24) },  // 식사
+    G35: { f: "SUM(H27:I34)", r: sumRange("H", 27, 34) },  // 관광
+    G41: { f: "SUM(H37:I40)", r: sumRange("H", 37, 40) },  // 가이드
+    O12: { f: "SUM(O6:O11)",  r: sumRange("O", 6, 11) },   // 회송대
+    O17: { f: "SUM(O14:O16)", r: sumRange("O", 14, 16) },  // TIP/식사/숙박
+    O25: { f: "SUM(O19:O24)", r: sumRange("O", 19, 24) },  // 도로&주차
+    O31: { f: "SUM(O27:O30)", r: sumRange("O", 27, 30) },  // 열차&교통
+    O35: { f: "SUM(O32:O34)", r: sumRange("O", 32, 34) },  // 공항세
+    O41: { f: "SUM(O36:O40)", r: sumRange("O", 36, 40) },  // 기타
+  };
+  let grand = 0;
+  Object.entries(subtotals).forEach(([addr, { f, r }]) => { ws.getCell(addr).value = { formula: f, result: r }; grand += r; });
+  // 지출 총액 D46 / 잔액 D47 (= 전도금 D43 − 총액 D46)
+  ws.getCell("D46").value = { formula: "G12+G25+G35+O12+O17+O25+O31+O35+O41+G41", result: grand };
+  ws.getCell("D47").value = { formula: "D43-D46", result: cellNum("D43") - grand };
 
   // 미매핑
   realItems(data.ground.bus).forEach(b=>{ const known=["회송대","오차다이","오차대","기사식대","기사 숙박","기사숙박","도로비","고속대","주차대","버스비","버스대","전세버스대","기사 교통비","기사교통비"]; if(b.item&&(b.amount||0)>0&&!known.includes(b.item)) overflow.push(`${b.item}: \u00a5${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
