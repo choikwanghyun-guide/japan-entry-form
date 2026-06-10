@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1150"></script>
+<script src="landsa_templates.js?v=2026_0610_1155"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1078,9 +1078,10 @@
     <div class="upload-hint">JPG, PNG, PDF 파일 지원 · 여러 장 한꺼번에 가능 · 이미지는 자동 압축됩니다</div>
     <input type="file" id="upload-file-input" accept="image/*,application/pdf" multiple style="display:none">
   </div>
-  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; gap:8px; justify-content:space-between; align-items:center;">
-    <button type="button" onclick="fillGroundFromReceipts()" style="background:#10b981;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">📥 분석한 영수증 → 정산표에 자동입력</button>
-    <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()">🗑 영수증 전체 삭제</button>
+  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button type="button" onclick="analyzeAllReceipts(this)" style="background:#3b82f6;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">🤖 전체 분석</button>
+    <button type="button" onclick="fillGroundFromReceipts()" style="background:#10b981;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">📥 선택한 영수증 → 정산표</button>
+    <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()" style="margin-left:auto;">🗑 영수증 전체 삭제</button>
   </div>
   <div class="receipt-grid" id="receipt-grid"></div>
   <div class="storage-info" id="storage-info"></div>
@@ -1149,7 +1150,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1150</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1155</span>
 </div>
 
 <script>
@@ -2091,12 +2092,12 @@ function readAsDataURL(file) {
 // ===== 분석된 영수증 카드 → 정산표 자동입력 =====
 // 기존 applyReceiptJSON 파이프라인을 재사용(검증된 코드). append 모드라 수동입력은 유지.
 function fillGroundFromReceipts() {
-  const cards = uploadedReceipts.filter(r => r.category && r.amount && !r._filled);
+  const cards = uploadedReceipts.filter(r => r.category && r.amount && !r._filled && r.selected !== false);
   if (!cards.length) {
-    alert("자동입력할 새 영수증이 없습니다.\n(분석이 안 됐거나, 이미 표에 입력된 카드는 제외됩니다.)");
+    alert("자동입력할 영수증이 없습니다.\n(체크된 카드가 없거나, 분석 안 됨, 또는 이미 표에 입력된 카드는 제외됩니다.)");
     return;
   }
-  if (!confirm(`분석된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
+  if (!confirm(`체크된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
 
   const num = (v) => Number(String(v == null ? "" : v).replace(/[^\d.-]/g, "")) || 0;
 
@@ -2174,7 +2175,11 @@ function renderUploadedReceipts() {
     card.innerHTML = `
       <div class="receipt-thumb" onclick="openReceiptModal('${r.id}')">${thumb}</div>
       <div class="receipt-info">
-        <div class="name" title="${r.name}">${r.name}${r._filled ? ' <span style="color:#10b981;font-weight:700;">✓표입력</span>' : ''}</div>
+        <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; margin:0 0 3px;">
+          <input type="checkbox" onchange="toggleReceiptSelect('${r.id}', this.checked)" ${r._filled ? 'disabled' : (r.selected === false ? '' : 'checked')}>
+          ${r._filled ? '<span style="color:#10b981; font-weight:700;">✓ 표 입력됨</span>' : '<span style="color:#555;">표에 넣기 선택</span>'}
+        </label>
+        <div class="name" title="${r.name}">${r.name}</div>
         <input type="date" value="${r.date||''}" data-id="${r.id}" data-field="date" title="날짜">
         <select data-id="${r.id}" data-field="category" title="카테고리">${categoryOptions(r.category)}</select>
         <input type="text" value="${r.amount||''}" data-id="${r.id}" data-field="amount" placeholder="금액" title="금액">
@@ -2330,7 +2335,7 @@ function updateApiStatus() {
   }
 }
 
-async function analyzeReceiptWithAI(id, btnEl) {
+async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
   const key = apiKeyInput.value.trim();
   if (!RECEIPT_PROXY_URL && !key) {
     alert("먼저 위쪽 'AI 자동 분석 설정'에서 API 키를 입력해 주세요.");
@@ -2346,6 +2351,7 @@ async function analyzeReceiptWithAI(id, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "분석중…";
 
+  let ok = false;
   try {
     // dataUrl → base64 (data:image/jpeg;base64,xxx 에서 xxx 부분)
     const m = item.dataUrl.match(/^data:(image\/[a-z]+);base64,(.+)$/);
@@ -2494,13 +2500,50 @@ async function analyzeReceiptWithAI(id, btnEl) {
     saveUploadedReceipts();
     renderUploadedReceipts();
     recalcGround();
+    ok = true;
   } catch(e) {
-    alert("분석 실패: " + e.message);
+    if (!opts.silent) alert("분석 실패: " + e.message);
     console.error(e);
   } finally {
     btnEl.disabled = false;
     btnEl.textContent = originalText;
   }
+  return ok;
+}
+
+// ===== 전체 분석 (업로드된 영수증 일괄 분석) =====
+async function analyzeAllReceipts(btn) {
+  const key = apiKeyInput.value.trim();
+  if (!RECEIPT_PROXY_URL && !key) {
+    alert("먼저 'AI 자동 분석 설정'에서 API 키를 입력해 주세요.");
+    document.getElementById("api-settings").open = true;
+    return;
+  }
+  const targets = uploadedReceipts.filter(r => !r.isPdf && !r.category);
+  if (!targets.length) { alert("분석할 새 영수증이 없습니다.\n(이미 분석됐거나 PDF는 제외)"); return; }
+  if (!confirm(`분석 안 된 영수증 ${targets.length}건을 한 번에 분석할까요?\n(장당 약 5원 · 순서대로 처리됩니다)`)) return;
+
+  const ids = targets.map(r => r.id);
+  const orig = btn.textContent;
+  btn.disabled = true;
+  let done = 0, fail = 0;
+  for (let n = 0; n < ids.length; n++) {
+    const id = ids[n];
+    if (!uploadedReceipts.find(r => r.id === id)) continue;   // 분할 등으로 사라졌으면 건너뜀
+    btn.textContent = `전체 분석중… ${n + 1}/${ids.length}`;
+    const tmpBtn = document.querySelector(`.analyze[onclick*="${id}"]`) || document.createElement("button");
+    const okItem = await analyzeReceiptWithAI(id, tmpBtn, { silent: true });
+    if (okItem) done++; else fail++;
+  }
+  btn.disabled = false;
+  btn.textContent = orig;
+  alert(`✓ 전체 분석 완료\n성공 ${done}건${fail ? ` · 실패 ${fail}건 (실패분은 카드에서 개별 🤖분석 재시도)` : ""}`);
+}
+
+// ===== 영수증 카드 선택 토글 (자동입력 대상 선택) =====
+function toggleReceiptSelect(id, checked) {
+  const r = uploadedReceipts.find(x => x.id === id);
+  if (r) { r.selected = checked; saveUploadedReceipts(); }
 }
 
 // ===== 랜드사 양식으로 내보내기 (ExcelJS 사용) =====
