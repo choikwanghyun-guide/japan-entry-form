@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1127"></script>
+<script src="landsa_templates.js?v=2026_0610_1139"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1078,7 +1078,8 @@
     <div class="upload-hint">JPG, PNG, PDF 파일 지원 · 여러 장 한꺼번에 가능 · 이미지는 자동 압축됩니다</div>
     <input type="file" id="upload-file-input" accept="image/*,application/pdf" multiple style="display:none">
   </div>
-  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; text-align:right;">
+  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; gap:8px; justify-content:space-between; align-items:center;">
+    <button type="button" onclick="fillGroundFromReceipts()" style="background:#10b981;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">📥 분석한 영수증 → 정산표에 자동입력</button>
     <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()">🗑 영수증 전체 삭제</button>
   </div>
   <div class="receipt-grid" id="receipt-grid"></div>
@@ -1148,7 +1149,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1127</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1139</span>
 </div>
 
 <script>
@@ -2086,6 +2087,66 @@ function readAsDataURL(file) {
   });
 }
 
+// ===== 분석된 영수증 카드 → 정산표 자동입력 =====
+// 기존 applyReceiptJSON 파이프라인을 재사용(검증된 코드). append 모드라 수동입력은 유지.
+function fillGroundFromReceipts() {
+  const cards = uploadedReceipts.filter(r => r.category && r.amount);
+  if (!cards.length) {
+    alert("자동입력할 분석 결과가 없습니다.\n먼저 영수증을 업로드하고 🤖분석을 눌러 항목·금액이 채워지게 해 주세요.");
+    return;
+  }
+  if (!confirm(`분석된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
+
+  const num = (v) => Number(String(v == null ? "" : v).replace(/[^\d.-]/g, "")) || 0;
+
+  // 카드 카테고리 → 표 위치 (항목기반 섹션은 표의 실제 항목명으로 변환)
+  const DATE_SEC   = { "호텔": "hotel", "중식": "lunch", "석식": "dinner", "입장료": "tour" };
+  const BUS_ITEM   = { "버스비": "버스비", "도로비": "도로비", "오차대": "오차다이", "회송대": "회송대", "주차대": "주차대", "기사식대": "기사식대", "기사숙박": "기사 숙박", "기사교통비": "기사 교통비" };
+  const GUIDE_ITEM = { "출장비": "출장비", "통신비": "통신료", "가이드식대": "식대", "지방교통비": "교통비", "통역비": "통역비" };
+  const ETCYEN_ITEM= { "출국세": "출국세", "기타": "기타" };
+
+  const data = { hotel: [], lunch: [], dinner: [], tour: [], bus: {}, guide: {}, etcYen: {}, etc: {} };
+  const tourSlot = {};
+  const skipped = [];
+  let placed = 0;
+
+  const addObj = (sec, key, amt, note) => {
+    if (!data[sec][key]) data[sec][key] = { amount: 0, note: note || "" };
+    data[sec][key].amount += amt;   // 같은 항목 여러 건이면 합산
+  };
+
+  cards.forEach(c => {
+    const amt = num(c.amount);
+    if (amt <= 0) return;
+    const place = c.place || (c.note || "").split(" / ")[0] || "";
+    const people = c.people || "";
+    const cat = c.category;
+    if (DATE_SEC[cat]) {
+      const sec = DATE_SEC[cat];
+      const e = { date: c.date || "", name: place, people: people, amount: amt };
+      if (sec === "tour") { const d = c.date || ""; tourSlot[d] = (tourSlot[d] || 0) + 1; e.slot = tourSlot[d]; }
+      data[sec].push(e); placed++;
+    } else if (BUS_ITEM[cat])    { addObj("bus",    BUS_ITEM[cat],    amt, c.note); placed++; }
+    else if (GUIDE_ITEM[cat])    { addObj("guide",  GUIDE_ITEM[cat],  amt, c.note); placed++; }
+    else if (ETCYEN_ITEM[cat])   { addObj("etcYen", ETCYEN_ITEM[cat], amt, c.note); placed++; }
+    else if (cat === "기타경비") { addObj("etc",    "기타경비",        amt, c.note); placed++; }
+    else { skipped.push(cat); }
+  });
+
+  if (!placed) { alert("자동입력할 수 있는 항목이 없습니다."); return; }
+
+  // 기존 applyReceiptJSON 재사용 (텍스트칸 경유 → 원복)
+  const ta = document.getElementById("receipt-json-input");
+  const prev = ta ? ta.value : "";
+  if (ta) ta.value = JSON.stringify(data);
+  applyReceiptJSON("append");
+  if (ta) ta.value = prev;
+
+  if (skipped.length) {
+    alert("자동 배치 슬롯이 없어 건너뛴 항목: " + [...new Set(skipped)].join(", ") + "\n표에서 직접 입력해 주세요.");
+  }
+}
+
 function renderUploadedReceipts() {
   const grid = document.getElementById("receipt-grid");
   grid.innerHTML = "";
@@ -2096,7 +2157,7 @@ function renderUploadedReceipts() {
     if (toolbar) toolbar.style.display = "none";
     return;
   }
-  if (toolbar) toolbar.style.display = "block";
+  if (toolbar) toolbar.style.display = "flex";
 
   uploadedReceipts.forEach(r => {
     const card = document.createElement("div");
@@ -2397,8 +2458,11 @@ async function analyzeReceiptWithAI(id, btnEl) {
       if (p.date) target.date = p.date;
       if (p.category) target.category = p.category;
       if (p.amount !== undefined && p.amount !== null) target.amount = String(p.amount);
-      const peopleStr = (p.people !== undefined && p.people !== null && String(p.people).trim())
-        ? "인원 " + String(p.people).trim() + "명" : "";
+      if (p.place) target.place = p.place;   // 자동입력용(상호명)
+      const peopleVal = (p.people !== undefined && p.people !== null && String(p.people).trim())
+        ? String(p.people).trim() : "";
+      if (peopleVal) target.people = peopleVal;   // 자동입력용(인원)
+      const peopleStr = peopleVal ? "인원 " + peopleVal + "명" : "";
       const placeNote = [p.place, peopleStr, p.note].filter(Boolean).join(" / ");
       if (placeNote) target.note = placeNote;
     };
