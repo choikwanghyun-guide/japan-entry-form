@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1059"></script>
+<script src="landsa_templates.js?v=2026_0610_1103"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1054,8 +1054,8 @@
     <div class="api-body">
       <label>모델</label>
       <select id="api-model-input">
-        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (추천 · 영수증 1장 ~2원)</option>
-        <option value="gemini-2.5-pro">Gemini 2.5 Pro (정확 · ~5원, 흐릿/복잡 영수증용)</option>
+        <option value="gemini-2.5-pro" selected>Gemini 2.5 Pro (추천 · ~5원, 여러 장·손글씨 정확)</option>
+        <option value="gemini-2.5-flash">Gemini 2.5 Flash (저렴 · ~2원, 깨끗한 단일 영수증용)</option>
         <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (최저가 · ~0.5원, 깨끗한 영수증용)</option>
         <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (~5원)</option>
         <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (정확 · ~15원)</option>
@@ -1148,7 +1148,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1059</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1103</span>
 </div>
 
 <script>
@@ -2189,7 +2189,7 @@ const apiStatusEl = document.getElementById("api-status");
 
 // 저장된 키/모델 복원
 apiKeyInput.value = localStorage.getItem("apiKey") || "";
-apiModelInput.value = localStorage.getItem("apiModel") || "gemini-2.5-flash";
+apiModelInput.value = localStorage.getItem("apiModel") || "gemini-2.5-pro";
 updateApiStatus();
 updateKeyHelp();
 
