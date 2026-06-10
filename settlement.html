@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1139"></script>
+<script src="landsa_templates.js?v=2026_0610_1150"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1149,7 +1149,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1139</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1150</span>
 </div>
 
 <script>
@@ -1953,6 +1953,7 @@ const WON_CATEGORIES = ["기타경비"];
 function sumUploadedByCurrency(currency) {
   return uploadedReceipts.reduce((sum, r) => {
     if (!r.category) return sum;
+    if (r._filled) return sum;   // 정산표에 자동입력된 카드는 표에서 집계됨 → 중복합산 방지
     const amt = Number(String(r.amount||"").replace(/[^\d.-]/g, "")) || 0;
     if (amt <= 0) return sum;
     const isWon = WON_CATEGORIES.includes(r.category);
@@ -2090,9 +2091,9 @@ function readAsDataURL(file) {
 // ===== 분석된 영수증 카드 → 정산표 자동입력 =====
 // 기존 applyReceiptJSON 파이프라인을 재사용(검증된 코드). append 모드라 수동입력은 유지.
 function fillGroundFromReceipts() {
-  const cards = uploadedReceipts.filter(r => r.category && r.amount);
+  const cards = uploadedReceipts.filter(r => r.category && r.amount && !r._filled);
   if (!cards.length) {
-    alert("자동입력할 분석 결과가 없습니다.\n먼저 영수증을 업로드하고 🤖분석을 눌러 항목·금액이 채워지게 해 주세요.");
+    alert("자동입력할 새 영수증이 없습니다.\n(분석이 안 됐거나, 이미 표에 입력된 카드는 제외됩니다.)");
     return;
   }
   if (!confirm(`분석된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
@@ -2121,16 +2122,18 @@ function fillGroundFromReceipts() {
     const place = c.place || (c.note || "").split(" / ")[0] || "";
     const people = c.people || "";
     const cat = c.category;
+    let did = true;
     if (DATE_SEC[cat]) {
       const sec = DATE_SEC[cat];
       const e = { date: c.date || "", name: place, people: people, amount: amt };
       if (sec === "tour") { const d = c.date || ""; tourSlot[d] = (tourSlot[d] || 0) + 1; e.slot = tourSlot[d]; }
-      data[sec].push(e); placed++;
-    } else if (BUS_ITEM[cat])    { addObj("bus",    BUS_ITEM[cat],    amt, c.note); placed++; }
-    else if (GUIDE_ITEM[cat])    { addObj("guide",  GUIDE_ITEM[cat],  amt, c.note); placed++; }
-    else if (ETCYEN_ITEM[cat])   { addObj("etcYen", ETCYEN_ITEM[cat], amt, c.note); placed++; }
-    else if (cat === "기타경비") { addObj("etc",    "기타경비",        amt, c.note); placed++; }
-    else { skipped.push(cat); }
+      data[sec].push(e);
+    } else if (BUS_ITEM[cat])    { addObj("bus",    BUS_ITEM[cat],    amt, c.note); }
+    else if (GUIDE_ITEM[cat])    { addObj("guide",  GUIDE_ITEM[cat],  amt, c.note); }
+    else if (ETCYEN_ITEM[cat])   { addObj("etcYen", ETCYEN_ITEM[cat], amt, c.note); }
+    else if (cat === "기타경비") { addObj("etc",    "기타경비",        amt, c.note); }
+    else { skipped.push(cat); did = false; }
+    if (did) { placed++; c._filled = true; }   // 표에 들어간 카드 표시 → 지출금 중복합산 방지
   });
 
   if (!placed) { alert("자동입력할 수 있는 항목이 없습니다."); return; }
@@ -2141,6 +2144,9 @@ function fillGroundFromReceipts() {
   if (ta) ta.value = JSON.stringify(data);
   applyReceiptJSON("append");
   if (ta) ta.value = prev;
+
+  saveUploadedReceipts();      // _filled 플래그 영구 저장
+  renderUploadedReceipts();    // 카드에 "표 입력됨" 표시 갱신
 
   if (skipped.length) {
     alert("자동 배치 슬롯이 없어 건너뛴 항목: " + [...new Set(skipped)].join(", ") + "\n표에서 직접 입력해 주세요.");
@@ -2168,7 +2174,7 @@ function renderUploadedReceipts() {
     card.innerHTML = `
       <div class="receipt-thumb" onclick="openReceiptModal('${r.id}')">${thumb}</div>
       <div class="receipt-info">
-        <div class="name" title="${r.name}">${r.name}</div>
+        <div class="name" title="${r.name}">${r.name}${r._filled ? ' <span style="color:#10b981;font-weight:700;">✓표입력</span>' : ''}</div>
         <input type="date" value="${r.date||''}" data-id="${r.id}" data-field="date" title="날짜">
         <select data-id="${r.id}" data-field="category" title="카테고리">${categoryOptions(r.category)}</select>
         <input type="text" value="${r.amount||''}" data-id="${r.id}" data-field="amount" placeholder="금액" title="금액">
