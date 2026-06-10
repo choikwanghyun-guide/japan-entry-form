@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1103"></script>
+<script src="landsa_templates.js?v=2026_0610_1119"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1148,7 +1148,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1103</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1119</span>
 </div>
 
 <script>
@@ -1961,6 +1961,39 @@ function sumUploadedByCurrency(currency) {
   }, 0);
 }
 
+// 영수증 카드 카테고리 목록 (그룹별). 손글씨 항목 이름과 1:1로 맞춤.
+const RECEIPT_CATEGORIES = [
+  { group: "숙박",       items: ["호텔"] },
+  { group: "식사",       items: ["중식", "석식"] },
+  { group: "관광",       items: ["입장료"] },
+  { group: "버스·도로",  items: ["버스비", "회송대", "도로비", "주차대", "오차대"] },
+  { group: "기사",       items: ["기사식대", "기사숙박", "기사교통비"] },
+  { group: "가이드",     items: ["출장비", "통신비", "지방교통비", "통역비", "가이드식대"] },
+  { group: "기타",       items: ["출국세", "기타", "기타경비"] },
+];
+const CATEGORY_LABELS = {
+  "도로비": "도로비(고속대)", "출장비": "출장비(일당)", "출국세": "출국세(공항세)",
+  "기타": "기타(엔화)", "기타경비": "기타경비(원화)"
+};
+// <select> 옵션 HTML 생성 (그룹 + 선택 표시 + 옛 값 보존)
+function categoryOptions(sel) {
+  sel = sel || "";
+  let html = '<option value="">카테고리 선택</option>';
+  const known = [];
+  RECEIPT_CATEGORIES.forEach(g => {
+    html += `<optgroup label="${g.group}">`;
+    g.items.forEach(it => {
+      known.push(it);
+      html += `<option value="${it}"${sel === it ? " selected" : ""}>${CATEGORY_LABELS[it] || it}</option>`;
+    });
+    html += `</optgroup>`;
+  });
+  if (sel && !known.includes(sel)) {
+    html += `<optgroup label="이전 값"><option value="${sel}" selected>${sel}</option></optgroup>`;
+  }
+  return html;
+}
+
 const uploadArea = document.getElementById("upload-area");
 const uploadInput = document.getElementById("upload-file-input");
 
@@ -2076,17 +2109,7 @@ function renderUploadedReceipts() {
       <div class="receipt-info">
         <div class="name" title="${r.name}">${r.name}</div>
         <input type="date" value="${r.date||''}" data-id="${r.id}" data-field="date" title="날짜">
-        <select data-id="${r.id}" data-field="category" title="카테고리">
-          <option value="">카테고리 선택</option>
-          <option value="호텔" ${r.category==='호텔'?'selected':''}>호텔</option>
-          <option value="중식" ${r.category==='중식'?'selected':''}>중식</option>
-          <option value="석식" ${r.category==='석식'?'selected':''}>석식</option>
-          <option value="관광지" ${r.category==='관광지'?'selected':''}>관광지</option>
-          <option value="기타" ${r.category==='기타'?'selected':''}>기타(엔화)</option>
-          <option value="버스" ${r.category==='버스'?'selected':''}>버스</option>
-          <option value="가이드" ${r.category==='가이드'?'selected':''}>가이드</option>
-          <option value="기타경비" ${r.category==='기타경비'?'selected':''}>기타경비(원화)</option>
-        </select>
+        <select data-id="${r.id}" data-field="category" title="카테고리">${categoryOptions(r.category)}</select>
         <input type="text" value="${r.amount||''}" data-id="${r.id}" data-field="amount" placeholder="금액" title="금액">
         <input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note" placeholder="메모" title="메모">
         <div class="receipt-actions">
@@ -2273,15 +2296,15 @@ async function analyzeReceiptWithAI(id, btnEl) {
       "각 항목의 형식:\n" +
       "{\n" +
       '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
-      '  "category": "다음 중 하나: 호텔, 중식, 석식, 관광지, 기타, 버스, 가이드, 기타경비",\n' +
+      '  "category": "영수증 손글씨 라벨에 해당하는 항목. 반드시 다음 중 하나로: 호텔, 중식, 석식, 입장료, 버스비, 회송대, 도로비, 주차대, 오차대, 기사식대, 기사숙박, 기사교통비, 출장비, 통신비, 지방교통비, 통역비, 가이드식대, 출국세, 기타, 기타경비",\n' +
       '  "amount": 금액 숫자만 (콤마/통화기호 없이; 같은 항목 여러 장이면 합계),\n' +
       '  "currency": "yen 또는 won",\n' +
       '  "place": "사용처/상호명",\n' +
       '  "note": "내용 요약 (메뉴/인원/영수증 장수 등)"\n' +
       "}\n\n" +
       "우선순위 규칙: 포스트잇에 손글씨 금액 > 볼펜으로 V 체크된 금액 > 인쇄된 금액. 가장 높은 우선순위 금액을 amount에 넣어주세요.\n" +
-      "카테고리 판단: 영수증 상단/주변에 손글씨로 적힌 라벨(예: '식대','중식','석식','호텔비','고속대','도로비','주차대','버스비','기사식대','기사숙박','오차대','입장료','출국세')을 우선 참고하세요. " +
-      "고속대/도로비/주차대/버스비/회송/기사 관련은 '버스', 입장료/관광은 '관광지', 출국세/공항세는 '기타'로 분류하세요.\n" +
+      "카테고리 판단: 영수증 위/주변에 손글씨로 적힌 항목 이름(예: '중식','석식','호텔','버스비','고속대','도로비','주차대','오차대','기사식대','기사숙박','기사교통비','출장비','통신비','지방교통비','입장료','출국세')이 있으면 그것을 최우선으로 그대로 반영하세요.\n" +
+      "동의어는 표준 이름으로 통일: 고속대/통행료→도로비, 오차다이→오차대, 버스대/전세버스대→버스비, 공항세/부두세→출국세, 일당→출장비, 통신료→통신비, 관광/관광지→입장료. '가이드 식대'는 가이드식대, '기사 식대'는 기사식대로 구분. 한국 결제(원화) 영수증은 기타경비.\n" +
       "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
       "반드시 JSON 배열([ ])로만 답하고, 그 외 텍스트는 절대 출력하지 마세요.";
 
