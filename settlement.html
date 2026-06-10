@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1031"></script>
+<script src="landsa_templates.js?v=2026_0610_1054"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1148,7 +1148,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1031</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1054</span>
 </div>
 
 <script>
@@ -2264,20 +2264,25 @@ async function analyzeReceiptWithAI(id, btnEl) {
     const b64 = m[2];
 
     const prompt =
-      "이 영수증을 분석해서 다음 정보를 JSON으로만 답변해주세요(다른 설명 X):\n" +
+      "이 사진에 있는 영수증을 분석해서 JSON 배열([ ])로만 답변해주세요(다른 설명 X).\n" +
+      "사진에는 영수증이 여러 장 있을 수 있습니다. 다음 규칙을 반드시 지키세요:\n" +
+      "- 카테고리(항목)가 같은 영수증이 여러 장이면 금액을 모두 합산해 항목 1개로 만드세요.\n" +
+      "- 카테고리(항목)가 다르면 각각 별도 항목으로 만드세요.\n" +
+      "- 영수증이 한 장이면 항목 1개짜리 배열로 답하세요.\n" +
+      "각 항목의 형식:\n" +
       "{\n" +
       '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
       '  "category": "다음 중 하나: 호텔, 중식, 석식, 관광지, 기타, 버스, 가이드, 기타경비",\n' +
-      '  "amount": 금액 숫자만 (콤마/통화기호 없이),\n' +
+      '  "amount": 금액 숫자만 (콤마/통화기호 없이; 같은 항목 여러 장이면 합계),\n' +
       '  "currency": "yen 또는 won",\n' +
       '  "place": "사용처/상호명",\n' +
-      '  "note": "내용 요약 (메뉴/인원/특이사항 등)"\n' +
+      '  "note": "내용 요약 (메뉴/인원/영수증 장수 등)"\n' +
       "}\n\n" +
       "우선순위 규칙: 포스트잇에 손글씨 금액 > 볼펜으로 V 체크된 금액 > 인쇄된 금액. 가장 높은 우선순위 금액을 amount에 넣어주세요.\n" +
-      "카테고리 판단: 영수증 상단/주변에 손글씨로 적힌 텍스트(예: '호텔비', '식대', '기사식대', '오차대', '출국세')가 있으면 그것을 우선 참고하세요.\n" +
+      "카테고리 판단: 영수증 상단/주변에 손글씨로 적힌 라벨(예: '식대','중식','석식','호텔비','고속대','도로비','주차대','버스비','기사식대','기사숙박','오차대','입장료','출국세')을 우선 참고하세요. " +
+      "고속대/도로비/주차대/버스비/회송/기사 관련은 '버스', 입장료/관광은 '관광지', 출국세/공항세는 '기타'로 분류하세요.\n" +
       "출국세나 일본 내 결제는 yen, 한국 결제(원화)는 won.\n" +
-      "여러 항목이 있더라도 반드시 JSON 객체 하나로만 답하고, 배열([ ])로 감싸지 마세요.\n" +
-      "JSON 외 다른 텍스트는 절대 출력하지 마세요.";
+      "반드시 JSON 배열([ ])로만 답하고, 그 외 텍스트는 절대 출력하지 마세요.";
 
     let text = "";
     const model = apiModelInput.value;
@@ -2356,14 +2361,37 @@ async function analyzeReceiptWithAI(id, btnEl) {
       if (!m) throw new Error("응답에서 JSON을 찾지 못했습니다.\n" + (text || "").slice(0, 300));
       parsed = JSON.parse(m[0]);
     }
-    if (Array.isArray(parsed)) parsed = parsed[0] || {};
+    // 배열/객체 모두 항목 목록으로 정규화
+    let items = Array.isArray(parsed) ? parsed : [parsed];
+    items = items.filter(it => it && typeof it === "object");
+    if (items.length === 0) throw new Error("분석 결과가 비어 있습니다.\n" + (text || "").slice(0, 300));
 
-    // 결과 반영
-    if (parsed.date) item.date = parsed.date;
-    if (parsed.category) item.category = parsed.category;
-    if (parsed.amount !== undefined && parsed.amount !== null) item.amount = String(parsed.amount);
-    const placeNote = [parsed.place, parsed.note].filter(Boolean).join(" / ");
-    if (placeNote) item.note = placeNote;
+    // 한 항목을 카드에 반영하는 헬퍼
+    const applyTo = (target, p) => {
+      if (p.date) target.date = p.date;
+      if (p.category) target.category = p.category;
+      if (p.amount !== undefined && p.amount !== null) target.amount = String(p.amount);
+      const placeNote = [p.place, p.note].filter(Boolean).join(" / ");
+      if (placeNote) target.note = placeNote;
+    };
+
+    // 첫 항목 → 현재 카드
+    applyTo(item, items[0]);
+
+    // 나머지 항목 → 같은 사진으로 카드 자동 추가 (현재 카드 바로 뒤에 삽입)
+    if (items.length > 1) {
+      const idx = uploadedReceipts.findIndex(r => r.id === item.id);
+      const extras = items.slice(1).map((p, i) => {
+        const clone = {
+          id: "r_" + Date.now() + "_" + i + "_" + Math.random().toString(36).slice(2,7),
+          name: item.name, date: "", category: "", amount: "", note: "",
+          dataUrl: item.dataUrl, isPdf: item.isPdf
+        };
+        applyTo(clone, p);
+        return clone;
+      });
+      uploadedReceipts.splice(idx + 1, 0, ...extras);
+    }
 
     saveUploadedReceipts();
     renderUploadedReceipts();
