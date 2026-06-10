@@ -1548,33 +1548,22 @@
     <p class="subtitle">일가방 게시글을 표준 양식으로 자동 정리</p>
   </header>
 
-  <!-- JSON 변환 섹션 -->
+  <!-- 클로드용 프롬프트 만들기 섹션 -->
   <section id="jsonConvertSection" style="background: var(--bg-card); border-radius: 16px; padding: 28px; margin-bottom: 20px;">
     <div class="section-header">
       <div class="section-num">0</div>
-      <div class="section-title">호텔 텍스트 → JSON 변환</div>
+      <div class="section-title">클로드용 프롬프트 만들기</div>
     </div>
-    <div class="section-desc">호텔 안내문을 복사해서 붙여넣으면 JSON 형식으로 변환하고 복사할 수 있습니다</div>
+    <div class="section-desc">호텔 안내문을 붙여넣고 버튼을 누르면, 이 양식(18개 항목)에 딱 맞는 JSON을 만들어달라는 프롬프트가 복사됩니다.<br>클로드 채팅에 붙여넣어 받은 JSON을 아래 ② 호텔 정보 입력에 붙여넣으세요.</div>
     
     <div class="field">
       <label>호텔 정보 텍스트</label>
-      <textarea id="hotelRawText" placeholder="호텔 정보 텍스트를 여기에 붙여넣으세요..." style="width: 100%; padding: 12px 15px; background: var(--bg-input); border: 1px solid transparent; border-radius: 10px; color: var(--text); font-family: inherit; font-size: 15px; transition: all 0.15s; min-height: 180px; resize: vertical;"></textarea>
-      <div class="textarea-helper">전화번호, 거리, 시설 정보 등을 포함한 전체 텍스트를 붙여넣으세요</div>
+      <textarea id="hotelRawText" placeholder="호텔 안내문 텍스트를 여기에 붙여넣으세요...&#10;예: 호텔 아주르 시오노마루 안내 TEL: 089-847-0707 ..." style="width: 100%; padding: 12px 15px; background: var(--bg-input); border: 1px solid transparent; border-radius: 10px; color: var(--text); font-family: inherit; font-size: 15px; transition: all 0.15s; min-height: 180px; resize: vertical;"></textarea>
     </div>
 
-    <button class="btn-primary" onclick="convertToJson()" style="background: linear-gradient(135deg, var(--accent-blue), #0284c7); margin-top: 16px;">📋 JSON으로 변환</button>
+    <button class="btn-primary" onclick="copyClaudePrompt()" style="background: linear-gradient(135deg, var(--accent-blue), #0284c7); margin-top: 16px;">📋 클로드용 프롬프트 복사</button>
 
-    <div id="jsonOutput" style="margin-top: 24px; display: none;">
-      <div class="field">
-        <label>변환된 JSON (아래 복사 버튼 사용)</label>
-        <textarea id="jsonResultText" readonly style="width: 100%; padding: 12px 15px; background: var(--bg-input); border: 1px solid transparent; border-radius: 10px; color: var(--text); font-family: 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.6; min-height: 300px; resize: vertical;"></textarea>
-      </div>
-      <div style="display: flex; gap: 10px; margin-top: 12px;">
-        <button class="btn-primary" onclick="copyJsonToClipboard()" style="flex: 1; background: linear-gradient(135deg, var(--accent-green), #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); margin-top: 0;">✓ JSON 복사</button>
-        <button class="btn-secondary" onclick="resetJsonConvert()" style="flex: 1; margin-top: 0;">초기화</button>
-      </div>
-      <div id="copyStatus" style="margin-top: 12px; padding: 10px 14px; text-align: center; font-size: 14px; color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: none;"></div>
-    </div>
+    <div id="copyStatus" style="margin-top: 12px; padding: 10px 14px; text-align: center; font-size: 14px; color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: none;"></div>
   </section>
 
   <!-- 구글 드라이브 동기화 영역 -->
@@ -3152,7 +3141,14 @@ ${posts}
       const parsed = JSON.parse(cleaned);
       if (!parsed.fields || !Array.isArray(parsed.fields)) throw new Error('JSON에 "fields" 배열이 없어요.');
 
-      currentData = { hotelName, fields: parsed.fields, insights: parsed.insights || '' };
+      // JSON에 hotelName이 있고 입력칸이 비어있으면 자동으로 채움
+      let finalHotelName = hotelName;
+      if (parsed.hotelName && (!document.getElementById('hotelName').value.trim())) {
+        finalHotelName = parsed.hotelName;
+        document.getElementById('hotelName').value = parsed.hotelName;
+      }
+
+      currentData = { hotelName: finalHotelName, fields: parsed.fields, insights: parsed.insights || '' };
       editingHotelId = null;  // 새 호텔로 인식 (덮어쓰기 방지)
       renderResults(currentData);
       showStatus('✓ JSON 불러오기 완료!', 'success');
@@ -3494,147 +3490,60 @@ ${posts}
     return parsed.all.some(name => name.toLowerCase().includes(q));
   }
 
-  // ===== JSON 변환 함수 =====
-  function convertToJson() {
+  // ===== 클로드용 프롬프트 복사 =====
+  function copyClaudePrompt() {
     const rawText = document.getElementById('hotelRawText').value.trim();
     if (!rawText) {
-      alert('호텔 정보 텍스트를 먼저 붙여넣어주세요.');
+      alert('호텔 안내문 텍스트를 먼저 붙여넣어주세요.');
       return;
     }
 
-    try {
-      // 호텔명 추출 (첫 줄 또는 "호텔", "Hotel" 포함 줄)
-      const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      let hotelName = lines[0];
-      let tel = '';
-      let rest = rawText;
+    const prompt = `너는 한국인 일본 여행 가이드의 동료야. 아래 호텔 안내문을 읽고 표준 양식에 맞춰 JSON으로 정리해줘.
 
-      // 전화번호 추출 (TEL: 또는 전화번호 패턴)
-      const telMatch = rawText.match(/(?:TEL|전화|Tel)[:\s]*([0-9\-\(\)]{7,})/i);
-      if (telMatch) tel = telMatch[1].trim();
+[호텔 안내문]
+${rawText}
 
-      // JSON 구조 생성
-      const json = {
-        hotelName: hotelName,
-        telephone: tel || undefined
-      };
+다음 형식의 순수 JSON만 출력해. 다른 설명이나 마크다운 코드블록은 절대 포함하지 마:
 
-      // 기본 정보 파싱
-      const distanceMatch = rawText.match(/마츠야마공항.*?(\d+시간)/i) || rawText.match(/공항.*?(\d+시간)/i);
-      const fortMatch = rawText.match(/성.*?(\d+분)/i);
-      const museumMatch = rawText.match(/미술관.*?(\d+분)/i);
+{
+  "hotelName": "안내문에서 찾은 호텔 이름",
+  "fields": [
+    {"label": "전화번호", "value": "..."},
+    {"label": "룸투룸 (방에서 방으로 전화걸기)", "value": "..."},
+    {"label": "프론트 전화 / 위치", "value": "..."},
+    {"label": "WIFI 유무\\nWIFI 비밀번호", "value": "..."},
+    {"label": "조,석식 종류 (뷔페식,가이세키,정식)\\n식사시간\\n식당위치\\n식권 필요 유무", "value": "..."},
+    {"label": "온천,대욕장 유무,수건유무\\n이용시간등", "value": "..."},
+    {"label": "키 (형태 : 카드키 / 일반키)\\n카드키일 경우 터치형 / 삽입형", "value": "..."},
+    {"label": "전기 턴온 \\n(카드 삽입식인지 바로 켤수 있는지)", "value": "..."},
+    {"label": "냉난방 조절기", "value": "..."},
+    {"label": "금연/흡연 ", "value": "..."},
+    {"label": "금고 유무", "value": "..."},
+    {"label": "슬리퍼 유무", "value": "..."},
+    {"label": "실내복 유무\\n (형태 문의 유카타,일반 실내복,가운\\n관내 이용범위)", "value": "..."},
+    {"label": "포트,드라이 유무", "value": "..."},
+    {"label": "냉장고 유무\\n냉장고 내 서비스 품목 유무 ", "value": "..."},
+    {"label": "샴푸,린스,바디클렌져 비치 여부 ", "value": "..."},
+    {"label": "매점,편의점,선술집,수퍼 근처에있는가?", "value": "..."},
+    {"label": "특이사항", "value": "..."}
+  ],
+  "insights": "현장에서 반드시 확인해야 할 항목 TOP 3과 가이드로서 손님께 미리 안내해두면 좋을 포인트를 자유롭게 작성"
+}
 
-      if (distanceMatch || fortMatch || museumMatch) {
-        json.location = {};
-        if (distanceMatch) json.location.fromAirport = distanceMatch[1];
-        if (fortMatch) json.location.nearbyAttraction1 = fortMatch[1];
-        if (museumMatch) json.location.nearbyAttraction2 = museumMatch[1];
-      }
+규칙:
+- 안내문에서 정보를 찾을 수 없는 항목은 "value"에 정확히 "정보없음 — 현장 확인 필요"라고만 적어줘.
+- 18개 fields의 label은 위와 글자 하나 다르지 않게 그대로 유지해줘.
+- 시간, 전화번호 등은 안내문의 표기를 그대로 보존해줘.
+- 위치/거리 정보(공항·관광지에서 몇 분 등)는 "특이사항"에 넣어줘.`;
 
-      // 체크아웃 시간
-      const checkoutMatch = rawText.match(/체크아웃[:\s]*([0-9:]+)/i);
-      if (checkoutMatch) json.checkoutTime = checkoutMatch[1].trim();
-
-      // 프론트 정보
-      if (rawText.includes('프론트') || rawText.includes('내선')) {
-        json.reception = {};
-        const extMatch = rawText.match(/내선\s*(\d+)/);
-        if (extMatch) json.reception.extension = extMatch[1];
-        if (rawText.includes('Room To Room')) {
-          json.reception.roomToRoom = true;
-        }
-      }
-
-      // 대욕장/온천 정보
-      if (rawText.includes('대욕장') || rawText.includes('온천')) {
-        json.publicBath = {};
-        const floorMatch = rawText.match(/대욕장[:\s]*(\d)층/i);
-        if (floorMatch) json.publicBath.floor = floorMatch[1] + '층';
-        
-        const hoursMatch = rawText.match(/오후\s*(\d{1,2}):(\d{2})[~～]\d{1,2}:\d{2}/);
-        if (hoursMatch) {
-          json.publicBath.afternoonStart = `${hoursMatch[1]}:${hoursMatch[2]}`;
-        }
-      }
-
-      // WiFi 정보
-      const wifiMatch = rawText.match(/Wifi[:\s]*([^\n]+)/i);
-      if (wifiMatch) {
-        json.wifi = { ssid: wifiMatch[1].trim() };
-        const pwMatch = rawText.match(/PW[:\s]*([^\n]+)/i);
-        if (pwMatch) json.wifi.password = pwMatch[1].trim();
-      }
-
-      // 식사 정보
-      if (rawText.includes('식당') || rawText.includes('레스트랑')) {
-        json.dining = {};
-        if (rawText.includes('저녁') || rawText.includes('석식')) {
-          json.dining.dinner = { location: '1층 레스트랑', type: '일정식' };
-        }
-        if (rawText.includes('아침') || rawText.includes('조식')) {
-          const timeMatch = rawText.match(/(\d{1,2}):(\d{2})[~～](\d{1,2}):(\d{2})/);
-          json.dining.breakfast = {
-            location: '1층 레스트랑',
-            type: '일정식',
-            time: timeMatch ? `${timeMatch[1]}:${timeMatch[2]}~${timeMatch[3]}:${timeMatch[4]}` : undefined
-          };
-        }
-      }
-
-      // 중요 안내사항
-      if (rawText.includes('귀중품') || rawText.includes('열쇠')) {
-        json.importantNotes = [];
-        if (rawText.includes('귀중품')) json.importantNotes.push('귀중품은 프런트에 맡겨주십시오');
-        if (rawText.includes('외출') && rawText.includes('열쇠')) json.importantNotes.push('외출할 때는 열쇠를 맡겨주십시오');
-      }
-
-      // undefined 값 제거
-      const cleanJson = JSON.parse(JSON.stringify(json, (k, v) => v !== undefined ? v : undefined));
-
-      // 결과 표시
-      const jsonStr = JSON.stringify(cleanJson, null, 2);
-      document.getElementById('jsonResultText').value = jsonStr;
-      document.getElementById('jsonOutput').style.display = 'block';
-
-      // 상태 메시지
+    navigator.clipboard.writeText(prompt).then(() => {
       const statusEl = document.getElementById('copyStatus');
-      statusEl.textContent = '✓ JSON 변환 완료! 아래의 "JSON 복사" 버튼으로 복사하세요.';
+      statusEl.textContent = '✓ 프롬프트가 복사됐어요! 클로드 채팅에 붙여넣고, 받은 JSON을 아래 ② 호텔 정보 입력에 붙여넣으세요.';
       statusEl.style.display = 'block';
-      
-    } catch (err) {
-      alert('변환 중 오류가 발생했습니다: ' + err.message);
-      console.error(err);
-    }
-  }
-
-  function copyJsonToClipboard() {
-    const jsonText = document.getElementById('jsonResultText').value;
-    if (!jsonText) {
-      alert('먼저 JSON을 변환해주세요.');
-      return;
-    }
-
-    navigator.clipboard.writeText(jsonText).then(() => {
-      const statusEl = document.getElementById('copyStatus');
-      statusEl.textContent = '✓ JSON이 복사되었습니다!';
-      statusEl.style.color = 'var(--accent-green)';
-      statusEl.style.display = 'block';
-      
-      setTimeout(() => {
-        statusEl.textContent = '';
-        statusEl.style.display = 'none';
-      }, 2500);
+      setTimeout(() => { statusEl.style.display = 'none'; }, 6000);
     }).catch(() => {
-      alert('복사 실패. 수동으로 선택해서 복사해주세요.');
+      alert('복사 실패. 다시 시도해주세요.');
     });
-  }
-
-  function resetJsonConvert() {
-    document.getElementById('hotelRawText').value = '';
-    document.getElementById('jsonResultText').value = '';
-    document.getElementById('jsonOutput').style.display = 'none';
-    document.getElementById('copyStatus').style.display = 'none';
-    document.getElementById('copyStatus').textContent = '';
   }
 </script>
 
