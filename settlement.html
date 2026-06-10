@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1100"></script>
+<script src="landsa_templates.js?v=2026_0610_0825"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1008,21 +1008,16 @@
 스키마:
 - hotel/lunch/dinner/tour: 배열. 각 항목은 {date:"YYYY-MM-DD", name, condition?, people?, unitPrice?, amount}
 - bus/guide/etcYen: 항목명을 key로 한 객체. 값은 {amount, unitPrice?, note?}
-- etc: 원화(₩) 기타경비. 항목명을 key로 한 객체. 값은 {amount}
+- etc: 원화 기타경비. 항목명을 key로 한 객체. 값은 {amount}
 
-[분류 규칙]
-- 영수증 사진의 손글씨 한글 메모(주로 좌측 상단)를 분류의 최우선 기준으로 삼는다.
-- hotel: 단체 호텔비
-- lunch / dinner: 식당 중식 / 석식 (메모의 중식·석식 표기 우선)
-- tour: 관광지·전망대(TCV)·미술관·신사 등 입장료
-- bus 항목: 버스비(대형버스 전세), 도로비(ETC·고속·통행료), 주차대(駐車·파킹), 회송대(回送), 오차다이, 기사식대(기사 お茶代/お食事代), "기사 숙박"(기사 호텔), "기사 교통비"(기사 택시·교통)
-- guide 항목: 출장비, 통신료, 식대, 교통비
-- etcYen: 과자·기념품(お土産)·출국세·부두세 등 엔화 기타
-- etc: 한국 원화(₩) 지출만. 엔화(円/¥) 영수증은 절대 etc에 넣지 않는다.
-
-[금액 규칙]
-- amount 우선순위: ① 사진 위 손글씨 합계(보통 우측 상단) ② V표시·체크·형광펜으로 강조된 금액 ③ 인쇄된 합계(合計·現金計). 위에서 먼저 있는 것을 amount로 쓴다.
-- 사진 한 장에 영수증이 여러 개 붙어 있으면 각각 따로 인식하고, 손글씨 합계와 합이 맞는지 대조한다.
+카테고리 분류 기준 (영수증 위의 수기 메모 또는 내용으로 판단):
+- hotel: 호텔비
+- lunch/dinner: 중식/석식
+- tour: 관광지 입장료
+- bus.{기사식대,오차다이,버스비,도로비,주차대,회송대,기사 숙박,...}
+- guide.{식대,통신료,출장비,교통비}
+- etcYen.{출국세,부두세,...} (엔화 기타)
+- etc.{...} (원화 기타)
 
 다른 설명 없이 JSON만 응답해줘. ```json 코드 블록은 사용 OK.</pre>
       <button onclick="copyJsonPrompt(this)" style="background:#3b82f6;color:white;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-size:12px;">📋 프롬프트 복사</button>
@@ -1082,10 +1077,8 @@
     <div class="upload-hint">JPG, PNG, PDF 파일 지원 · 여러 장 한꺼번에 가능 · 이미지는 자동 압축됩니다</div>
     <input type="file" id="upload-file-input" accept="image/*,application/pdf" multiple style="display:none">
   </div>
-  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; gap:8px; align-items:center; flex-wrap:wrap;">
-    <button type="button" onclick="analyzeReceiptsBatch(this)" style="background:#7c3aed;color:white;border:none;padding:9px 16px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:600;">🤖 전체 분석 → 표 자동 채우기</button>
-    <span style="font-size:11px;color:#888;">올린 영수증을 한 번에 분석해서 위 정산서 표에 채워줍니다</span>
-    <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()" style="margin-left:auto;">🗑 영수증 전체 삭제</button>
+  <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; text-align:right;">
+    <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()">🗑 영수증 전체 삭제</button>
   </div>
   <div class="receipt-grid" id="receipt-grid"></div>
   <div class="storage-info" id="storage-info"></div>
@@ -1154,7 +1147,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1100</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_0825</span>
 </div>
 
 <script>
@@ -2069,7 +2062,7 @@ function renderUploadedReceipts() {
     if (toolbar) toolbar.style.display = "none";
     return;
   }
-  if (toolbar) toolbar.style.display = "flex";
+  if (toolbar) toolbar.style.display = "block";
 
   uploadedReceipts.forEach(r => {
     const card = document.createElement("div");
@@ -4254,8 +4247,22 @@ function copyJsonPrompt(btn) {
   }).catch(e => alert('복사 실패: ' + e.message));
 }
 
-// 파싱된 데이터 객체를 정산서 표에 반영 (붙여넣기·전체분석 공용)
-function applyReceiptData(data, mode) {
+function applyReceiptJSON(mode) {
+  const ta = document.getElementById('receipt-json-input');
+  let text = ta.value.trim();
+  if (!text) { alert('JSON을 붙여넣어 주세요.'); return; }
+
+  // ```json ... ``` 코드 블록 제거
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch(e) {
+    alert('JSON 파싱 실패: ' + e.message + '\n\n입력값을 확인해 주세요. ``` 블록은 자동 제거되지만, 다른 텍스트가 섞여있으면 안 됩니다.');
+    return;
+  }
+
   // amount 또는 amount_printed 둘 다 받기
   function pickAmount(item) {
     return item.amount ?? item.amount_printed ?? null;
@@ -4304,31 +4311,9 @@ function applyReceiptData(data, mode) {
 
   // 화면 다시 그리기
   fullRender();
-  return counts;
-}
 
-function summarizeCounts(counts) {
-  return `호텔 ${counts.hotel} · 중식 ${counts.lunch} · 석식 ${counts.dinner} · 관광지 ${counts.tour} · 버스 ${counts.bus} · 가이드 ${counts.guide} · 기타(엔) ${counts.etcYen} · 기타(원) ${counts.etc}`;
-}
-
-function applyReceiptJSON(mode) {
-  const ta = document.getElementById('receipt-json-input');
-  let text = ta.value.trim();
-  if (!text) { alert('JSON을 붙여넣어 주세요.'); return; }
-
-  // ```json ... ``` 코드 블록 제거
-  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch(e) {
-    alert('JSON 파싱 실패: ' + e.message + '\n\n입력값을 확인해 주세요. ``` 블록은 자동 제거되지만, 다른 텍스트가 섞여있으면 안 됩니다.');
-    return;
-  }
-
-  const counts = applyReceiptData(data, mode);
-  const summary = summarizeCounts(counts);
+  // 결과 표시
+  const summary = `호텔 ${counts.hotel} · 중식 ${counts.lunch} · 석식 ${counts.dinner} · 관광지 ${counts.tour} · 버스 ${counts.bus} · 가이드 ${counts.guide} · 기타(엔) ${counts.etcYen} · 기타(원) ${counts.etc}`;
   const statusEl = document.getElementById('json-apply-status');
   if (statusEl) {
     statusEl.textContent = `✓ ${mode === 'overwrite' ? '덮어쓰기' : '추가'} 완료 — ${summary}`;
@@ -4336,133 +4321,6 @@ function applyReceiptJSON(mode) {
     setTimeout(() => { statusEl.textContent = ''; }, 8000);
   }
   alert(`✓ 적용 완료 (${mode === 'overwrite' ? '덮어쓰기' : '추가'})\n\n${summary}`);
-}
-
-// ===== 전체 분석: 올린 영수증 전부 → 한 번에 분석 → 표 자동 채우기 =====
-async function analyzeReceiptsBatch(btnEl) {
-  const key = apiKeyInput.value.trim();
-  if (!RECEIPT_PROXY_URL && !key) {
-    alert("먼저 위쪽 'AI 자동 분석 설정'에서 API 키를 입력해 주세요.");
-    document.getElementById("api-settings").open = true;
-    return;
-  }
-
-  // 분석 대상 이미지 (PDF 제외)
-  const targets = uploadedReceipts.filter(r => !r.isPdf && r.dataUrl);
-  if (!targets.length) {
-    alert("분석할 영수증 이미지가 없습니다.\n(PDF는 자동 분석을 지원하지 않습니다.)");
-    return;
-  }
-
-  const images = [];
-  for (const r of targets) {
-    const m = r.dataUrl.match(/^data:(image\/[a-z]+);base64,(.+)$/);
-    if (m) images.push({ mediaType: m[1], b64: m[2] });
-  }
-  if (!images.length) { alert("이미지 형식을 인식할 수 없습니다."); return; }
-
-  // 기존 표 입력이 있으면 덮어쓰기/추가 선택
-  const hasExisting =
-    ['hotel','lunch','dinner','tour'].some(k => (receipts[k] || []).length) ||
-    ['bus','guide','etcYen','etc'].some(k => Object.keys(receipts[k] || {}).length);
-  let mode = 'overwrite';
-  if (hasExisting) {
-    const ow = confirm(
-      "위 정산서 표에 이미 입력된 내용이 있습니다.\n\n" +
-      "[확인] 기존 내용을 지우고 새로 채우기 (덮어쓰기)\n" +
-      "[취소] 기존 내용에 추가하기"
-    );
-    mode = ow ? 'overwrite' : 'append';
-  }
-
-  // 풀 스키마 프롬프트 재사용 (붙여넣기용 안내문과 동일)
-  const prompt = document.getElementById('json-prompt-template').textContent +
-    "\n\n[자동 분석] 위 영수증 전부를 종합해서, 배열로 감싸지 말고 위 스키마의 JSON 객체 하나로만 답한다. 설명·주석은 절대 넣지 않는다.";
-
-  const original = btnEl.textContent;
-  btnEl.disabled = true;
-  btnEl.textContent = `분석중… (${images.length}장)`;
-
-  try {
-    let text = "";
-    const model = apiModelInput.value;
-    if (RECEIPT_PROXY_URL) {
-      const res = await fetch(RECEIPT_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gemini-2.5-pro",
-          images, prompt
-        })
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`서버 오류 (${res.status}): ${errText.slice(0, 200)}`);
-      }
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      text = data.text || "";
-    } else {
-      // 프록시 없이 직접 Gemini (가이드가 본인 키 입력한 경우)
-      const gModel = "gemini-2.5-pro";
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent`, {
-        method: "POST",
-        headers: { "x-goog-api-key": key, "content-type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [
-            { text: prompt },
-            ...images.map(im => ({ inline_data: { mime_type: im.mediaType, data: im.b64 } }))
-          ] }],
-          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: -1 } }
-        })
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Gemini API 오류 (${res.status}): ${errText.slice(0, 200)}`);
-      }
-      const data = await res.json();
-      text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    }
-
-    // JSON 파싱 (코드블록/배열/객체 모두 처리)
-    let raw = (text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (e) {
-      const mm = raw.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (!mm) throw new Error("응답에서 JSON을 찾지 못했습니다.\n" + (text || "").slice(0, 300));
-      parsed = JSON.parse(mm[0]);
-    }
-    // 배열로 오면 카테고리별로 병합
-    if (Array.isArray(parsed)) {
-      const merged = {};
-      parsed.forEach(o => {
-        if (!o || typeof o !== 'object') return;
-        Object.keys(o).forEach(k => {
-          if (Array.isArray(o[k])) merged[k] = (merged[k] || []).concat(o[k]);
-          else if (o[k] && typeof o[k] === 'object') merged[k] = Object.assign(merged[k] || {}, o[k]);
-        });
-      });
-      parsed = merged;
-    }
-
-    const counts = applyReceiptData(parsed, mode);
-    const summary = summarizeCounts(counts);
-    const statusEl = document.getElementById('json-apply-status');
-    if (statusEl) {
-      statusEl.textContent = `✓ 전체 분석 ${mode === 'overwrite' ? '덮어쓰기' : '추가'} 완료 — ${summary}`;
-      statusEl.style.color = '#10b981';
-      setTimeout(() => { statusEl.textContent = ''; }, 10000);
-    }
-    alert(`✓ 전체 분석 완료 (${images.length}장 · ${mode === 'overwrite' ? '덮어쓰기' : '추가'})\n\n${summary}\n\n표에 들어간 내용을 한 번 훑어봐 주세요.`);
-  } catch (e) {
-    alert("전체 분석 실패: " + e.message);
-    console.error(e);
-  } finally {
-    btnEl.disabled = false;
-    btnEl.textContent = original;
-  }
 }
 
 // ===== 전체 입력 항목 삭제 =====
