@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1054"></script>
+<script src="landsa_templates.js?v=2026_0610_1059"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1148,7 +1148,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1054</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1059</span>
 </div>
 
 <script>
@@ -2265,10 +2265,11 @@ async function analyzeReceiptWithAI(id, btnEl) {
 
     const prompt =
       "이 사진에 있는 영수증을 분석해서 JSON 배열([ ])로만 답변해주세요(다른 설명 X).\n" +
-      "사진에는 영수증이 여러 장 있을 수 있습니다. 다음 규칙을 반드시 지키세요:\n" +
-      "- 카테고리(항목)가 같은 영수증이 여러 장이면 금액을 모두 합산해 항목 1개로 만드세요.\n" +
-      "- 카테고리(항목)가 다르면 각각 별도 항목으로 만드세요.\n" +
-      "- 영수증이 한 장이면 항목 1개짜리 배열로 답하세요.\n" +
+      "사진에는 영수증이 여러 장 붙어 있을 수 있습니다. 각 영수증은 보통 상호명(가게 이름)과 合計(합계)가 따로 있으니, 먼저 영수증이 몇 장인지 구분하세요. 다음 규칙을 반드시 지키세요:\n" +
+      "- 규칙1) 카테고리가 다른 영수증은 절대 합치지 말고 각각 별도 항목으로 분리하세요. (예: 중식 영수증 + 기타(선물) 영수증 → 항목 2개)\n" +
+      "- 규칙2) 카테고리가 같은 영수증이 여러 장이면 금액만 합산해 항목 1개로 묶으세요. (예: 고속도로 영수증 9장 → 버스 항목 1개)\n" +
+      "- 규칙3) 서로 다른 영수증의 금액과 상호명을 섞지 마세요. 각 항목의 amount(금액)와 place(상호)는 반드시 같은 영수증에서 나와야 합니다.\n" +
+      "- 규칙4) 영수증이 한 장이면 항목 1개짜리 배열로 답하세요.\n" +
       "각 항목의 형식:\n" +
       "{\n" +
       '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
