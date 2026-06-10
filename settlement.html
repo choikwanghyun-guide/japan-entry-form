@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0610_1155"></script>
+<script src="landsa_templates.js?v=2026_0610_1214"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1081,6 +1081,8 @@
   <div class="receipt-toolbar" id="receipt-toolbar" style="display:none; margin:10px 0 4px; gap:8px; flex-wrap:wrap; align-items:center;">
     <button type="button" onclick="analyzeAllReceipts(this)" style="background:#3b82f6;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">🤖 전체 분석</button>
     <button type="button" onclick="fillGroundFromReceipts()" style="background:#10b981;color:#fff;border:none;padding:9px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;">📥 선택한 영수증 → 정산표</button>
+    <button type="button" onclick="selectAllReceipts(true)" style="background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">☑ 전체선택</button>
+    <button type="button" onclick="selectAllReceipts(false)" style="background:#f9fafb;color:#555;border:1px solid #d1d5db;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">☐ 전체해제</button>
     <button type="button" class="btn-clear-receipts" onclick="clearAllReceipts()" style="margin-left:auto;">🗑 영수증 전체 삭제</button>
   </div>
   <div class="receipt-grid" id="receipt-grid"></div>
@@ -1150,7 +1152,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1155</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0610_1214</span>
 </div>
 
 <script>
@@ -2175,9 +2177,9 @@ function renderUploadedReceipts() {
     card.innerHTML = `
       <div class="receipt-thumb" onclick="openReceiptModal('${r.id}')">${thumb}</div>
       <div class="receipt-info">
-        <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; margin:0 0 3px;">
-          <input type="checkbox" onchange="toggleReceiptSelect('${r.id}', this.checked)" ${r._filled ? 'disabled' : (r.selected === false ? '' : 'checked')}>
-          ${r._filled ? '<span style="color:#10b981; font-weight:700;">✓ 표 입력됨</span>' : '<span style="color:#555;">표에 넣기 선택</span>'}
+        <label style="display:flex; align-items:center; justify-content:flex-start; gap:6px; font-size:11.5px; cursor:pointer; margin:0 0 4px; white-space:nowrap;">
+          <input type="checkbox" style="margin:0; flex:0 0 auto;" onchange="toggleReceiptSelect('${r.id}', this.checked)" ${r._filled ? 'disabled' : (r.selected === false ? '' : 'checked')}>
+          ${r._filled ? '<span style="color:#10b981; font-weight:700;">✓ 표 입력됨</span>' : '<span style="color:#374151; font-weight:600;">표에 넣기</span>'}
         </label>
         <div class="name" title="${r.name}">${r.name}</div>
         <input type="date" value="${r.date||''}" data-id="${r.id}" data-field="date" title="날짜">
@@ -2544,6 +2546,13 @@ async function analyzeAllReceipts(btn) {
 function toggleReceiptSelect(id, checked) {
   const r = uploadedReceipts.find(x => x.id === id);
   if (r) { r.selected = checked; saveUploadedReceipts(); }
+}
+
+// 전체선택 / 전체해제 (이미 표에 입력된 카드는 제외)
+function selectAllReceipts(sel) {
+  uploadedReceipts.forEach(r => { if (!r._filled) r.selected = sel; });
+  saveUploadedReceipts();
+  renderUploadedReceipts();
 }
 
 // ===== 랜드사 양식으로 내보내기 (ExcelJS 사용) =====
