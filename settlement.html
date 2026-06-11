@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0611_1506"></script>
+<script src="landsa_templates.js?v=2026_0611_1510"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1506</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1510</span>
 </div>
 
 <script>
@@ -2110,6 +2110,11 @@ function fillGroundFromReceipts() {
   const GUIDE_ITEM = { "출장비": "출장비", "통신비": "통신료", "가이드식대": "식대", "지방교통비": "교통비", "통역비": "통역비" };
   const ETCYEN_ITEM= { "출국세": "출국세", "기타": "기타" };
 
+  // 띄어쓰기 무시 매칭 (AI가 "기사 교통비"처럼 띄어쓰기 변형으로 내보내도 매칭되게)
+  const norm = (s) => String(s == null ? "" : s).replace(/\s+/g, "");
+  const normMap = (m) => { const o = {}; for (const k in m) o[norm(k)] = m[k]; return o; };
+  const DATE_SEC_N = normMap(DATE_SEC), BUS_ITEM_N = normMap(BUS_ITEM), GUIDE_ITEM_N = normMap(GUIDE_ITEM), ETCYEN_ITEM_N = normMap(ETCYEN_ITEM);
+
   const data = { hotel: [], lunch: [], dinner: [], tour: [], bus: {}, guide: {}, etcYen: {}, etc: {} };
   const tourSlot = {};
   const skipped = [];
@@ -2126,16 +2131,17 @@ function fillGroundFromReceipts() {
     const place = c.place || (c.note || "").split(" / ")[0] || "";
     const people = c.people || "";
     const cat = c.category;
+    const cn = norm(cat);
     let did = true;
-    if (DATE_SEC[cat]) {
-      const sec = DATE_SEC[cat];
+    if (DATE_SEC_N[cn]) {
+      const sec = DATE_SEC_N[cn];
       const e = { date: c.date || "", name: place, people: people, amount: amt };
       if (sec === "tour") { const d = c.date || ""; tourSlot[d] = (tourSlot[d] || 0) + 1; e.slot = tourSlot[d]; }
       data[sec].push(e);
-    } else if (BUS_ITEM[cat])    { addObj("bus",    BUS_ITEM[cat],    amt, c.note); }
-    else if (GUIDE_ITEM[cat])    { addObj("guide",  GUIDE_ITEM[cat],  amt, c.note); }
-    else if (ETCYEN_ITEM[cat])   { addObj("etcYen", ETCYEN_ITEM[cat], amt, c.note); }
-    else if (cat === "기타경비") { addObj("etc",    "기타경비",        amt, c.note); }
+    } else if (BUS_ITEM_N[cn])    { addObj("bus",    BUS_ITEM_N[cn],    amt, c.note); }
+    else if (GUIDE_ITEM_N[cn])    { addObj("guide",  GUIDE_ITEM_N[cn],  amt, c.note); }
+    else if (ETCYEN_ITEM_N[cn])   { addObj("etcYen", ETCYEN_ITEM_N[cn], amt, c.note); }
+    else if (cn === "기타경비")   { addObj("etc",    "기타경비",        amt, c.note); }
     else { skipped.push(cat); did = false; }
     if (did) { placed++; c._filled = true; }   // 표에 들어간 카드 표시 → 지출금 중복합산 방지
   });
