@@ -196,7 +196,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev 2026.0611.2122</span>
+  <span class="rev">rev 2026.0611.2126</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -341,8 +341,11 @@ function setSyncStatus(ok){
 }
 
 /* ---- 자동 폴링: 일정 시간마다 구글 캘린더에서 자동 갱신 ---- */
+let pollBusy=false;  // 중복 실행 방지
 async function autoPoll(){
   if(!BIN_ID) return;  // BIN_ID 없으면 실행 안 함
+  if(pollBusy) return;
+  pollBusy=true;
 
   try{
     const headers=ACCESS_KEY?{'X-Access-Key':ACCESS_KEY}:{};
@@ -373,6 +376,8 @@ async function autoPoll(){
   }catch(e){
     setSyncStatus(false);
     console.warn(`[autoPoll] ${new Date().toLocaleTimeString()} 갱신 실패:`,e.message);
+  }finally{
+    pollBusy=false;
   }
 }
 
@@ -561,6 +566,17 @@ loadFromCloud();
 // 자동 폴링 시작 — 버튼 없이도 구글 캘린더 최신 일정을 주기적으로 반영
 if(pollTimer) clearInterval(pollTimer);
 pollTimer = setInterval(autoPoll, POLL_INTERVAL_MS);
+
+// 창/탭으로 다시 돌아오면 30초를 기다리지 않고 즉시 갱신 (폴링 타이머도 새로 시작)
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState==='visible'){
+    autoPoll();
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(autoPoll, POLL_INTERVAL_MS);
+  }
+});
+// 뒤로가기 등으로 캐시에서 복원돼 열린 경우에도 즉시 갱신
+window.addEventListener('pageshow', e => { if(e.persisted) autoPoll(); });
 
 // 페이지를 떠날 때 폴링 중지
 window.addEventListener('beforeunload', () => {
