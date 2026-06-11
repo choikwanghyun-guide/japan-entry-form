@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0611_1523"></script>
+<script src="landsa_templates.js?v=2026_0611_1529"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1106,16 +1106,16 @@
     <div class="landsa-controls">
       <select id="landsaSelect" class="landsa-select">
         <option value="">랜드사 선택…</option>
-        <option value="japan_travel">제펜트레블</option>
-        <option value="itsumo">이쯔모</option>
-        <option value="tcenter">티센터</option>
         <option value="hanasaku">하나사쿠</option>
-        <option value="kta">KTA</option>
+        <option value="tcenter">티센터</option>
+        <option value="itsumo">이쯔모</option>
+        <option value="modetour">모두투어</option>
         <option value="jtp">JTP (부산팀)</option>
         <option value="geukdong">극동</option>
-        <option value="landjapan">랜드제팬</option>
+        <option value="japan_travel">제펜트레블</option>
         <option value="intojapan">인투더제팬</option>
-        <option value="modetour">모두투어</option>
+        <option value="kta">KTA</option>
+        <option value="landjapan">랜드제팬</option>
       </select>
       <button class="landsa-export-btn" onclick="exportSelectedLandsa(this)">🇯🇵 엑셀 내보내기</button>
     </div>
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1523</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1529</span>
 </div>
 
 <script>
@@ -1981,6 +1981,12 @@ const CATEGORY_LABELS = {
   "도로비": "도로비(고속대)", "출장비": "출장비(일당)", "출국세": "출국세(공항세)",
   "기타": "기타(엔화)", "기타경비": "기타경비(원화)"
 };
+// 띄어쓰기 무관 카테고리 정규화 — AI가 "기사 숙박"처럼 띄어써도 표준값("기사숙박")으로 통일
+const CATEGORY_CANON = (() => { const m = {}; RECEIPT_CATEGORIES.forEach(g => g.items.forEach(it => { m[it.replace(/\s+/g, "")] = it; })); return m; })();
+function canonicalCategory(cat) {
+  if (!cat) return cat;
+  return CATEGORY_CANON[String(cat).replace(/\s+/g, "")] || cat;
+}
 // <select> 옵션 HTML 생성 (그룹 + 선택 표시 + 옛 값 보존)
 function categoryOptions(sel) {
   sel = sel || "";
@@ -2479,7 +2485,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
     // 한 항목을 카드에 반영하는 헬퍼
     const applyTo = (target, p) => {
       if (p.date) target.date = p.date;
-      if (p.category) target.category = p.category;
+      if (p.category) target.category = canonicalCategory(p.category);   // 띄어쓰기 정규화
       if (p.amount !== undefined && p.amount !== null) target.amount = String(p.amount);
       if (p.place) target.place = p.place;   // 자동입력용(상호명)
       const peopleVal = (p.people !== undefined && p.people !== null && String(p.people).trim())
