@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>일본 입국 서류 자동출력 (이디카드 + 입국신고서 + 세관신고서)</title>
-<link rel="icon" type="image/svg+xml" href="favicons/index.svg">
+
 <!-- ===== Google Analytics (GA4) ===== -->
 <!-- 측정 ID: G-T8Q2L4FXSM -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-T8Q2L4FXSM"></script>
@@ -743,7 +743,7 @@ function detectColumns(rowCells) {
   row.forEach((cell, idx) => {
           const c = cell.trim();
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
-          if (/^영문이름$/.test(c) || (/영문명$/.test(c) && !/성/.test(c)) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
+          if (/^영문이름$/.test(c) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
           if (/영문성명/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
@@ -764,7 +764,7 @@ function detectColumns(rowCells) {
           if (/주민/.test(c) && !/영문/.test(c)) colMap.ssn = idx;
           if (/여권번호/.test(c) || /passport.?no/i.test(c) || /^passport$/i.test(c)) colMap.passport = idx;
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
-          if (/여권만료일|만료일|여권만료/.test(c)) colMap.expiry = idx;
+          if (/여권만료일|만료일|여권만료|유효\s*기간/.test(c)) colMap.expiry = idx;
           if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
           // ── 표기 변형에 너그러운 폴백 (이미 잡힌 항목은 안 건드리고, 혼동 항목은 가드) ──
           // 영문 성/이름 분리: '영문성','영문 성' 등 (단 '영문성명'·'영문성별'은 제외)
@@ -786,7 +786,7 @@ function detectColumns(rowCells) {
           // 여권번호: '여권번호','여권 번호','여권No','PASSPORT' (만료일은 제외)
           if (colMap.passport === undefined && ((/여권/.test(c) && /(번호|no|number)/i.test(c)) || /passport/i.test(c)) && !/만료|만기|expir|\bexp\b|exp\./i.test(c)) colMap.passport = idx;
           // 여권만료일: '여권만료일','여권 만료','만기','EXPIRY'
-          if (colMap.expiry === undefined && (/만료|만기/.test(c) || /expir/i.test(c) || /\bexp\b/i.test(c) || /exp\./i.test(c))) colMap.expiry = idx;
+          if (colMap.expiry === undefined && (/만료|만기|유효\s*기간/.test(c) || /expir/i.test(c) || /\bexp\b/i.test(c) || /exp\./i.test(c))) colMap.expiry = idx;
           // 성별
           if (colMap.gender === undefined && (/성별|性別/.test(c) || /sex/i.test(c) || /gender/i.test(c))) colMap.gender = idx;
           // 주민번호 (영문 헤더 제외)
@@ -2173,7 +2173,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0608_2040</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_2222</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
