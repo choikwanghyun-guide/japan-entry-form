@@ -44,6 +44,9 @@
   .refresh-btn.spin .ic{animation:spin .8s linear infinite;}
   .refresh-btn .ic{display:inline-block;}
   @keyframes spin{to{transform:rotate(360deg);}}
+  .sync-status{text-align:center;font-size:13px;color:var(--muted);margin:-6px 0 12px;min-height:18px;opacity:.85;}
+  .sync-status.err{color:var(--no);}
+  textarea#askDetails{min-height:60px;resize:vertical;font-size:16px;}
   .card .hint{font-size:15px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
@@ -154,6 +157,7 @@
     <div class="refresh-row">
       <button class="refresh-btn" id="refreshBtn"><span class="ic">↻</span> 최신 일정 불러오기 <b>(조금 시간 걸림 ㅠㅠ)</b></button>
     </div>
+    <div class="sync-status" id="syncStatus"></div>
     <div class="card">
       <h2>문의자 정보</h2>
       <div class="hint">문의하실 랜드사·담당자명·전화번호를 적어주세요. 문의 메시지에 함께 담겨요.</div>
@@ -162,6 +166,8 @@
         <input type="text" id="askPerson" placeholder="담당자명" style="flex:1;min-width:130px;text-align:center;">
       </div>
       <input type="text" id="askPhone" placeholder="전화번호" style="margin-top:8px;text-align:center;">
+      <!-- 세부사항 입력칸 -->
+      <textarea id="askDetails" placeholder="세부사항을 입력하세요. 예: 특수 장비 필요, 예산, 인원, 기타 요청사항 등" style="margin-top:8px;"></textarea>
     </div>
 
     <div class="comment-box" id="commentView"></div>
@@ -190,7 +196,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2326</span>
+  <span class="rev">rev 2026.0611.2106</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -231,10 +237,15 @@ const KAKAO_LINK="kakaotalk://";
 const BIN_ID="6a1819d1ddf5aa59f76f71c6";       // ← 가이드 페이지와 같은 Bin ID
 const ACCESS_KEY="$2a$10$OKXyENG4IJ4s6niiFY8ZSOcoXfZKDBjbd6ADR5PP9nsLzrqK/E3jS";   // ← 읽기 전용 Access Key (비워두면 데모 데이터로 동작)
 
+// 구글 캘린더 자동 폴링 설정
+const POLL_INTERVAL_MS = 30000;  // 30초 (필요시 60000으로 변경)
+let pollTimer = null;
+
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
 const CORS_PROXIES=[
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
 ];
 
@@ -321,6 +332,50 @@ async function fetchICS(url){
   throw lastErr||new Error('실패');
 }
 
+/* ---- 갱신 상태 표시 (성공: 타임스탬프 / 실패: 경고 배지) ---- */
+function setSyncStatus(ok){
+  const el=$('syncStatus');if(!el)return;
+  const t=new Date().toLocaleTimeString('ko-KR');
+  if(ok){el.classList.remove('err');el.textContent=`마지막 갱신 ${t}`;}
+  else{el.classList.add('err');el.textContent=`갱신 실패 (${t}) — 잠시 후 자동 재시도해요`;}
+}
+
+/* ---- 자동 폴링: 일정 시간마다 구글 캘린더에서 자동 갱신 ---- */
+async function autoPoll(){
+  if(!BIN_ID) return;  // BIN_ID 없으면 실행 안 함
+
+  try{
+    const headers=ACCESS_KEY?{'X-Access-Key':ACCESS_KEY}:{};
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{headers});
+    if(!res.ok) throw new Error('JSONBin 접근 실패');
+    const data=await res.json();
+    const rec=data.record||data;
+    if(rec.settings){
+      settings={
+        comment: rec.settings.comment||"",
+        excludeRegions: Array.isArray(rec.settings.excludeRegions)?rec.settings.excludeRegions:[],
+        excludePeriods: Array.isArray(rec.settings.excludePeriods)?rec.settings.excludePeriods:[]
+      };
+      applyCommentView();
+    }
+    const icalUrl=rec.settings?.icalUrl||"";
+
+    if(icalUrl){
+      const ics=await fetchICS(icalUrl);
+      BUSY_DATES=parseICS(ics);
+    }else if(Array.isArray(rec.busyDates)){
+      // 구글 캘린더 미연동 시 JSONBin에 저장된 일정 사용
+      BUSY_DATES=rec.busyDates;
+    }
+    render();
+    setSyncStatus(true);
+    console.log(`[autoPoll] ${new Date().toLocaleTimeString()} 갱신 성공`);
+  }catch(e){
+    setSyncStatus(false);
+    console.warn(`[autoPoll] ${new Date().toLocaleTimeString()} 갱신 실패:`,e.message);
+  }
+}
+
 /* ---- 날짜 상태 ---- */
 function dayState(date){
   if(date<new Date(today.getFullYear(),today.getMonth(),today.getDate()))return 'past';
@@ -393,6 +448,7 @@ function buildMsg(){
   const land=($('askLand').value||'').trim();
   const person=($('askPerson').value||'').trim();
   const phone=($('askPhone').value||'').trim();
+  const details=($('askDetails').value||'').trim();
   let regionLabel=selectedRegion;
   if(selectedRegion==='그외 지역'){
     const custom=($('customRegion').value||'').trim();
@@ -403,7 +459,8 @@ function buildMsg(){
   else if(land)head=`[${land}]\n`;
   else if(person)head=`${person}입니다.\n`;
   const phoneLine=phone?`연락처: ${phone}\n`:'';
-  return `${head}${GUIDE_NAME}님 행사 진행 문의\n지역: ${regionLabel}\n일정: ${period}\n${phoneLine}위 일정으로 가능하실까요?`;
+  const detailsLine=details?`\n세부사항:\n${details}\n`:'';
+  return `${head}${GUIDE_NAME}님 행사 진행 문의\n지역: ${regionLabel}\n일정: ${period}\n${phoneLine}위 일정으로 가능하실까요?${detailsLine}`;
 }
 function refreshPreview(){
   if(!startSel)return;
@@ -414,6 +471,7 @@ function refreshPreview(){
 $('askLand').oninput=refreshPreview;
 $('askPerson').oninput=refreshPreview;
 $('askPhone').oninput=refreshPreview;
+$('askDetails').oninput=refreshPreview;
 $('askBtn').onclick=()=>{
   const msg=buildMsg();
   $('sheetPreview').textContent=msg;
@@ -478,9 +536,13 @@ async function loadFromCloud(){
       const ics=await fetchICS(icalUrl);
       BUSY_DATES=parseICS(ics);
       render();
+      setSyncStatus(true);
     }catch(e){
+      setSyncStatus(false);
       console.warn('구글 캘린더 실시간 읽기 실패, 저장된 일정 사용:',e.message);
     }
+  }else{
+    setSyncStatus(true);
   }
 }
 $('refreshBtn').onclick=async()=>{
@@ -495,6 +557,15 @@ $('refreshBtn').onclick=async()=>{
   b.disabled=false;
 };
 loadFromCloud();
+
+// 자동 폴링 시작 — 버튼 없이도 구글 캘린더 최신 일정을 주기적으로 반영
+if(pollTimer) clearInterval(pollTimer);
+pollTimer = setInterval(autoPoll, POLL_INTERVAL_MS);
+
+// 페이지를 떠날 때 폴링 중지
+window.addEventListener('beforeunload', () => {
+  if(pollTimer) clearInterval(pollTimer);
+});
 
 /* iframe(가이드 미리보기) 안에서 열렸을 때, 부모에게 내 높이를 알려 스크롤 없이 보이게 함 */
 if(window.parent!==window){

@@ -201,7 +201,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev_2026_0528_2236</span>
+  <span class="rev">rev 2026.0611.2106</span>
 </footer>
 
 <script>
@@ -228,6 +228,7 @@ const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";
 // 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
 const CORS_PROXIES=[
   u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
 ];
 
@@ -445,7 +446,12 @@ $('saveSettings').onclick=async()=>{
   $('savedMsg').textContent="저장 중...";
   $('savedMsg').classList.add('show');
   try{
-    const payload={settings, busyDates:BUSY_DATES, updatedAt:new Date().toISOString()};
+    const payload={
+      settings,
+      busyDates:BUSY_DATES,
+      updatedAt:new Date().toISOString(),
+      lastModified:new Date().toLocaleString('ko-KR')
+    };
     const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json','X-Master-Key':MASTER_KEY},
