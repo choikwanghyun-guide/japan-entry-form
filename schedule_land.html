@@ -196,7 +196,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev 2026.0611.2126</span>
+  <span class="rev">rev 2026.0611.2131</span>
 </footer>
 
 <!-- 하단 선택바 -->
@@ -244,8 +244,8 @@ let pollTimer = null;
 // 구글 캘린더 일정은 이 페이지를 열 때마다 실시간으로 직접 읽어옵니다.
 // (브라우저가 구글 주소를 직접 못 읽어서 무료 프록시를 거칩니다)
 const CORS_PROXIES=[
-  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u=>`https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
 ];
 
@@ -320,9 +320,11 @@ function parseICS(text){
 }
 async function fetchICS(url){
   let lastErr;
+  // 프록시가 예전 응답을 캐시해 옛 일정을 줄 수 있어, 매번 다른 주소로 요청해 캐시를 우회
+  const bust=url+(url.includes('?')?'&':'?')+'_cb='+Date.now();
   for(const make of CORS_PROXIES){
     try{
-      const res=await fetch(make(url));
+      const res=await fetch(make(bust),{cache:'no-store'});
       if(!res.ok)throw new Error('HTTP '+res.status);
       const t=await res.text();
       if(t.includes('BEGIN:VCALENDAR'))return t;
