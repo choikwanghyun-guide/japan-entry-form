@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0611_1510"></script>
+<script src="landsa_templates.js?v=2026_0611_1523"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1510</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_1523</span>
 </div>
 
 <script>
@@ -4370,18 +4370,36 @@ function parseOverflowItems(messages) {
   return items;
 }
 
-// ExcelJS 워크시트 맨 아래에 미분류 항목을 [라벨][금액] 줄로 추가
+// ExcelJS 워크시트 맨 아래에 미분류 항목을 눈에 띄게(굵게·노랑배경·테두리) 추가
+// ※ 개별 .font/.fill 대신 .style 통째 할당 — 템플릿 빈 셀들의 공유 스타일이 덮어써지는 ExcelJS 이슈 회피
 function appendOverflowToWs(ws, items) {
   if (!items || !items.length) return 0;
   let lastRow = 1;
   ws.eachRow({ includeEmpty: false }, (row, n) => { if (n > lastRow) lastRow = n; });
   let r = lastRow + 2;
-  ws.getCell("A" + r).value = "■ 양식에 칸 없는 항목 (직접 배치)";
+
+  const headBorder = { top:{style:"medium",color:{argb:"FFC8860B"}}, bottom:{style:"medium",color:{argb:"FFC8860B"}}, left:{style:"thin",color:{argb:"FFC8860B"}}, right:{style:"thin",color:{argb:"FFC8860B"}} };
+  const itemBorder = { top:{style:"thin",color:{argb:"FFE0B84A"}}, bottom:{style:"thin",color:{argb:"FFE0B84A"}}, left:{style:"thin",color:{argb:"FFE0B84A"}}, right:{style:"thin",color:{argb:"FFE0B84A"}} };
+  const headFill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFFFD54A"} };
+  const itemFill = { type:"pattern", pattern:"solid", fgColor:{argb:"FFFFF4CC"} };
+
+  // 헤더 (크게·굵게·진한노랑 배경·테두리, A:E 병합)
+  ws.getCell("A" + r).value = "⚠ 양식에 칸 없는 항목 — 직접 알맞은 칸으로 옮겨 주세요";
+  ws.getCell("A" + r).style = { font:{bold:true,size:14,color:{argb:"FF7A2E0E"}}, fill:headFill, alignment:{vertical:"middle",horizontal:"left"}, border:headBorder };
+  ws.getRow(r).height = 26;
+  try { ws.mergeCells(`A${r}:E${r}`); } catch (e) {}
+  ["B","C","D","E"].forEach(col => { ws.getCell(col + r).style = { fill:headFill, border:headBorder }; });
   r++;
+
+  // 항목 줄 (굵게·연노랑 배경·테두리·천단위 콤마)
   items.forEach(it => {
     ws.getCell("A" + r).value = it.label;
-    if (it.cur) ws.getCell("B" + r).value = it.cur;
+    ws.getCell("A" + r).style = { font:{bold:true,size:12}, fill:itemFill, alignment:{vertical:"middle"}, border:itemBorder };
+    ws.getCell("B" + r).value = it.cur || "";
+    ws.getCell("B" + r).style = { font:{size:12}, fill:itemFill, alignment:{horizontal:"center"}, border:itemBorder };
     ws.getCell("C" + r).value = it.amount;
+    ws.getCell("C" + r).style = { font:{bold:true,size:12}, fill:itemFill, alignment:{horizontal:"right"}, numFmt:"#,##0", border:itemBorder };
+    ws.getRow(r).height = 21;
     r++;
   });
   return items.length;
