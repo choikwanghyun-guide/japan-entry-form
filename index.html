@@ -4,7 +4,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>일본 입국 서류 자동출력 (이디카드 + 입국신고서 + 세관신고서)</title>
-<link rel="icon" type="image/svg+xml" href="./favicons/index.svg">
+
 <!-- ===== Google Analytics (GA4) ===== -->
 <!-- 측정 ID: G-T8Q2L4FXSM -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-T8Q2L4FXSM"></script>
@@ -55,27 +55,31 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
   :root {
-    --bg:#0f1117; --surface:#1a1d27; --surface2:#222536; --border:#2e3248;
-    --accent:#4f8ef7; --accent2:#7c6af7; --success:#3ecf8e; --warning:#f7b84f;
-    --danger:#f74f4f; --text:#e8eaf0; --text2:#8b90a7; --text3:#545870;
+    --bg:#F7F6F3; --surface:#FFFFFF; --surface2:#F5F5F3; --border:#E8E7E3;
+    --accent:#2383E2; --accent2:#2383E2; --success:#2F9E6A; --warning:#D9730D;
+    --danger:#E0504A; --text:#37352F; --text2:rgb(120,119,116); --text3:#9B9A97;
+    --purple:#9065B0; --pink:#C14D8A;
+    --tint-ok-bg:#EAF6EF; --tint-ok-bd:#BCDFCA; --tint-bad-bg:#FBECEC; --tint-bad-bd:#EEC4C4;
+    --shadow:0 1px 2px rgba(15,15,15,0.04),0 1px 8px rgba(15,15,15,0.03);
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--text); font-family:'Noto Sans KR',sans-serif; min-height:100vh; padding:24px; }
-  .header { text-align:center; margin:0 auto 24px; padding:28px 32px; background:linear-gradient(135deg,var(--surface),var(--surface2)); border-radius:16px; border:1px solid var(--border); max-width:900px; }
-  .header h1 { font-size:22px; font-weight:700; background:linear-gradient(135deg,#4f8ef7,#7c6af7); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:6px; }
+  body { background:var(--bg); color:var(--text); font-family:'Noto Sans KR',sans-serif; min-height:100vh; padding:24px; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  .header, .main, #feedbackBox, #selfTest { word-break:keep-all; overflow-wrap:break-word; }
+  .header { text-align:center; margin:0 auto 24px; padding:24px 32px; background:var(--surface); border-radius:12px; border:1px solid var(--border); box-shadow:var(--shadow); max-width:900px; position:relative; }
+  .header h1 { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.02em; margin-bottom:6px; }
   .header p { color:var(--text2); font-size:13px; }
-  .badge { display:inline-block; background:rgba(62,207,142,0.12); color:var(--success); border:1px solid rgba(62,207,142,0.3); border-radius:20px; padding:3px 12px; font-size:11px; font-weight:600; margin-top:10px; }
+  .badge { display:inline-block; background:rgba(47,158,106,0.10); color:var(--success); border:1px solid rgba(47,158,106,0.20); border-radius:6px; padding:3px 12px; font-size:11px; font-weight:600; margin-top:10px; }
   .main { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:20px; }
-  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; box-shadow:var(--shadow); }
   .card-title { font-size:15px; font-weight:600; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
-  .step-badge { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .step-badge { background:var(--accent); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
   .upload-zone { border:2px dashed var(--border); border-radius:12px; padding:28px 36px; cursor:pointer; transition:all 0.2s; position:relative; display:flex; align-items:center; gap:24px; }
   .upload-zone:hover,.upload-zone.dragover { border-color:var(--accent); background:rgba(79,142,247,0.05); }
   .upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
   .upload-icon { font-size:40px; flex-shrink:0; }
   .upload-text { flex:1; color:var(--text2); font-size:14px; line-height:1.6; }
   .upload-text strong { color:var(--accent); display:block; font-size:15px; margin-bottom:4px; }
-  .upload-btn { flex-shrink:0; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:white; border-radius:10px; padding:10px 24px; font-size:14px; font-weight:600; pointer-events:none; }
+  .upload-btn { flex-shrink:0; background:var(--accent); color:white; border-radius:8px; padding:10px 24px; font-size:14px; font-weight:600; pointer-events:none; }
   .file-uploaded { display:flex; align-items:center; gap:10px; background:rgba(62,207,142,0.08); border:1px solid rgba(62,207,142,0.25); border-radius:10px; padding:12px 16px; margin-top:12px; }
   .file-name { font-size:13px; font-weight:500; color:var(--success); }
   .file-size { font-size:11px; color:var(--text3); margin-top:2px; }
@@ -84,16 +88,16 @@
   .form-label { font-size:12px; color:var(--text2); font-weight:500; }
   .req { color:var(--accent); font-size:10px; }
   .form-input { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-size:13px; font-family:'Noto Sans KR',sans-serif; width:100%; }
-  .form-input:focus { outline:none; border-color:var(--accent); }
+  .form-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(35,131,226,0.12); }
   .form-input::placeholder { color:var(--text3); }
-  .btn-print { background:linear-gradient(135deg,var(--success),#2eb87a); color:white; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:600; cursor:pointer; width:100%; font-family:inherit; margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .btn-print:hover { opacity:0.9; }
+  .btn-print { background:var(--accent); color:white; border:none; border-radius:8px; padding:14px; font-size:15px; font-weight:600; cursor:pointer; width:100%; font-family:inherit; margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px; transition:filter 0.15s; }
+  .btn-print:hover { filter:brightness(0.94); }
   .alert { padding:12px 16px; border-radius:10px; font-size:13px; margin-top:12px; display:flex; align-items:flex-start; gap:8px; }
   .alert-success { background:rgba(62,207,142,0.1); border:1px solid rgba(62,207,142,0.3); color:var(--success); }
   .alert-warning { background:rgba(247,184,79,0.1); border:1px solid rgba(247,184,79,0.3); color:var(--warning); }
   .alert-error { background:rgba(247,79,79,0.1); border:1px solid rgba(247,79,79,0.3); color:var(--danger); }
   .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
-  .dot-success { background:var(--success); box-shadow:0 0 6px var(--success); }
+  .dot-success { background:var(--success); }
   .dot-warning { background:var(--warning); }
   .dot-error { background:var(--danger); }
   .dot-info { background:var(--accent); }
@@ -111,9 +115,20 @@
     .form-group { min-width:0; }
     .hotel-fontrow { flex-wrap:wrap; }
     .hotel-fontctrl { max-width:none !important; flex:1 1 100% !important; flex-wrap:wrap; justify-content:flex-start; }
+    /* 업로드 영역: 세로 배치 + 가운데 정렬 */
+    .upload-zone { flex-direction:column; text-align:center; gap:12px; padding:22px 16px; }
+    .upload-icon { font-size:32px; }
+    .upload-text { font-size:13px; }
+    .upload-btn { padding:10px 28px; }
+    /* 테마 토글: 작게, 헤더와 겹치지 않게 */
+    .theme-toggle { right:10px; width:32px; height:32px; font-size:14px; }
+    /* 승객 통계: 8열 → 4열 두 줄 */
+    #statsBox > div { grid-template-columns:repeat(4,1fr) !important; gap:6px !important; }
+    #statsBox > div > div > div:first-child { height:auto !important; min-height:24px; font-size:11px !important; }
+    #statsBox [id^="stat"] { font-size:20px !important; }
     /* 상단 3버튼: 모바일에서만 아이콘 위 + 글자 아래 가운데 정렬 */
-    .btn-print.topbtn { flex-direction:column; gap:5px; padding:12px 8px; line-height:1.3; }
-    .btn-print.topbtn .bico { font-size:20px; line-height:1; }
+    .btn-print.topbtn { flex:1 1 100%; flex-direction:row; gap:8px; padding:13px 8px; line-height:1.3; }
+    .btn-print.topbtn .bico { font-size:18px; line-height:1; }
     .btn-print.topbtn .btxt { font-size:13px; text-align:center; word-break:keep-all; }
   }
   @page { size:A4 portrait; margin:0; }
@@ -127,14 +142,33 @@
   #printArea { display:none; }
   .print-page { position:relative; width:210mm; height:297mm; background:white; page-break-after:always; page-break-inside:avoid; }
   .print-page:last-child { page-break-after:avoid; }
+  body.dark {
+    --bg:#191919; --surface:#202020; --surface2:#2A2A2A; --border:#3A3A38;
+    --accent:#4A9EEA; --accent2:#4A9EEA; --success:#4F9D75; --warning:#C77D3F;
+    --danger:#E16F64; --text:#EBEBEA; --text2:#9B9B98; --text3:#6F6F6C;
+    --purple:#A48BC0; --pink:#C97BA6;
+    --tint-ok-bg:#1E2B23; --tint-ok-bd:#35543F; --tint-bad-bg:#2E2020; --tint-bad-bd:#5A3737;
+    --shadow:0 1px 2px rgba(0,0,0,0.3),0 2px 10px rgba(0,0,0,0.25);
+  }
+  body, .card, .header, .form-input { transition:background-color 0.2s, border-color 0.2s, color 0.2s; }
+  .theme-toggle { position:absolute; top:50%; right:14px; transform:translateY(-50%); z-index:10; width:36px; height:36px; border-radius:50%; border:1px solid var(--border); background:var(--surface2); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; padding:0; transition:background 0.15s, transform 0.15s; }
+  .theme-toggle:hover { background:var(--border); transform:translateY(-50%) scale(1.06); }
+  input[type="range"] { -webkit-appearance:none; appearance:none; height:16px; background:transparent; cursor:pointer; padding:0; }
+  input[type="range"]::-webkit-slider-runnable-track { height:6px; border-radius:3px; background:var(--range-paint, var(--border)); }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); margin-top:-5px; border:2px solid var(--surface); box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+  input[type="range"]::-moz-range-track { height:6px; border-radius:3px; background:var(--range-paint, var(--border)); }
+  input[type="range"]::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:var(--accent); border:2px solid var(--surface); box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+  #customsOffsetY::-webkit-slider-thumb, #customsOffsetX::-webkit-slider-thumb { background:var(--warning); }
+  #customsOffsetY::-moz-range-thumb, #customsOffsetX::-moz-range-thumb { background:var(--warning); }
 </style>
 </head>
 <body>
 
 <div class="header">
+  <button id="themeToggle" class="theme-toggle no-print" type="button" title="다크/라이트 테마 전환" aria-label="다크/라이트 테마 전환">🌙</button>
   <h1>일본 입국 서류 자동출력</h1>
-  <p>명부 파일 업로드 → 승객 요약 확인 · 입국신고서 · 세관신고서 인쇄 · 고객요약정보 내려받기</p>
-  <div class="badge">✅ A4 · 여백없음 인쇄</div>
+
+
 </div>
 
 <div class="main">
@@ -171,9 +205,9 @@
           <div class="hotel-fontctrl" style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
             <span style="font-size:11px; color:var(--text3); white-space:nowrap;">글자 크기 조절</span>
             <span style="font-size:10px; color:var(--text3);">-4</span>
-            <input type="range" id="hotelFontDelta" min="-4" max="4" step="1" value="0" style="flex:1; accent-color:#4f8ef7; min-width:60px;" oninput="document.getElementById('hotelFontDeltaVal').textContent = (this.value > 0 ? '+' : '') + this.value">
+            <input type="range" id="hotelFontDelta" min="-4" max="4" step="1" value="0" style="flex:1; accent-color:var(--accent); min-width:60px;" oninput="document.getElementById('hotelFontDeltaVal').textContent = (this.value > 0 ? '+' : '') + this.value">
             <span style="font-size:10px; color:var(--text3);">+4</span>
-            <span id="hotelFontDeltaVal" style="font-size:12px; color:#4f8ef7; font-weight:700; width:20px; text-align:center;">0</span>
+            <span id="hotelFontDeltaVal" style="font-size:12px; color:var(--accent); font-weight:700; width:20px; text-align:center;">0</span>
             <span style="font-size:10px; color:var(--text3); white-space:nowrap;">(입국:12, 세관:13)</span>
           </div>
         </div>
@@ -218,37 +252,37 @@
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">남성</div>
-          <div id="statMale" style="font-size:24px;font-weight:700;color:#4f8ef7;margin:2px 0;">0</div>
+          <div id="statMale" style="font-size:24px;font-weight:700;color:var(--accent);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(247,79,184,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">여성</div>
-          <div id="statFemale" style="font-size:24px;font-weight:700;color:#f74fb8;margin:2px 0;">0</div>
+          <div id="statFemale" style="font-size:24px;font-weight:700;color:var(--pink);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(247,184,79,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">60세 이상</div>
-          <div id="statSenior" style="font-size:24px;font-weight:700;color:#f7b84f;margin:2px 0;">0</div>
+          <div id="statSenior" style="font-size:24px;font-weight:700;color:var(--warning);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(255,140,0,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">초등학생 미만</div>
-          <div id="statInfant" style="font-size:24px;font-weight:700;color:#ff8c00;margin:2px 0;">0</div>
+          <div id="statInfant" style="font-size:24px;font-weight:700;color:var(--warning);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(79,142,247,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">초등학생</div>
-          <div id="statElem" style="font-size:24px;font-weight:700;color:#4f8ef7;margin:2px 0;">0</div>
+          <div id="statElem" style="font-size:24px;font-weight:700;color:var(--accent);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(62,207,142,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">중학생</div>
-          <div id="statMiddle" style="font-size:24px;font-weight:700;color:#3ecf8e;margin:2px 0;">0</div>
+          <div id="statMiddle" style="font-size:24px;font-weight:700;color:var(--success);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
         <div style="background:var(--surface2);border:1px solid rgba(124,106,247,0.3);border-radius:10px;padding:12px 8px;text-align:center;">
           <div style="font-size:13px;color:var(--text2);height:28px;display:flex;align-items:center;justify-content:center;line-height:1.3;font-weight:500;">고등학생</div>
-          <div id="statHigh" style="font-size:24px;font-weight:700;color:#7c6af7;margin:2px 0;">0</div>
+          <div id="statHigh" style="font-size:24px;font-weight:700;color:var(--purple);margin:2px 0;">0</div>
           <div style="font-size:12px;color:var(--text2);">명</div>
         </div>
       </div>
@@ -263,10 +297,10 @@
       <button class="btn-print topbtn" id="btnImmigration" onclick="setMode('immigration')" style="margin-top:0; flex:1;">
         <span class="bico">🛂</span><span class="btxt">입국신고서 인쇄</span>
       </button>
-      <button class="btn-print topbtn" id="btnCustoms" onclick="setMode('customs')" style="margin-top:0; flex:1; background:linear-gradient(135deg,#f7b84f,#f78c4f);">
+      <button class="btn-print topbtn" id="btnCustoms" onclick="setMode('customs')" style="margin-top:0; flex:1; background:var(--warning);">
         <span class="bico">🛃</span><span class="btxt">세관신고서 인쇄</span>
       </button>
-      <button class="btn-print topbtn" id="btnEdCard" onclick="generateEdCard()" style="margin-top:0; flex:1; background:linear-gradient(135deg,#3ecf8e,#2eb87a);">
+      <button class="btn-print topbtn" id="btnEdCard" onclick="generateEdCard()" style="margin-top:0; flex:1; background:var(--success);">
         <span class="bico">📥</span><span class="btxt">고객 요약정보 내려받기</span>
       </button>
     </div>
@@ -340,11 +374,11 @@
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-portrait">
-          <input type="radio" name="customsOrient" value="portrait" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <input type="radio" name="customsOrient" value="portrait" checked onchange="updateOrientUI()" style="accent-color:var(--warning);">
           <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (가운데 정렬)</span>
         </label>
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-portrait-left">
-          <input type="radio" name="customsOrient" value="portrait-left" onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <input type="radio" name="customsOrient" value="portrait-left" onchange="updateOrientUI()" style="accent-color:var(--warning);">
           <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (왼쪽 정렬)</span>
         </label>
       </div>
@@ -355,17 +389,17 @@
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
           <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
           <span style="font-size:12px; color:var(--text3);">상</span>
-          <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
+          <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
           <span style="font-size:12px; color:var(--text3);">하</span>
-          <span id="offsetYVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+          <span id="offsetYVal" style="font-size:13px; color:var(--warning); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
           <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
           <span style="font-size:12px; color:var(--text3);">좌</span>
-          <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:#f7b84f;" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
+          <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
           <span style="font-size:12px; color:var(--text3);">우</span>
-          <span id="offsetXVal" style="font-size:13px; color:#f7b84f; font-weight:700; width:36px; text-align:right;">0</span>
+          <span id="offsetXVal" style="font-size:13px; color:var(--warning); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
         </div>
         <div style="margin-top:10px; text-align:right;">
@@ -487,21 +521,21 @@ function generateEdCard() {
   `;
   overlay.innerHTML = `
     <div style="
-      background:#1a1d27; border:1px solid #3ecf8e;
+      background:var(--surface); border:1px solid var(--success);
       border-radius:20px; padding:40px 48px; text-align:center;
-      box-shadow:0 0 60px rgba(62,207,142,0.3); max-width:420px;
+      box-shadow:0 12px 40px rgba(15,15,15,0.12); max-width:420px;
     ">
       <div style="font-size:56px; margin-bottom:16px;">🎉</div>
-      <div style="font-size:22px; font-weight:700; color:#3ecf8e; margin-bottom:12px;">다운로드 완료!</div>
-      <div style="font-size:14px; color:#8b90a7; line-height:1.8; margin-bottom:8px;">
-        <span style="color:#e8eaf0; font-weight:600;">${fileName}</span><br>
-        총 <span style="color:#4f8ef7; font-weight:700;">${passengers.length}명</span>의 정보가 입력됐어요
+      <div style="font-size:22px; font-weight:700; color:var(--success); margin-bottom:12px;">다운로드 완료!</div>
+      <div style="font-size:14px; color:var(--text2); line-height:1.8; margin-bottom:8px;">
+        <span style="color:var(--text); font-weight:600;">${fileName}</span><br>
+        총 <span style="color:var(--accent); font-weight:700;">${passengers.length}명</span>의 정보가 입력됐어요
       </div>
-      <div style="font-size:13px; color:#f7b84f; margin-bottom:28px;">
+      <div style="font-size:13px; color:var(--warning); margin-bottom:28px;">
         📂 다운로드 폴더에서 파일을 열어주세요!
       </div>
       <button onclick="this.closest('div[style*=fixed]').remove()" style="
-        background:linear-gradient(135deg,#3ecf8e,#2eb87a);
+        background:var(--success);
         color:white; border:none; border-radius:10px;
         padding:12px 36px; font-size:15px; font-weight:700;
         cursor:pointer; font-family:inherit;
@@ -1377,21 +1411,21 @@ function generateEdCard() {
   `;
   overlay.innerHTML = `
     <div style="
-      background:#1a1d27; border:1px solid #3ecf8e;
+      background:var(--surface); border:1px solid var(--success);
       border-radius:20px; padding:40px 48px; text-align:center;
-      box-shadow:0 0 60px rgba(62,207,142,0.3); max-width:420px;
+      box-shadow:0 12px 40px rgba(15,15,15,0.12); max-width:420px;
     ">
       <div style="font-size:56px; margin-bottom:16px;">🎉</div>
-      <div style="font-size:22px; font-weight:700; color:#3ecf8e; margin-bottom:12px;">다운로드 완료!</div>
-      <div style="font-size:14px; color:#8b90a7; line-height:1.8; margin-bottom:8px;">
-        <span style="color:#e8eaf0; font-weight:600;">${fileName}</span><br>
-        총 <span style="color:#4f8ef7; font-weight:700;">${passengers.length}명</span>의 정보가 입력됐어요
+      <div style="font-size:22px; font-weight:700; color:var(--success); margin-bottom:12px;">다운로드 완료!</div>
+      <div style="font-size:14px; color:var(--text2); line-height:1.8; margin-bottom:8px;">
+        <span style="color:var(--text); font-weight:600;">${fileName}</span><br>
+        총 <span style="color:var(--accent); font-weight:700;">${passengers.length}명</span>의 정보가 입력됐어요
       </div>
-      <div style="font-size:13px; color:#f7b84f; margin-bottom:28px;">
+      <div style="font-size:13px; color:var(--warning); margin-bottom:28px;">
         📂 다운로드 폴더에서 파일을 열어주세요!
       </div>
       <button onclick="this.closest('div[style*=fixed]').remove()" style="
-        background:linear-gradient(135deg,#3ecf8e,#2eb87a);
+        background:var(--success);
         color:white; border:none; border-radius:10px;
         padding:12px 36px; font-size:15px; font-weight:700;
         cursor:pointer; font-family:inherit;
@@ -1860,8 +1894,9 @@ function updateOrientUI() {
   document.querySelectorAll('.orient-label').forEach(label => {
     const radio = label.querySelector('input[type="radio"]');
     if (radio && radio.checked) {
-      label.style.borderColor = 'var(--accent)';
-      label.style.background = 'rgba(79,142,247,0.1)';
+      const isCustoms = radio.name === 'customsOrient';
+      label.style.borderColor = isCustoms ? 'rgba(217,115,13,0.55)' : 'var(--accent)';
+      label.style.background = isCustoms ? 'rgba(217,115,13,0.07)' : 'rgba(79,142,247,0.1)';
     } else {
       label.style.borderColor = 'var(--border)';
       label.style.background = 'var(--surface)';
@@ -1971,35 +2006,35 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 
 
 <!-- ===== 개선 의견 (모든 가이드) ===== -->
-<div id="feedbackBox" class="no-print" style="max-width:760px; margin:24px auto 0; padding:18px 20px; background:#1a1d27; border:1px solid #2b2f3e; border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
-  <div style="font-size:15px; font-weight:700; color:#e8eaf0; margin-bottom:4px;">💬 개선 의견 남기기 <span style="font-size:12px; font-weight:400; color:#8b90a7;">(다른 사람한테 안보입니다.)</span></div>
-  <div style="font-size:12px; color:#8b90a7; margin-bottom:12px; line-height:1.6;">사용하다 불편한 점이나 제안이 있으면 남겨 주세요. 더 좋게 고치는 데 큰 도움이 됩니다.</div>
-  <input id="fbName" type="text" placeholder="이름 또는 닉네임 (선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit;">
-  <input id="fbEmail" type="email" placeholder="이메일 (회신용, 권장)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit;">
-  <textarea id="fbMsg" rows="3" placeholder="불편한 점 / 개선 아이디어를 적어 주세요" style="width:100%; box-sizing:border-box; padding:9px 11px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:13px; font-family:inherit; resize:vertical;"></textarea>
-  <button id="fbSend" style="margin-top:10px; padding:9px 22px; background:linear-gradient(135deg,#4f8ef7,#3a6fd0); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">남기기</button>
+<div id="feedbackBox" class="no-print" style="max-width:760px; margin:24px auto 0; padding:18px 20px; background:var(--surface); border:1px solid var(--border); border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
+  <div style="font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px;">💬 개선 의견 남기기 <span style="font-size:12px; font-weight:400; color:var(--text2);">(다른 사람한테 안보입니다.)</span></div>
+  <div style="font-size:12px; color:var(--text2); margin-bottom:12px; line-height:1.6;">사용하다 불편한 점이나 제안이 있으면 남겨 주세요. 더 좋게 고치는 데 큰 도움이 됩니다.</div>
+  <input id="fbName" type="text" placeholder="이름 또는 닉네임 (선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; font-family:inherit;">
+  <input id="fbEmail" type="email" placeholder="이메일 (회신용, 권장)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:9px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; font-family:inherit;">
+  <textarea id="fbMsg" rows="3" placeholder="불편한 점 / 개선 아이디어를 적어 주세요" style="width:100%; box-sizing:border-box; padding:9px 11px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; font-family:inherit; resize:vertical;"></textarea>
+  <button id="fbSend" style="margin-top:10px; padding:9px 22px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">남기기</button>
   <div id="fbMsgAlert" style="display:none; margin-top:10px; font-size:12px;"></div>
   <div id="fbList" style="margin-top:16px;"></div>
 </div>
 
 <!-- ===== 헤더 자가검사 (관리자 전용, 숨김) ===== -->
-<div id="selfTest" class="no-print" style="display:none; max-width:760px; margin:18px auto 0; padding:18px 20px; background:#161922; border:1px solid #3a3f52; border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
+<div id="selfTest" class="no-print" style="display:none; max-width:760px; margin:18px auto 0; padding:18px 20px; background:var(--surface); border:1px solid var(--border); border-radius:14px; font-family:'Noto Sans KR',sans-serif;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-    <div style="font-size:15px; font-weight:700; color:#f7b84f;">🔧 명부 헤더 자가검사 (관리자)</div>
-    <button id="stClose" style="background:none; border:none; color:#8b90a7; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+    <div style="font-size:15px; font-weight:700; color:var(--warning);">🔧 명부 헤더 자가검사 (관리자)</div>
+    <button id="stClose" style="background:none; border:none; color:var(--text2); font-size:18px; cursor:pointer; line-height:1;">✕</button>
   </div>
-  <div style="font-size:12px; color:#8b90a7; margin-bottom:10px; line-height:1.7;">
-    랜드사별 <b style="color:#e8eaf0;">헤더 한 줄씩</b> 입력 (한 줄 = 한 랜드사).<br>
-    형식: <code style="color:#7fd1b9;">랜드사이름 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일</code><br>
-    엑셀에서 <b style="color:#e8eaf0;">헤더 행만 선택→복사</b>해 붙여넣으면 칸이 탭으로 구분돼요(쉼표·탭 모두 인식). 개인정보 줄은 넣지 마세요.
+  <div style="font-size:12px; color:var(--text2); margin-bottom:10px; line-height:1.7;">
+    랜드사별 <b style="color:var(--text);">헤더 한 줄씩</b> 입력 (한 줄 = 한 랜드사).<br>
+    형식: <code style="color:var(--success);">랜드사이름 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일</code><br>
+    엑셀에서 <b style="color:var(--text);">헤더 행만 선택→복사</b>해 붙여넣으면 칸이 탭으로 구분돼요(쉼표·탭 모두 인식). 개인정보 줄은 넣지 마세요.
   </div>
-  <textarea id="stInput" rows="6" placeholder="예) A여행사 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일&#10;B랜드 | No, 한글성명, 영문성, 영문이름, 성별, 생년월일, 여권번호" style="width:100%; box-sizing:border-box; padding:10px 12px; background:#0e1016; border:1px solid #2b2f3e; border-radius:8px; color:#e8eaf0; font-size:12px; font-family:monospace; resize:vertical; line-height:1.6;"></textarea>
+  <textarea id="stInput" rows="6" placeholder="예) A여행사 | 순번, 이름, 영문명(/), 성별, 생년월일, 여권번호, 여권만료일&#10;B랜드 | No, 한글성명, 영문성, 영문이름, 성별, 생년월일, 여권번호" style="width:100%; box-sizing:border-box; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:12px; font-family:monospace; resize:vertical; line-height:1.6;"></textarea>
   <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-    <button id="stRun" style="padding:9px 22px; background:linear-gradient(135deg,#3ecf8e,#2eb87a); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">검사 실행</button>
-    <button id="stSave" style="padding:9px 18px; background:#2b2f3e; color:#e8eaf0; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">저장</button>
-    <button id="stClear" style="padding:9px 18px; background:#2b2f3e; color:#e8eaf0; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">전체 지우기</button>
+    <button id="stRun" style="padding:9px 22px; background:var(--success); color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;">검사 실행</button>
+    <button id="stSave" style="padding:9px 18px; background:var(--border); color:var(--text); border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">저장</button>
+    <button id="stClear" style="padding:9px 18px; background:var(--border); color:var(--text); border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit;">전체 지우기</button>
   </div>
-  <div id="stSummary" style="margin-top:12px; font-size:13px; font-weight:700; color:#e8eaf0;"></div>
+  <div id="stSummary" style="margin-top:12px; font-size:13px; font-weight:700; color:var(--text);"></div>
   <div id="stResult" style="margin-top:8px;"></div>
 </div>
 
@@ -2039,7 +2074,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
     var sum=document.getElementById('stSummary');
     if(!res) return;
     var lines=(stInput && stInput.value || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
-    if(lines.length===0){ res.innerHTML='<div style="color:#8b90a7; font-size:13px;">검사할 헤더가 없어요. 위 칸에 한 줄씩 입력해 주세요.</div>'; if(sum) sum.textContent=''; return; }
+    if(lines.length===0){ res.innerHTML='<div style="color:var(--text2); font-size:13px;">검사할 헤더가 없어요. 위 칸에 한 줄씩 입력해 주세요.</div>'; if(sum) sum.textContent=''; return; }
     var html='', passN=0;
     lines.forEach(function(line){
       var name='(이름없음)', cellsPart=line;
@@ -2049,16 +2084,16 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
       var det=(typeof detectColumns==='function')?detectColumns(cells):{isHeader:false,colMap:{}};
       var cm=det.colMap||{};
       function fld(label,key){
-        if(cm[key]===undefined) return '<span style="color:#f2777a;">⚠ '+label+'</span>';
-        return '<span style="color:#7fd1b9;">✓ '+label+'('+colLetter(cm[key])+'열)</span>';
+        if(cm[key]===undefined) return '<span style="color:var(--danger);">⚠ '+label+'</span>';
+        return '<span style="color:var(--success);">✓ '+label+'('+colLetter(cm[key])+'열)</span>';
       }
       var hasName = (cm.fullName!==undefined) || (cm.lastName!==undefined);
       var nameCol = cm.fullName!==undefined ? cm.fullName : cm.lastName;
-      var nameFld = hasName ? '<span style="color:#7fd1b9;">✓ 영문이름('+colLetter(nameCol)+'열)</span>' : '<span style="color:#f2777a;">⚠ 영문이름</span>';
+      var nameFld = hasName ? '<span style="color:var(--success);">✓ 영문이름('+colLetter(nameCol)+'열)</span>' : '<span style="color:var(--danger);">⚠ 영문이름</span>';
       var pass = hasName && (cm.birth!==undefined) && (cm.passport!==undefined);
       if(pass) passN++;
-      html += '<div style="padding:10px 12px; margin-bottom:8px; background:'+(pass?'#13241c':'#2a1a1a')+'; border:1px solid '+(pass?'#2c7a52':'#7a3a3a')+'; border-radius:8px;">'
-        + '<div style="font-size:13px; font-weight:700; color:#e8eaf0; margin-bottom:6px;">'+(pass?'✅':'⚠️')+' '+esc(name)+(det.isHeader?'':' <span style="color:#f7b84f; font-weight:400;">(헤더로 인식 안 됨)</span>')+'</div>'
+      html += '<div style="padding:10px 12px; margin-bottom:8px; background:'+(pass?'var(--tint-ok-bg)':'var(--tint-bad-bg)')+'; border:1px solid '+(pass?'var(--tint-ok-bd)':'var(--tint-bad-bd)')+'; border-radius:8px;">'
+        + '<div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:6px;">'+(pass?'✅':'⚠️')+' '+esc(name)+(det.isHeader?'':' <span style="color:var(--warning); font-weight:400;">(헤더로 인식 안 됨)</span>')+'</div>'
         + '<div style="font-size:12px; line-height:2;">'+nameFld+' &nbsp; '+fld('생년월일','birth')+' &nbsp; '+fld('여권번호','passport')+' &nbsp; '+fld('성별','gender')+' &nbsp; '+fld('여권만료일','expiry')+' &nbsp; '+fld('한글이름','korName')+'</div>'
         + '</div>';
     });
@@ -2127,12 +2162,12 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
     if(!fbList) return;
     var arr=loadFB();
     if(!arr.length){ fbList.innerHTML=''; return; }
-    var h='<div style="font-size:12px; color:#8b90a7; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;"><span>남겨진 의견 ('+arr.length+')</span><button id="fbClearAll" style="background:none; border:none; color:#6b7088; font-size:11px; cursor:pointer; text-decoration:underline; font-family:inherit;">전체 삭제</button></div>';
+    var h='<div style="font-size:12px; color:var(--text2); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;"><span>남겨진 의견 ('+arr.length+')</span><button id="fbClearAll" style="background:none; border:none; color:var(--text3); font-size:11px; cursor:pointer; text-decoration:underline; font-family:inherit;">전체 삭제</button></div>';
     arr.slice().reverse().forEach(function(it){
-      h += '<div style="position:relative; padding:9px 30px 9px 11px; margin-bottom:6px; background:#11131a; border:1px solid #2b2f3e; border-radius:8px;">'
-        + '<button class="fbDel" data-id="'+esc(it.id||'')+'" title="삭제" style="position:absolute; top:6px; right:7px; background:none; border:none; color:#6b7088; font-size:14px; cursor:pointer; line-height:1; font-family:inherit;">✕</button>'
-        + '<div style="font-size:11px; color:#6b7088; margin-bottom:3px;">'+esc(it.date)+(it.name?(' · '+esc(it.name)):'')+(it.email?(' · '+esc(it.email)):'')+'</div>'
-        + '<div style="font-size:13px; color:#e8eaf0; white-space:pre-wrap; word-break:break-word;">'+esc(it.msg)+'</div></div>';
+      h += '<div style="position:relative; padding:9px 30px 9px 11px; margin-bottom:6px; background:var(--surface2); border:1px solid var(--border); border-radius:8px;">'
+        + '<button class="fbDel" data-id="'+esc(it.id||'')+'" title="삭제" style="position:absolute; top:6px; right:7px; background:none; border:none; color:var(--text3); font-size:14px; cursor:pointer; line-height:1; font-family:inherit;">✕</button>'
+        + '<div style="font-size:11px; color:var(--text3); margin-bottom:3px;">'+esc(it.date)+(it.name?(' · '+esc(it.name)):'')+(it.email?(' · '+esc(it.email)):'')+'</div>'
+        + '<div style="font-size:13px; color:var(--text); white-space:pre-wrap; word-break:break-word;">'+esc(it.msg)+'</div></div>';
     });
     fbList.innerHTML=h;
     var dels=fbList.querySelectorAll('.fbDel');
@@ -2152,7 +2187,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
       renderFB();
     });
   }
-  function fbToast(msg, ok){ if(!fbAlert) return; fbAlert.style.display='block'; fbAlert.style.color=ok?'#3ecf8e':'#f2777a'; fbAlert.textContent=msg; setTimeout(function(){ fbAlert.style.display='none'; }, 4500); }
+  function fbToast(msg, ok){ if(!fbAlert) return; fbAlert.style.display='block'; fbAlert.style.color=ok?'var(--success)':'var(--danger)'; fbAlert.textContent=msg; setTimeout(function(){ fbAlert.style.display='none'; }, 4500); }
   if(fbSend) fbSend.addEventListener('click', function(){
     var msg=(fbMsg && fbMsg.value || '').trim();
     if(!msg){ fbToast('내용을 입력해 주세요.', false); return; }
@@ -2172,8 +2207,8 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 })();
 </script>
 
-<div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0611_2222</span>
+<div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0611_2222</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
@@ -2222,4 +2257,42 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 <!-- ===== /GA4 이벤트 추적 ===== -->
 
+<script>
+(function () {
+  var KEY = 'uiTheme_v1';
+  // ── 위치 미세조정 슬라이더: 0(중앙) 기준 이동량 시각화 ──
+  var RANGE_IDS = ['hotelFontDelta', 'immOffsetY', 'immOffsetX', 'customsOffsetY', 'customsOffsetX'];
+  function paintRange(el) {
+    if (!el) return;
+    var min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value) || 0;
+    var p = ((v - min) / (max - min)) * 100;
+    var lo = Math.min(50, p), hi = Math.max(50, p);
+    var color = el.id.indexOf('customs') === 0 ? 'var(--warning)' : 'var(--accent)';
+    var tick = 'linear-gradient(to right, transparent 0, transparent calc(50% - 1px), var(--text3) calc(50% - 1px), var(--text3) calc(50% + 1px), transparent calc(50% + 1px))';
+    var fill = 'linear-gradient(to right, var(--border) 0%, var(--border) ' + lo + '%, ' + color + ' ' + lo + '%, ' + color + ' ' + hi + '%, var(--border) ' + hi + '%, var(--border) 100%)';
+    el.style.setProperty('--range-paint', tick + ', ' + fill);
+  }
+  function paintAllRanges() {
+    RANGE_IDS.forEach(function (id) { paintRange(document.getElementById(id)); });
+  }
+  document.addEventListener('input', function (e) { if (e.target && e.target.type === 'range') paintRange(e.target); });
+  document.addEventListener('click', function () { requestAnimationFrame(paintAllRanges); });
+  document.addEventListener('DOMContentLoaded', paintAllRanges);
+  window.addEventListener('load', paintAllRanges);
+  paintAllRanges();
+  var btn = document.getElementById('themeToggle');
+  var theme = 'light';
+  try { if (localStorage.getItem(KEY) === 'dark') theme = 'dark'; } catch (e) { /* 무시 */ }
+  function apply() {
+    document.body.classList.toggle('dark', theme === 'dark');
+    if (btn) btn.textContent = theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+  }
+  apply();
+  if (btn) btn.addEventListener('click', function () {
+    theme = (theme === 'dark') ? 'light' : 'dark';
+    try { localStorage.setItem(KEY, theme); } catch (e) { /* 무시 */ }
+    apply();
+  });
+})();
+</script>
 </body></html>
