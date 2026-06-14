@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0546"></script>
+<script src="landsa_templates.js?v=2026_0615_0558"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0546</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0558</span>
 </div>
 
 <script>
@@ -2378,7 +2378,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
       "이 사진에 있는 영수증을 분석해서 JSON 배열([ ])로만 답변해주세요(다른 설명 X).\n" +
       "사진에는 영수증이 여러 장 붙어 있을 수 있습니다. 각 영수증은 보통 상호명(가게 이름)과 合計(합계)가 따로 있으니, 먼저 영수증이 몇 장인지 구분하세요. 다음 규칙을 반드시 지키세요:\n" +
       "- 규칙1) 카테고리가 다른 영수증은 절대 합치지 말고 각각 별도 항목으로 분리하세요. (예: 중식 영수증 + 기타(선물) 영수증 → 항목 2개)\n" +
-      "- 규칙2) 카테고리가 같은 영수증이 여러 장이면, 각 영수증의 금액을 따로 읽어서 모두 합산한 값을 항목 1개의 amount로 넣으세요. (예: 우동집 15,000 + 식당 11,000 → 26,000)\n" +
+      "- 규칙2) 카테고리가 같은 영수증이 여러 장이면 항목 1개로 묶되, 각 영수증의 金額을 amounts 배열에 하나씩 넣으세요 (예: amounts: [15000, 11000]). amount는 그 합.\n" +
       "- 규칙3) 서로 다른 영수증의 금액과 상호명을 섞지 마세요. 각 항목의 amount(금액)와 place(상호)는 반드시 같은 영수증에서 나와야 합니다.\n" +
       "- 규칙4) 영수증이 한 장이면 항목 1개짜리 배열로 답하세요.\n" +
       "- 규칙5) ★가장 중요★ 가이드가 사진 모서리(주로 우측 상단)에 손으로 크게 적은 합계 숫자는 '검증용'이니 절대 금액으로 쓰지 마세요. amount는 반드시 각 領収証/領収書 박스 안에 인쇄된 金額(税込)을 하나씩 읽어서 더한 값이어야 합니다. (예: 우동집 領収証의 15,000 + 식당 領収書의 11,000 = 26,000) — 우측 상단 손글씨 26,000을 그대로 쓰는 것은 틀린 답입니다.\n" +
@@ -2386,11 +2386,12 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
       "{\n" +
       '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
       '  "category": "영수증 손글씨 라벨에 해당하는 항목. 반드시 다음 중 하나로: 호텔, 중식, 석식, 입장료, 버스비, 회송대, 도로비, 주차대, 오차대, 기사식대, 기사숙박, 기사교통비, 출장비, 통신비, 지방교통비, 통역비, 가이드식대, 출국세, 기타, 기타경비",\n' +
-      '  "amount": 금액 숫자만 (콤마/통화기호 없이; 여러 장이면 각 영수증을 따로 읽어 합산한 값, 모서리 손글씨 합계가 아님),\n' +
+      '  "amount": 금액 숫자만 (콤마/통화기호 없이; amounts의 합),\n' +
+      '  "amounts": [영수증별 금액 배열 — 각 領収証/領収書 안에 인쇄된 金額(税込)을 하나씩. 1장이면 [금액1], 여러 장이면 [금액1, 금액2, ...]. ★우측 상단 손글씨 합계는 절대 넣지 마세요★],\n' +
       '  "currency": "yen 또는 won",\n' +
       '  "place": "사용처/상호명",\n' +
       '  "people": "인원수 (금액>0인 메인 식사/입장 항목의 수량 ×N 합; ¥0 부가항목·품수(○品)·客数 제외; 없으면 빈 문자열)",\n' +
-      '  "note": "영수증이 2장 이상이면 note 맨 앞에 각 영수증 금액을 반드시 나열: \'상호1 금액1 + 상호2 금액2 = 합계 (우측상단 손글씨와 일치)\' 형식. 합계가 우측상단 손글씨와 다르면 \'⚠합계 불일치\'. 그 뒤 메뉴/특이사항. 인원은 people에 넣기."\n' +
+      '  "note": "내용 요약 (메뉴/특이사항 등; 인원은 people에 넣기)"\n' +
       "}\n\n" +
       "우선순위 규칙(영수증 한 장 안에서만 적용): 그 영수증에 붙은 포스트잇 손글씨 금액 > 볼펜 V 체크된 금액 > 인쇄된 금액. 단, 여러 영수증을 묶어 적은 모서리 손글씨 '합계'는 여기 해당 안 됨(검증용) — 각 영수증 금액을 따로 읽어 합산하세요.\n" +
       "카테고리 판단: 영수증 위/주변에 손글씨로 적힌 항목 이름(예: '중식','석식','호텔','버스비','고속대','도로비','주차대','오차대','기사식대','기사숙박','기사교통비','출장비','통신비','지방교통비','입장료','출국세')이 있으면 그것을 최우선으로 그대로 반영하세요.\n" +
@@ -2427,7 +2428,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
         headers: { "x-goog-api-key": key, "content-type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [ { text: prompt }, { inline_data: { mime_type: mediaType, data: b64 } } ] }],
-          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 512 }
+          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 2048 }
         })
       });
       if (!res.ok) {
@@ -2449,7 +2450,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
         },
         body: JSON.stringify({
           model: model,
-          max_tokens: 512,
+          max_tokens: 2048,
           messages: [{
             role: "user",
             content: [
@@ -2487,13 +2488,24 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
     const applyTo = (target, p) => {
       if (p.date) target.date = p.date;
       if (p.category) target.category = canonicalCategory(p.category);   // 띄어쓰기 정규화
-      if (p.amount !== undefined && p.amount !== null) target.amount = String(p.amount);
+      // 영수증별 금액 배열(amounts)이 있으면 그 합을 금액으로 — AI가 준 합계나 손글씨 합계는 안 씀
+      const amts = Array.isArray(p.amounts)
+        ? p.amounts.map(x => Number(String(x == null ? "" : x).replace(/[^\d.-]/g, "")) || 0).filter(x => x > 0)
+        : [];
+      let breakdown = "";
+      if (amts.length >= 1) {
+        const sum = amts.reduce((a, b) => a + b, 0);
+        target.amount = String(sum);
+        if (amts.length >= 2) breakdown = amts.map(a => a.toLocaleString()).join(" + ") + " = " + sum.toLocaleString();
+      } else if (p.amount !== undefined && p.amount !== null) {
+        target.amount = String(p.amount);
+      }
       if (p.place) target.place = p.place;   // 자동입력용(상호명)
       const peopleVal = (p.people !== undefined && p.people !== null && String(p.people).trim())
         ? String(p.people).trim() : "";
       if (peopleVal) target.people = peopleVal;   // 자동입력용(인원)
       const peopleStr = peopleVal ? "인원 " + peopleVal + "명" : "";
-      const placeNote = [p.place, peopleStr, p.note].filter(Boolean).join(" / ");
+      const placeNote = [p.place, peopleStr, breakdown, p.note].filter(Boolean).join(" / ");
       if (placeNote) target.note = placeNote;
     };
 
