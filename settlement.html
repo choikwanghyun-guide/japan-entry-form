@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0648"></script>
+<script src="landsa_templates.js?v=2026_0615_0655"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0648</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0655</span>
 </div>
 
 <script>
@@ -2100,13 +2100,23 @@ function readAsDataURL(file) {
 
 // ===== 분석된 영수증 카드 → 정산표 자동입력 =====
 // 기존 applyReceiptJSON 파이프라인을 재사용(검증된 코드). append 모드라 수동입력은 유지.
-function fillGroundFromReceipts() {
-  const cards = uploadedReceipts.filter(r => r.category && r.amount && !r._filled && r.selected !== false);
+// 카드 한 장만 정산표에 올리기
+function fillOneReceipt(id) {
+  const r = uploadedReceipts.find(x => x.id === id);
+  if (!r) return;
+  if (!r.category || !r.amount) { alert("먼저 🤖분석을 눌러 항목·금액이 채워져야 정산표에 올릴 수 있어요."); return; }
+  if (r._filled && !confirm("이미 표에 올린 영수증이에요. 다시 올릴까요?")) return;
+  fillGroundFromReceipts([r]);
+}
+
+function fillGroundFromReceipts(cardsArg) {
+  const single = Array.isArray(cardsArg) && cardsArg.length > 0;
+  const cards = single ? cardsArg : uploadedReceipts.filter(r => r.category && r.amount && !r._filled && r.selected !== false);
   if (!cards.length) {
     alert("자동입력할 영수증이 없습니다.\n(체크된 카드가 없거나, 분석 안 됨, 또는 이미 표에 입력된 카드는 제외됩니다.)");
     return;
   }
-  if (!confirm(`체크된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
+  if (!single && !confirm(`체크된 영수증 ${cards.length}건을 정산표에 자동입력할까요?\n\n· 기존에 직접 입력한 값은 유지됩니다.\n· 인식이 틀린 항목은 표에서 직접 고쳐주세요.`)) return;
 
   const num = (v) => Number(String(v == null ? "" : v).replace(/[^\d.-]/g, "")) || 0;
 
@@ -2212,6 +2222,7 @@ function renderUploadedReceipts() {
         <input type="text" value="${r.note||''}" data-id="${r.id}" data-field="note" placeholder="메모" title="메모">
         <div class="receipt-actions">
           <button class="analyze" onclick="analyzeReceiptWithAI('${r.id}', this)" ${r.isPdf?'disabled title="PDF는 자동 분석 미지원"':''}>🤖 분석</button>
+          <button onclick="fillOneReceipt('${r.id}')" title="이 영수증만 정산표에 올리기" style="background:#10b981;color:#fff;border:none;font-weight:700;">📥 표에</button>
           <button onclick="openReceiptModal('${r.id}')">크게</button>
           <button class="delete" onclick="deleteUploadedReceipt('${r.id}')">삭제</button>
         </div>
