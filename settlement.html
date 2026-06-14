@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0722"></script>
+<script src="landsa_templates.js?v=2026_0615_0736"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0722</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0736</span>
 </div>
 
 <script>
@@ -1544,6 +1544,7 @@ function renderItemSection(sec, body) {
           td.contentEditable = "true";
           td.classList.add(r.label === "내역" ? "extra-item" : "extra-data");
           td.dataset.section = sec.key;
+          td.dataset.itemcol = chunkIdx + "_" + i;   // 추가칸 열 구분(수집 시 충돌 방지)
           td.dataset.field = r.label === "내역" ? "extraName" : (r.isAmount ? "amount" : (r.field || ""));
           td.addEventListener("input", () => recalcGround());
           if (r.label === "내역") td.style.textAlign = "center";
@@ -2724,8 +2725,9 @@ function collectAllData() {
     const day = td.dataset.day;
     const slot = td.dataset.slot || "1";
     const field = td.dataset.field;
-    const item = td.dataset.item;  // bus/guide/etcYen에서만 있음
-    const key = `${sec}|${day}|${slot}|${item||""}`;
+    const item = td.dataset.item;       // 고정 항목(bus/guide/etcYen)에만 있음
+    const itemcol = td.dataset.itemcol; // 추가 입력칸(null) 열 구분
+    const key = `${sec}|${day}|${slot}|${item||itemcol||""}`;
     if (!groundCells[key]) groundCells[key] = { section: sec, day, slot, item };
     const clone = td.cloneNode(true);
     clone.querySelectorAll(".src-tag").forEach(e => e.remove());
@@ -2740,6 +2742,7 @@ function collectAllData() {
   // 카테고리별로 정리
   Object.values(groundCells).forEach(cell => {
     const sec = cell.section;
+    if (!cell.item && cell.extraName) cell.item = cell.extraName;   // 추가 입력칸은 직접 적은 내역명을 item으로
     if (!ground[sec]) ground[sec] = [];
     ground[sec].push(cell);
   });
