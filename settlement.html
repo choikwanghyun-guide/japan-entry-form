@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0637"></script>
+<script src="landsa_templates.js?v=2026_0615_0648"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1153,7 +1153,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0637</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0648</span>
 </div>
 
 <script>
@@ -2121,6 +2121,17 @@ function fillGroundFromReceipts() {
   const normMap = (m) => { const o = {}; for (const k in m) o[norm(k)] = m[k]; return o; };
   const DATE_SEC_N = normMap(DATE_SEC), BUS_ITEM_N = normMap(BUS_ITEM), GUIDE_ITEM_N = normMap(GUIDE_ITEM), ETCYEN_ITEM_N = normMap(ETCYEN_ITEM);
 
+  // 날짜별 카드(호텔/식사/관광)가 있는데 '행사 시작일'이 비어있으면, 영수증 날짜 중 가장 빠른 날로 자동 설정
+  // (안 그러면 표 날짜 칸이 "-"라 날짜별 항목이 들어갈 자리를 못 찾음)
+  const startEl = document.getElementById("info-date-start");
+  if (startEl && !startEl.value) {
+    const dts = cards.filter(c => DATE_SEC_N[norm(c.category)] && /^\d{4}-\d{2}-\d{2}$/.test(c.date || "")).map(c => c.date).sort();
+    if (dts.length) {
+      startEl.value = dts[0];
+      startEl.dispatchEvent(new Event("change", { bubbles: true }));   // 표 날짜 칸 갱신
+    }
+  }
+
   const data = { hotel: [], lunch: [], dinner: [], tour: [], bus: {}, guide: {}, etcYen: {}, etc: {} };
   const tourSlot = {};
   const skipped = [];
@@ -2510,6 +2521,8 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
 
     // 한 항목을 카드에 반영하는 헬퍼
     const applyTo = (target, p) => {
+      target._filled = false;    // 새로 분석된 카드 → 표입력 표시 해제(다시 채울 수 있게)
+      target.selected = true;    // 분석 후 기본 선택됨
       if (p.date) target.date = p.date;
       if (p.category) target.category = canonicalCategory(p.category);   // 띄어쓰기 정규화
       // 영수증별 금액 합 (receipts 우선 → amounts → amount). 모서리 손글씨 합계는 안 씀
