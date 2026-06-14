@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0736"></script>
+<script src="landsa_templates.js?v=2026_0615_0742"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0736</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0742</span>
 </div>
 
 <script>
@@ -3935,6 +3935,9 @@ async function mapIntoJapan(wb, data) {
 async function mapModetour(wb, data) {
   const ws = wb.getWorksheet("Sheet1") || wb.worksheets[0];
   const overflow = [];
+  // [임시 진단] 수집된 가이드/버스 데이터 확인
+  alert("[진단] 가이드 수집: " + JSON.stringify((data.ground.guide||[]).map(g=>({item:g.item||"", amt:g.amount||0, extra:g.extraName||""})))
+      + "\n버스 수집: " + JSON.stringify((data.ground.bus||[]).map(b=>({item:b.item||"", amt:b.amount||0, extra:b.extraName||""}))));
   const realItems = (arr) => (arr||[]).filter(x => (x.name && String(x.name).trim()) || (x.amount||0) > 0);
   const busTotal = (n) => data.ground.bus.filter(b=>b.item===n).reduce((s,b)=>s+(b.amount||0),0);
   const guideTotal = (n) => data.ground.guide.filter(g=>g.item===n).reduce((s,g)=>s+(g.amount||0),0);
