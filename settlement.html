@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0710"></script>
+<script src="landsa_templates.js?v=2026_0615_0722"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1096,6 +1096,17 @@
     </div>
   </div>
 
+  <!-- 정산서 파일 저장/불러오기 -->
+  <div class="landsa-export" style="border-color:#a7f3d0; background:#f0fdf4;">
+    <div class="landsa-export-title">💾 정산서 저장 / 불러오기</div>
+    <div class="landsa-export-hint">현재 정산서 전체(입력·표·첨부 영수증)를 파일 1개로 저장하거나, 저장한 파일을 불러옵니다. 단체별로 보관·백업·공유할 수 있어요.</div>
+    <div class="landsa-controls">
+      <button class="landsa-export-btn" style="background:#10b981;" onclick="saveSettlementToFile()">💾 파일로 저장</button>
+      <button class="landsa-export-btn" style="background:#3b82f6;" onclick="document.getElementById('settlement-load-input').click()">📂 불러오기</button>
+      <input type="file" id="settlement-load-input" accept="application/json,.json" style="display:none" onchange="loadSettlementFromFile(this)">
+    </div>
+  </div>
+
   <!-- 랜드사로 내보내기 -->
   <div class="landsa-export">
     <div class="landsa-export-title">📤 랜드사 양식으로 내보내기</div>
@@ -1153,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0710</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0722</span>
 </div>
 
 <script>
@@ -1878,6 +1889,44 @@ function loadAll() {
     SAVE_IDS.forEach(id => { if (data[id] !== undefined) document.getElementById(id).value = data[id]; });
     if (data["m-tb-use"]) document.getElementById("m-tb-use").checked = true;
   } catch(e) {}
+}
+
+// ===== 정산서 전체를 파일 1개로 저장 / 불러오기 =====
+const SETTLEMENT_FILE_KEYS = ["guideSettlement","guideGroundSnapshot","uploadedReceipts","tourSlots","dayCols","itemNameOverrides"];
+function saveSettlementToFile() {
+  // 현재 입력을 localStorage에 먼저 flush
+  try { saveAll(); } catch(e){}
+  try { saveGround(); } catch(e){}
+  try { saveUploadedReceipts(); } catch(e){}
+  const bundle = { _type: "guide-settlement", _version: 1, savedAt: new Date().toISOString(), data: {} };
+  SETTLEMENT_FILE_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v != null) bundle.data[k] = v; });
+  const grp = (document.getElementById("info-group").value || "").trim().replace(/[\\/:*?"<>|]/g, "_") || "정산서";
+  const dt  = (document.getElementById("info-date-start").value || "").replace(/-/g, "");
+  const fname = "정산서_" + grp + (dt ? "_" + dt : "") + ".json";
+  const blob = new Blob([JSON.stringify(bundle)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+function loadSettlementFromFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const bundle = JSON.parse(reader.result);
+      if (!bundle || bundle._type !== "guide-settlement" || !bundle.data) {
+        alert("올바른 정산서 파일이 아닙니다."); input.value = ""; return;
+      }
+      if (!confirm("불러오면 지금 화면의 내용이 이 파일 내용으로 교체됩니다.\n(필요하면 먼저 현재 걸 '파일로 저장' 하세요)\n\n계속할까요?")) { input.value = ""; return; }
+      SETTLEMENT_FILE_KEYS.forEach(k => { if (bundle.data[k] != null) localStorage.setItem(k, bundle.data[k]); });
+      alert("불러왔어요! 화면을 새로고침합니다.");
+      location.reload();
+    } catch (e) { alert("불러오기 실패: " + e.message); }
+    input.value = "";
+  };
+  reader.readAsText(file);
 }
 
 
