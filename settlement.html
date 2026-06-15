@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_1858"></script>
+<script src="landsa_templates.js?v=2026_0615_2025"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_1858</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2025</span>
 </div>
 
 <script>
@@ -4280,10 +4280,10 @@ function mapHanasakuCells(p, data) {
   p.setStr("M5", data.info.guide || "");
   // 투어피 (D44)
   if ((data.memo.yenAdvance||0) > 0) p.setNum("D44", data.memo.yenAdvance);
-  // TB(TIP BACK) 포함(엔화) 시: 잔액(D46)에 TB를 더하고, 현지수금(팁) 줄(B47)에 금액 표시
+  // TB(TIP BACK) 포함(엔화) 시: 현지수금(팁) 값칸 D47에 TB 기입 + 잔액 D46 수식이 D47 참조
   if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
-    p.setFormula("D46", "D44-D45+" + Number(data.memo.tb));   // 잔액 = 투어피 − 행사비용 + TB
-    p.setStr("B47", "현지 수금(팁) :  ￥" + Number(data.memo.tb).toLocaleString());
+    p.setNum("D47", Number(data.memo.tb));            // 현지 수금(팁) = TB
+    p.setFormula("D46", "D44-D45+D47");               // 잔액 = 투어피 − 행사비용 + 팁(TB)
   }
 
   // ===== 호텔 (rows 7-13, 7행) =====
