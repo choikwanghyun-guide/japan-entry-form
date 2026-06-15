@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2220"></script>
+<script src="landsa_templates.js?v=2026_0615_2225"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2220</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2225</span>
 </div>
 
 <script>
@@ -3438,12 +3438,19 @@ async function mapKta(wb, data) {
   const dinnerByDay = byDay(data.ground.dinner);
   const tourByDay = byDay(data.ground.tour);
 
-  // 2) 상단 블록 (7-13): 호텔 + 중식 + 석식
+  // 2) 상단 블록 (7-13): 호텔 + 중식 + 석식 — 데이터 있는 날만 위에서부터 채움(지출 없는 날은 건너뛰어 빈 행 안 생기게)
   const TOP_ROWS = [7,8,9,10,11,12,13];
-  for (let d = 1; d <= 7; d++) {
-    const r = TOP_ROWS[d-1];
+  let ti = 0;
+  for (let d = 1; d <= 20; d++) {
     const H = hotelByDay[d] || [], L = lunchByDay[d] || [], D = dinnerByDay[d] || [];
     if (!H.length && !L.length && !D.length) continue;
+    if (ti >= TOP_ROWS.length) {
+      H.forEach(h => overflow.push(`호텔(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+      L.forEach(h => overflow.push(`중식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+      D.forEach(h => overflow.push(`석식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
+      continue;
+    }
+    const r = TOP_ROWS[ti++];
     const ds = tcenterDate(data.info.dateStart, d); if (ds) setCell(ws, "A" + r, ds);
     if (H.length) {
       setCell(ws, "B" + r, v(H.map(h=>h.name).filter(Boolean).join(" / ")));
@@ -3462,11 +3469,6 @@ async function mapKta(wb, data) {
       const u = D.map(h=>h.unitPrice).filter(Boolean).join(" / "); if (u) setCell(ws, "N" + r, u);
       setCell(ws, "P" + r, v(D.reduce((s,h)=>s+(h.amount||0),0), false));
     }
-  }
-  for (let d = 8; d <= 20; d++) {
-    (hotelByDay[d]||[]).forEach(h => overflow.push(`호텔(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
-    (lunchByDay[d]||[]).forEach(h => overflow.push(`중식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
-    (dinnerByDay[d]||[]).forEach(h => overflow.push(`석식(${d}일) / ${h.name||""}: ¥${(h.amount||0).toLocaleString()} (상단 행 부족)`));
   }
 
   // 3) 하단 블록 (17-24): 관광지 일자순 → G/H/I/K
