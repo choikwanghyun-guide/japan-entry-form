@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2104"></script>
+<script src="landsa_templates.js?v=2026_0615_2115"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2104</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2115</span>
 </div>
 
 <script>
@@ -3633,6 +3633,24 @@ function mapJtpCells(p, data) {
   return overflow;
 }
 
+// JSZip 패처용: 워크북에 fullCalcOnLoad="1" 주입 → 엑셀이 열 때 모든 수식 강제 재계산
+// (calcId가 박힌 양식은 캐시값을 신뢰해 총지출/잔액 수식이 빈칸으로 보이는 문제 방지)
+async function forceFullCalcOnLoad(zip) {
+  const f = zip.file("xl/workbook.xml");
+  if (!f) return;
+  let xml = await f.async("string");
+  if (/fullCalcOnLoad/.test(xml)) return;             // 이미 있으면 패스
+  if (/<calcPr\b[^>]*\/>/.test(xml)) {
+    xml = xml.replace(/<calcPr\b([^>]*)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
+  } else if (/<calcPr\b[^>]*>/.test(xml)) {
+    xml = xml.replace(/<calcPr\b([^>]*)>/, '<calcPr$1 fullCalcOnLoad="1">');
+  } else {
+    // calcPr가 없으면 sheets 뒤에 삽입 (스키마 순서상 sheets 다음이 안전)
+    xml = xml.replace(/(<\/sheets>)/, '$1<calcPr calcId="0" fullCalcOnLoad="1"/>');
+  }
+  zip.file("xl/workbook.xml", xml);
+}
+
 // JTP 내보내기 - JSZip + DOM 직접 패치 (부산팀 = sheet2.xml). 로고·외부링크·calcChain 보존
 async function exportJtp(data, filename) {
   if (typeof JSZip === "undefined") { alert("JSZip 라이브러리가 아직 로드되지 않았습니다. 잠시 후 다시 시도해 주세요."); return false; }
@@ -3647,6 +3665,7 @@ async function exportJtp(data, filename) {
   const overflowItems = parseOverflowItems(overflow.map(s => "• " + s));
   const appended = appendOverflowToPatcher(p, overflowItems, 50);
   zip.file(sheetPath, p.serialize());
+  await forceFullCalcOnLoad(zip);   // 총지출/잔액 수식 강제 재계산
   const blob = await zip.generateAsync({ type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   let saved=false;
   if (window.showSaveFilePicker) {
@@ -4240,6 +4259,7 @@ async function exportHanasaku(data, filename) {
 
   // 패치된 sheet 다시 zip에
   zip.file(sheetPath, p.serialize());
+  await forceFullCalcOnLoad(zip);   // 잔액 수식 강제 재계산
 
   // blob 생성
   const blob = await zip.generateAsync({
