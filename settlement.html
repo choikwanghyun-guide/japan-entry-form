@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2139"></script>
+<script src="landsa_templates.js?v=2026_0615_2220"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2139</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2220</span>
 </div>
 
 <script>
@@ -3522,6 +3522,9 @@ async function mapKta(wb, data) {
   });
   setCell(ws, "B31", v(data.memo.dutyFree));   // 쇼핑장소 (면세점)
   (data.ground.etc||[]).forEach(e => { if (e.item && (e.amount||0)>0) overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (KTA에 원화 칸 없음)`); });
+
+  // 인쇄: 세로도 1페이지에 맞춤 (템플릿이 fitToHeight=0이라 내용이 다음 장으로 넘치던 문제 방지)
+  try { ws.pageSetup.fitToPage = true; ws.pageSetup.fitToWidth = 1; ws.pageSetup.fitToHeight = 1; } catch(e){}
 
   if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
 
