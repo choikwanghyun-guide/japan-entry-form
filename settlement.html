@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_1806"></script>
+<script src="landsa_templates.js?v=2026_0615_1858"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_1806</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_1858</span>
 </div>
 
 <script>
@@ -4018,9 +4018,12 @@ async function mapModetour(wb, data) {
   const advance = Number(data.memo.yenAdvance)||0;
   const grand = hotelSum+lunchSum+dinnerSum+leftSum+tourSum+etcSum;
   setCell(ws,"F24",v(advance,false));     // 투어피(전도금) — 입력값
+  // TB(TIP BACK) 포함(엔화) 시: 준비금(F25)에 넣어 가용액에 더함
+  const tbYen = (data.memo.useTB && data.memo.tbCurrency === "yen") ? (Number(data.memo.tb)||0) : 0;
+  if (tbYen > 0) setCell(ws,"F25", v(tbYen, false));   // 준비금 = TB(전도금에 더해짐)
   // 지출금/잔액도 양식 수식 보존(+캐시값) → 채운 값이 자동 합산돼 항상 일치
   ws.getCell("F26").value = { formula: "C22+D22+E22+F22+G22+L22+Q22+Q12+L12+G12", result: grand };
-  ws.getCell("F27").value = { formula: "F24-F26", result: advance - grand };
+  ws.getCell("F27").value = { formula: tbYen > 0 ? "F24+F25-F26" : "F24-F26", result: advance + tbYen - grand };
 
   // 특이사항 (면세점 등)
   if (data.memo.dutyFree) setCell(ws,"H25","면세점: "+data.memo.dutyFree);
@@ -4277,6 +4280,11 @@ function mapHanasakuCells(p, data) {
   p.setStr("M5", data.info.guide || "");
   // 투어피 (D44)
   if ((data.memo.yenAdvance||0) > 0) p.setNum("D44", data.memo.yenAdvance);
+  // TB(TIP BACK) 포함(엔화) 시: 잔액(D46)에 TB를 더하고, 현지수금(팁) 줄(B47)에 금액 표시
+  if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
+    p.setFormula("D46", "D44-D45+" + Number(data.memo.tb));   // 잔액 = 투어피 − 행사비용 + TB
+    p.setStr("B47", "현지 수금(팁) :  ￥" + Number(data.memo.tb).toLocaleString());
+  }
 
   // ===== 호텔 (rows 7-13, 7행) =====
   const HOTEL_ROWS = [7, 8, 9, 10, 11, 12, 13];
