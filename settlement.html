@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2025"></script>
+<script src="landsa_templates.js?v=2026_0615_2042"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2025</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2042</span>
 </div>
 
 <script>
@@ -2911,10 +2911,11 @@ async function mapJapanTravel(wb, data) {
     result: grandTotal
   };
 
-  // 잔액 B33 = B31 - B32 — 수식 (원본 양식과 동일)
-  const balance = (data.memo.yenAdvance || 0) - grandTotal;
+  // 잔액 B33 = 전도금(+팁백) − 총지출 — TB포함(엔) 시 팁백칸 D31 가산
+  const tbYen = (data.memo.useTB && data.memo.tbCurrency === "yen") ? (Number(data.memo.tb)||0) : 0;
+  const balance = (data.memo.yenAdvance || 0) + tbYen - grandTotal;
   ws.getCell("B33").value = {
-    formula: "B31-B32",
+    formula: tbYen > 0 ? "B31+D31-B32" : "B31-B32",
     result: balance
   };
 
@@ -2998,8 +2999,12 @@ async function mapItsumo(wb, data) {
   setCell(ws, "M3", v(data.memo.yenAdvance, false));  // 엔화전도금
   // (초과식대 칸은 더 이상 사용하지 않음 — M5 비움)
 
-  // TB 표시 (M7:N7 merged)
-  if (data.memo.useTB && (data.memo.tb||0) > 0) {
+  // TB 포함(엔화) 시: TB 값(M7 숫자)을 노코리 수식에 반영 (양식 라벨 O6 = "엔화전도금 + TB - 엔화지출금")
+  if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
+    setCell(ws, "M7", v(data.memo.tb, false));          // TB 값(숫자)
+    ws.getCell("M6").value = { formula: "M3+M7-M4" };   // 엔노코리 = 전도금+TB-지출 (fullCalc 재계산)
+  } else if ((data.memo.tb||0) > 0) {
+    // TB 미포함이지만 값이 있으면 참고 표시만 (노코리 불변)
     const symbol = data.memo.tbCurrency === "yen" ? "¥" : "₩";
     setCell(ws, "M7", `TB ${symbol}${Number(data.memo.tb).toLocaleString()}`);
   }
@@ -3239,10 +3244,11 @@ async function mapTcenter(wb, data) {
   // ===== 행 8: 면세점/투어피/기가팁/잔금(수식) =====
   setCell(ws, "C8", v(data.memo.dutyFree));            // 면세점 (노쇼핑 또는 면세점 이름)
   setCell(ws, "G8", v(data.memo.yenAdvance, false));   // 투어피
-  if (data.memo.useTB && data.memo.tbCurrency === "yen") {
+  if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
     setCell(ws, "J8", v(data.memo.tb, false));         // 기가팁(엔)
+    ws.getCell("N8").value = { formula: "G8+J8-N51" }; // 잔금 = 투어피+기가팁-지출 (fullCalc 재계산)
   }
-  // N8 잔금 = G8 - N51 (템플릿 수식 유지)
+  // (TB 없으면) N8 잔금 = G8 - N51 (템플릿 수식 유지)
 
   const overflow = [];
 
@@ -3500,6 +3506,11 @@ async function mapKta(wb, data) {
 
   // 4) 푸터
   setCell(ws, "N28", v(data.memo.yenAdvance, false));   // 行事費 (투어피/전도금)
+  // TB(TIP BACK) 포함(엔) 시: 양식에 TB 칸이 없어 殘高 N30 수식에 직접 가산
+  {
+    const tbYen = (data.memo.useTB && data.memo.tbCurrency === "yen") ? (Number(data.memo.tb)||0) : 0;
+    if (tbYen > 0) ws.getCell("N30").value = { formula: "N28-N29+" + tbYen };  // 殘高 = 行事費-支出+TB
+  }
   const ETC_ROWS = [28,29,30];
   let ei = 0;
   (data.ground.etcYen||[]).forEach(e => {
@@ -3614,6 +3625,11 @@ function mapJtpCells(p, data) {
   (data.ground.etc||[]).forEach(e=>{ if(e.item&&(e.amount||0)>0) overflow.push(`원화 / ${e.item}: ₩${(e.amount||0).toLocaleString()} (JTP에 원화 칸 없음)`); });
 
   pNum("C45", data.memo.yenAdvance);
+  // TB(TIP BACK) 포함(엔화) 시: TIP 값칸 C46 + 잔액 C48 수식이 C46 참조
+  if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
+    pNum("C46", data.memo.tb);                  // TIP = TB
+    p.setFormula("C48", "C45+C46-C47");         // 잔액 = 준비금(투어피) + TIP − 총지출
+  }
   return overflow;
 }
 
@@ -3667,6 +3683,11 @@ async function mapGeukdong(wb, data) {
   if (data.info.guide) setCell(ws, "L6", data.info.guide);
   { const d=new Date(); setCell(ws, "L4", `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`); }
   setCell(ws, "H13", v(data.memo.yenAdvance, false));   // 총입금액(A) = 전도금(YEN)
+  // TB(TIP BACK) 포함(엔) 시: 양식에 TB 칸이 없어 잔액 M59 수식에 직접 가산
+  {
+    const tbYen = (data.memo.useTB && data.memo.tbCurrency === "yen") ? (Number(data.memo.tb)||0) : 0;
+    if (tbYen > 0) ws.getCell("M59").value = { formula: "H13-M57+" + tbYen };  // 잔액 = 총입금-지출+TB
+  }
 
   // 국내비용 (WON) 17-23 ← 원화(etc): 세부내역/요금/인원1/계(수식)
   let dr = 17;
@@ -3824,9 +3845,12 @@ async function mapLandJapan(wb, data) {
   };
   let grand = 0;
   Object.entries(subtotals).forEach(([addr, { f, r }]) => { ws.getCell(addr).value = { formula: f, result: r }; grand += r; });
-  // 지출 총액 D46 / 잔액 D47 (= 전도금 D43 − 총액 D46)
+  // 지출 총액 D46 / 잔액 D47. 양식 라벨 = "가이드 계산 (①전도금+②가이드수금+③현지옵션-④지출=⑤잔액)"
+  // TB(TIP BACK) 포함(엔) 시: ②가이드수금 D44에 TB 기입 + 잔액이 D44 가산
+  const tbYen = (data.memo.useTB && data.memo.tbCurrency === "yen") ? (Number(data.memo.tb)||0) : 0;
+  if (tbYen > 0) setCell(ws,"D44", v(data.memo.tb, false));   // ②가이드수금 = TB
   ws.getCell("D46").value = { formula: "G12+G25+G35+O12+O17+O25+O31+O35+O41+G41", result: grand };
-  ws.getCell("D47").value = { formula: "D43-D46", result: cellNum("D43") - grand };
+  ws.getCell("D47").value = { formula: tbYen > 0 ? "D43+D44+D45-D46" : "D43-D46", result: cellNum("D43") + tbYen - grand };
 
   // 미매핑
   realItems(data.ground.bus).forEach(b=>{ const known=["회송대","오차다이","오차대","기사식대","기사 숙박","기사숙박","도로비","고속대","주차대","버스비","버스대","전세버스대","기사 교통비","기사교통비"]; if(b.item&&(b.amount||0)>0&&!known.includes(b.item)) overflow.push(`${b.item}: \u00a5${(b.amount||0).toLocaleString()} (양식에 칸 없음)`); });
@@ -3913,6 +3937,10 @@ async function mapIntoJapan(wb, data) {
   setCell(ws,"C23", v(guideTotal("지방교통비")+guideTotal("교통비"), false));
   setCell(ws,"C24", v(guideTotal("식대"), false));
   setCell(ws,"G20", v(data.memo.yenAdvance, false));   // Tour Fee
+  // TB(TIP BACK) 포함(엔) 시: 팁수금 G23에 기입 (양식이 팁잔금 G24=G23-C22-C23 별도 자동계산)
+  if (data.memo.useTB && data.memo.tbCurrency === "yen" && (data.memo.tb||0) > 0) {
+    setCell(ws,"G23", v(data.memo.tb, false));   // 팁수금 = TB
+  }
   if (data.memo.dutyFree) setCell(ws,"I20", "* 면세점 명 : "+data.memo.dutyFree+"\n\n* 면세 입점일 : \n\n* 면세점 지역 : ");
 
   // 미매핑
