@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2115"></script>
+<script src="landsa_templates.js?v=2026_0615_2139"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2115</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2139</span>
 </div>
 
 <script>
@@ -3952,7 +3952,11 @@ async function mapIntoJapan(wb, data) {
   // 하단
   setCell(ws,"C20", v(busTotal("버스비")+busTotal("버스대")+busTotal("전세버스대"), false)); // BUS FEE
   setCell(ws,"C21", v(guideTotal("통신료"), false));
-  setCell(ws,"C22", v(guideTotal("출장비")+guideTotal("가이드피"), false));
+  // 가이드피(일비): 인투더재팬은 원화로 별도 입금 → 엔화 양식 GUIDE FEE(C22)엔 넣지 않고 넘침으로 빼냄.
+  // C22는 사용자가 원화로 직접 기입하도록 비워둠. (양식 팁잔금 G24=G23-C22-C23은 C22를 0으로 계산)
+  ws.getCell("C22").value = null;
+  const intoGuideFee = guideTotal("출장비") + guideTotal("가이드피");
+  if (intoGuideFee > 0) overflow.push(`가이드피(일비): ¥${intoGuideFee.toLocaleString()} (인투더재팬은 일비를 원화로 별도 입금 → GUIDE FEE 칸 제외, 원화로 직접 기입)`);
   setCell(ws,"C23", v(guideTotal("지방교통비")+guideTotal("교통비"), false));
   setCell(ws,"C24", v(guideTotal("식대"), false));
   setCell(ws,"G20", v(data.memo.yenAdvance, false));   // Tour Fee
