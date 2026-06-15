@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_0750"></script>
+<script src="landsa_templates.js?v=2026_0615_1806"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_0750</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_1806</span>
 </div>
 
 <script>
@@ -3962,9 +3962,10 @@ async function mapModetour(wb, data) {
     if (l){ setCell(ws,"H"+r,v(l.name)); if(l.people)setCell(ws,"I"+r,l.people); if(l.unitPrice)setCell(ws,"J"+r,l.unitPrice); setCell(ws,"L"+r,v(l.amount,false)); lunchSum+=l.amount||0; }
     if (di){ setCell(ws,"M"+r,v(di.name)); if(di.people)setCell(ws,"N"+r,di.people); if(di.unitPrice)setCell(ws,"O"+r,di.unitPrice); setCell(ws,"Q"+r,v(di.amount,false)); dinnerSum+=di.amount||0; }
   }
-  setCell(ws,"G12",v(hotelSum,false));
-  setCell(ws,"L12",v(lunchSum,false));
-  setCell(ws,"Q12",v(dinnerSum,false));
+  // 소계는 양식의 SUM 수식을 보존(+계산된 캐시값) — 엑셀이 자동 합산해 총액이 항상 맞음
+  ws.getCell("G12").value = { formula: "SUM(G6:G11)", result: hotelSum };
+  ws.getCell("L12").value = { formula: "SUM(L6:L11)", result: lunchSum };
+  ws.getCell("Q12").value = { formula: "SUM(Q6:Q11)", result: dinnerSum };
   [["호텔",data.ground.hotel,hotelF],["중식",data.ground.lunch,lunchF],["석식",data.ground.dinner,dinnerF]].forEach(([lbl,arr,mp])=>{
     dupByDay(arr).forEach(it=> overflow.push(`${lbl} / ${it.name||""}: ¥${(it.amount||0).toLocaleString()} (하루 1칸만 가능)`));
     Object.keys(mp).forEach(dk=>{ if(Number(dk)>6){ const it=mp[dk]; overflow.push(`${lbl} / ${it.name||""}: ¥${(it.amount||0).toLocaleString()} (7일차+ 칸 없음)`); }});
@@ -3980,6 +3981,12 @@ async function mapModetour(wb, data) {
   if (jeonhwa>0) setCell(ws,"F15",v(jeonhwa,false));
   if (chuljang>0) setCell(ws,"G15",v(chuljang,false));
   const leftSum = doro+ochadai+jeonhwa+chuljang;
+  // 좌측 소계(도로비/오차다이/접대비/전화세/출장비) 수식 보존
+  ws.getCell("C22").value = { formula: "SUM(C15:C21)", result: doro };
+  ws.getCell("D22").value = { formula: "SUM(D15:D21)", result: ochadai };
+  ws.getCell("E22").value = { formula: "SUM(E15:E21)", result: 0 };
+  ws.getCell("F22").value = { formula: "SUM(F15:F21)", result: jeonhwa };
+  ws.getCell("G22").value = { formula: "SUM(G15:G21)", result: chuljang };
 
   // 관광지 2블록 (H-L 15-21, M-Q 15-21)
   const tours = realItems(data.ground.tour).sort((a,b)=>(a.day-b.day)||((a.slot||0)-(b.slot||0)));
@@ -3995,8 +4002,10 @@ async function mapModetour(wb, data) {
     setCell(ws,cols[3]+row,v(t.amount,false));
     tourSum+=t.amount||0;
   });
-  setCell(ws,"L22",v(tours.slice(0,7).reduce((s,t)=>s+(t.amount||0),0),false));
-  setCell(ws,"Q22",v(tours.slice(7,14).reduce((s,t)=>s+(t.amount||0),0),false));
+  const tour1 = tours.slice(0,7).reduce((s,t)=>s+(t.amount||0),0);
+  const tour2 = tours.slice(7,14).reduce((s,t)=>s+(t.amount||0),0);
+  ws.getCell("L22").value = { formula: "SUM(L15:L21)", result: tour1 };
+  ws.getCell("Q22").value = { formula: "SUM(Q15:Q21)", result: tour2 };
 
   // 기타 (엔화) — B24-26 내역 / C 금액
   let etcSum=0, er=24;
@@ -4008,9 +4017,10 @@ async function mapModetour(wb, data) {
   // 가이드 정산
   const advance = Number(data.memo.yenAdvance)||0;
   const grand = hotelSum+lunchSum+dinnerSum+leftSum+tourSum+etcSum;
-  setCell(ws,"F24",v(advance,false));     // 투어피(전도금)
-  setCell(ws,"F26",v(grand,false));       // 지출금
-  setCell(ws,"F27",v(advance-grand,false)); // 잔액
+  setCell(ws,"F24",v(advance,false));     // 투어피(전도금) — 입력값
+  // 지출금/잔액도 양식 수식 보존(+캐시값) → 채운 값이 자동 합산돼 항상 일치
+  ws.getCell("F26").value = { formula: "C22+D22+E22+F22+G22+L22+Q22+Q12+L12+G12", result: grand };
+  ws.getCell("F27").value = { formula: "F24-F26", result: advance - grand };
 
   // 특이사항 (면세점 등)
   if (data.memo.dutyFree) setCell(ws,"H25","면세점: "+data.memo.dutyFree);
