@@ -1458,7 +1458,9 @@ function setMode(mode) {
     passport:'', gender:'', nationality:'',
     no:'', expiryWarning: false
   };
-  const list = passengers.length > 0 ? passengers : [emptyPassenger];
+  const _selList = getSelectedPassengers();
+  if (passengers.length > 0 && !_selList.length) { alert('인쇄할 사람을 한 명 이상 선택해주세요!'); return; }
+  const list = passengers.length > 0 ? _selList : [emptyPassenger];
 
   if (mode === 'customs') {
     const offsetY = parseFloat(document.getElementById('customsOffsetY').value) || 0;
@@ -2204,7 +2206,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:#545870; font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0616_1710</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0616_1717</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
