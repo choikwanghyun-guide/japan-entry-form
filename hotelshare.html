@@ -1620,7 +1620,7 @@
         <span class="search-result-count" id="searchResultCount" style="display:none;"></span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="btn-clear" onclick="startNew()">+ 새로 작성</button>
+        <button class="btn-clear" onclick="document.getElementById('hotelName').value='';document.getElementById('infoDate').value='';startBlankForm()">+ 새로 작성</button>
         <button class="collapse-btn" id="collapseBtn" onclick="toggleArchiveCollapse()" title="접기/펼치기">▶</button>
       </div>
     </div>
@@ -1680,8 +1680,8 @@
     </div>
   </section>
 
-  <!-- Section 2: 일가방 게시글 -->
-  <section>
+  <!-- Section 2: 일가방 게시글 (공유본: 숨김) -->
+  <section style="display:none;">
     <div class="section-header">
       <div class="section-num">2</div>
       <h2 class="section-title">호텔 정보 입력</h2>
@@ -1816,7 +1816,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_2127</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_2222 (공유본)</span></p>
   </footer>
 
 </div>
@@ -3605,22 +3605,32 @@ ${posts}
     const insightsEl = document.getElementById('insightsContent');
     if (insightsEl) currentData.insights = insightsEl.innerText;
 
-    const parsedName = parseHotelName(currentData.hotelName || '');
+    // 호텔명/정보확인일은 입력칸의 현재 값을 우선 사용 (currentData와 어긋남 방지)
+    const nameEl = document.getElementById('hotelName');
+    const dateEl = document.getElementById('infoDate');
+    const liveName = (nameEl && nameEl.value.trim()) || currentData.hotelName || '';
+    const infoDateVal = (dateEl && dateEl.value.trim()) || '';
+    const parsedName = parseHotelName(liveName);
     const titleText = parsedName.aliases.length > 0
       ? `${parsedName.main} (${parsedName.aliases.join(' / ')})`
-      : parsedName.main;
+      : (parsedName.main || '호텔');
 
     const wb = XLSX.utils.book_new();
-    const rows = [];
-    rows.push([titleText, '']);
-    currentData.fields.forEach(f => rows.push([f.label, f.value]));
+    const rows = [[titleText, '']];
+    if (infoDateVal) rows.push(['📅 정보 기준: ' + infoDateVal, '']);
+    const fieldStart = rows.length;  // 항목이 시작되는 0-based 행 인덱스
+    // 값이 빈(공백) 항목은 엑셀에서 제외
+    const usedFields = currentData.fields.filter(f => String(f.value || '').trim() !== '');
+    usedFields.forEach(f => rows.push([f.label, f.value]));
     rows.push(['', '']);
+    const contactIdx = rows.length;  // 연락처 행 0-based 인덱스
     rows.push(['', '가이드 최광현 \n한국폰 : 010-2620-8072\n일본폰 : 090-7555-7489']);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    const N = currentData.fields.length;
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
     ws['!cols'] = [{ wch: 42 }, { wch: 50 }];
+    const merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+    if (infoDateVal) merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 1 } });
+    ws['!merges'] = merges;
     // 행 높이: 라벨/값의 줄 수에 맞춰 자동 (멀티라인이 잘리지 않게)
     ws['!rows'] = rows.map((r, i) => {
       if (i === 0) return { hpt: 34 };
@@ -3628,15 +3638,19 @@ ${posts}
       return { hpt: Math.max(22, 16 * lines + 6) };
     });
 
-    const labelStyle = { alignment: { wrapText: true, vertical: 'center', horizontal: 'left' }, font: { bold: true } };
-    const valStyle = { alignment: { wrapText: true, vertical: 'center', horizontal: 'left' } };
+    // 라벨·내용은 가운데 정렬, 연락처는 우측 정렬 (웹 화면처럼)
+    const labelStyle = { alignment: { wrapText: true, vertical: 'center', horizontal: 'center' }, font: { bold: true } };
+    const valStyle = { alignment: { wrapText: true, vertical: 'center', horizontal: 'center' } };
+    const rightStyle = { alignment: { wrapText: true, vertical: 'center', horizontal: 'right' } };
     if (ws['A1']) ws['A1'].s = { alignment: { wrapText: true, vertical: 'center', horizontal: 'center' }, font: { bold: true, sz: 16 } };
-    for (let r = 2; r <= N + 1; r++) {
-      if (ws[`A${r}`]) ws[`A${r}`].s = labelStyle;
-      if (ws[`B${r}`]) ws[`B${r}`].s = valStyle;
+    if (infoDateVal && ws['A2']) ws['A2'].s = { alignment: { wrapText: true, vertical: 'center', horizontal: 'center' }, font: { sz: 11 } };
+    for (let k = 0; k < usedFields.length; k++) {
+      const r = fieldStart + k + 1;  // 1-based 엑셀 행
+      if (ws['A' + r]) ws['A' + r].s = labelStyle;
+      if (ws['B' + r]) ws['B' + r].s = valStyle;
     }
-    const contactRow = N + 3;  // 제목1 + 항목N + 빈줄1 다음
-    if (ws[`B${contactRow}`]) ws[`B${contactRow}`].s = valStyle;
+    const contactRow = contactIdx + 1;  // 1-based
+    if (ws['B' + contactRow]) ws['B' + contactRow].s = rightStyle;
 
     let sheetName = (parsedName.main || '호텔정보').substring(0, 31).replace(/[\\/?*\[\]:]/g, '_');
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
