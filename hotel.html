@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicons/hotel.svg">  
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -3158,6 +3159,54 @@ ${posts}
     }
   }
 
+  // ===== Wi-Fi QR 코드 =====
+  // WIFI 항목 값에서 ID(SSID)와 PW(비밀번호)를 읽어 QR 코드를 만든다.
+  function parseWifiCreds(text) {
+    // 비번 표시어가 한 줄에 같이 있으면 그 앞에서 줄을 나눠 분리 정확도를 높인다.
+    const t = String(text || '').replace(/\s+(pw|pass|password|비번|비밀번호|암호)\s*([:：=])/gi, '\n$1$2');
+    let ssid = '', pass = '';
+    t.split(/[\n,]/).forEach(seg => {
+      const m = seg.match(/^\s*([^:：=]+)[:：=]\s*(.+?)\s*$/);
+      if (!m) return;
+      const key = m[1].toLowerCase().replace(/\s/g, '');
+      const val = m[2].trim();
+      if (!ssid && /ssid|아이디|이름|네트워크|^id/.test(key)) ssid = val;
+      else if (!pass && /pw|pass|password|비번|비밀번호|암호|key/.test(key)) pass = val;
+    });
+    return { ssid, pass };
+  }
+  function buildWifiQRString(ssid, pass) {
+    if (!ssid) return '';
+    const esc = s => String(s).replace(/([\\;,:"])/g, '\\$1');
+    let str = 'WIFI:T:' + (pass ? 'WPA' : 'nopass') + ';S:' + esc(ssid) + ';';
+    if (pass) str += 'P:' + esc(pass) + ';';
+    return str + ';';
+  }
+  function renderWifiQR(tr, valueStr) {
+    const td = tr.querySelector('td');
+    if (!td) return;
+    const old = td.querySelector('.wifi-qr-box');
+    if (old) old.remove();
+    const creds = parseWifiCreds(valueStr);
+    const qrStr = buildWifiQRString(creds.ssid, creds.pass);
+    if (!qrStr || typeof QRCode === 'undefined') return;
+    const box = document.createElement('div');
+    box.className = 'wifi-qr-box';
+    box.contentEditable = 'false';
+    box.style.cssText = 'margin-top:10px; display:flex; flex-direction:column; align-items:center; gap:5px;';
+    const qrDiv = document.createElement('div');
+    qrDiv.style.cssText = 'background:#fff; padding:8px; border-radius:8px; line-height:0;';
+    box.appendChild(qrDiv);
+    const cap = document.createElement('div');
+    cap.style.cssText = 'font-size:11px; color:#9aa; text-align:center;';
+    cap.textContent = '📷 카메라로 스캔하면 Wi-Fi 연결';
+    box.appendChild(cap);
+    td.appendChild(box);
+    try { new QRCode(qrDiv, { text: qrStr, width: 124, height: 124, correctLevel: QRCode.CorrectLevel.M }); }
+    catch (e) { qrDiv.textContent = 'QR 오류'; }
+  }
+  function isWifiLabel(label) { return /wi-?fi|와이파이/i.test(String(label || '')); }
+
   function renderResults(data) {
     const meta = document.getElementById('hotelMeta');
     const parsedName = parseHotelName(data.hotelName || '');
@@ -3183,6 +3232,8 @@ ${posts}
         <td><div class="editable ${isEmpty ? 'empty-value' : ''}" contenteditable="true" data-index="${i}">${escapeHtml(valueStr)}</div></td>
       `;
       tbody.appendChild(tr);
+      // WIFI 항목이면 ID/PW로 QR 코드 생성
+      if (isWifiLabel(field.label)) renderWifiQR(tr, valueStr);
     });
 
     // 값 편집
@@ -3195,6 +3246,11 @@ ${posts}
                              text.includes('확인필요') || text.trim() === '' || text.trim() === '-';
         if (isStillEmpty) e.target.classList.add('empty-value');
         else e.target.classList.remove('empty-value');
+        // WIFI 항목이면 수정된 값으로 QR 다시 그리기
+        if (isWifiLabel(currentData.fields[idx].label)) {
+          const tr = e.target.closest('tr');
+          if (tr) renderWifiQR(tr, text);
+        }
       });
     });
 
