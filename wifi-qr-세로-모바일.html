@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Wi-Fi QR 카드 (모바일)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F1E7; --card:#FFFFFF; --ink:#2A2520; --muted:#9A8F7E;
+    --yolk:#FDB52A; --yolk-deep:#F39B12; --yolk-soft:#FFE9A8;
+    --white-egg:#FFFDF8; --line:#ECE4D3;
+  }
+  *{box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Apple SD Gothic Neo','Pretendard','Noto Sans KR',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:440px; margin:0 auto;}
+
+  /* compact controls */
+  .controls{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:14px; margin-bottom:18px;
+  }
+  .ctrl-head{display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;}
+  .ctrl-head b{font-size:14px;} .ctrl-head .chev{color:var(--muted); font-size:13px;}
+  .ctrl-body{margin-top:12px;}
+  .controls.collapsed .ctrl-body{display:none;}
+  .field{margin-bottom:12px;} .field:last-child{margin-bottom:0;}
+  label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px;}
+  input[type=text], select{
+    width:100%; padding:12px; font-size:16px; color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; background:#fff; outline:none; font-family:inherit;
+  }
+  input[type=text]:focus, select:focus{border-color:var(--yolk); box-shadow:0 0 0 3px var(--yolk-soft);}
+  .row2{display:flex; gap:10px;} .row2 .field{flex:1;}
+  .check{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;}
+  .check input{width:18px; height:18px; accent-color:var(--yolk-deep);}
+
+  /* the card */
+  .stage{display:block;}
+  .card{
+    width:100%; margin:0 auto; background:var(--card);
+    border-radius:26px; overflow:hidden; box-shadow:0 16px 44px rgba(120,90,20,.16);
+    display:flex; flex-direction:column;
+  }
+  .top{background:var(--yolk); padding:24px 20px 28px; display:flex; flex-direction:column; align-items:center; gap:16px;}
+  .bottom{padding:24px 22px 28px; text-align:center;}
+  .pill{
+    display:inline-block; background:#fff; color:var(--yolk-deep);
+    font-family:'Fredoka',system-ui,sans-serif; font-weight:700; font-size:22px;
+    letter-spacing:.04em; padding:8px 26px; border-radius:999px;
+  }
+  .egg{
+    width:74%; aspect-ratio:1/1; max-width:300px; position:relative;
+    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.55) 0 60%, transparent 62%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .egg-white{position:absolute; inset:0; background:var(--white-egg); border-radius:46% 54% 52% 48% / 50% 46% 54% 50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);}
+  .qrcode{position:relative; width:64%; aspect-ratio:1/1; background:#fff; border-radius:12px; padding:3.5%; box-shadow:0 4px 14px rgba(0,0,0,.12);}
+  .qrcode canvas, .qrcode img{width:100% !important; height:100% !important; display:block;}
+  .bottom h2{font-family:'Fredoka',system-ui,sans-serif; font-weight:700; color:var(--yolk-deep); font-size:30px; margin:0 0 16px;}
+  .langs{margin:0 0 20px;}
+  .langs p{margin:6px 0; white-space:nowrap;}
+  .langs .lead{font-weight:800; font-size:20px; color:var(--ink);}
+  .langs .small{color:#7d7361; font-size:15px; font-weight:600;}
+  .creds{background:#FAF6EC; border:1.5px dashed var(--yolk); border-radius:14px; padding:14px 16px;}
+  .creds .crow{padding:5px 0;}
+  .creds .crow + .crow{border-top:1px solid var(--yolk-soft); margin-top:5px;}
+  .creds .k{color:var(--yolk-deep); font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:2px;}
+  .creds .v{font-weight:800; font-size:26px; line-height:1.15; white-space:nowrap;}
+
+  /* actions */
+  .actions{display:flex; gap:10px; margin-top:18px;}
+  button{
+    flex:1; padding:15px; font-size:16px; font-weight:700; font-family:inherit;
+    border:none; border-radius:13px; cursor:pointer; -webkit-appearance:none;
+  }
+  button:active{transform:translateY(1px);}
+  .btn-show{background:var(--yolk); color:#3a2c00;}
+  .btn-png{background:#fff; color:var(--ink); border:1px solid var(--line);}
+  .hint{font-size:12px; color:var(--muted); text-align:center; margin-top:14px;}
+
+  /* DISPLAY MODE: card fills screen, hide everything else */
+  body.show{overflow:hidden;}
+  body.show .controls, body.show .actions, body.show .hint, body.show .title{display:none !important;}
+  body.show{padding:0;}
+  body.show .wrap{max-width:none;}
+  body.show .stage{
+    position:fixed; inset:0; z-index:50; padding:14px;
+    display:flex; align-items:center; justify-content:center; background:var(--bg);
+  }
+  body.show .card{width:min(94vw, 460px); max-height:96vh;}
+  .exit{
+    display:none; position:fixed; top:calc(12px + env(safe-area-inset-top)); right:14px; z-index:60;
+    width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff;
+    align-items:center; justify-content:center; font-size:22px; border:none; cursor:pointer;
+  }
+  body.show .exit{display:flex;}
+
+  .title{font-size:18px; font-weight:800; margin:2px 0 14px; text-align:center;}
+
+  /* print: single A5 portrait */
+  @media print{
+    body{background:#fff; padding:0;}
+    body.show .controls, body.show .actions{display:none;}
+    .wrap > *:not(.stage){display:none !important;}
+    .stage, .stage *{-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;}
+    .stage{position:static; padding:0;}
+    .card{width:130mm; max-width:none; box-shadow:none; border-radius:0; margin:0 auto;}
+    @page{size:A5 portrait; margin:9mm;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">Wi-Fi QR 카드</div>
+
+  <div class="controls collapsed" id="controls">
+    <div class="ctrl-head" onclick="document.getElementById('controls').classList.toggle('collapsed')">
+      <b>와이파이 정보 수정</b><span class="chev">탭하여 열기 ▾</span>
+    </div>
+    <div class="ctrl-body">
+      <div class="field">
+        <label for="ssid">와이파이 이름 (SSID)</label>
+        <input type="text" id="ssid" value="KT_GiGA_5G_D370" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="pass">비밀번호</label>
+        <input type="text" id="pass" value="1cd63ff617" autocomplete="off">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="auth">보안 방식</label>
+          <select id="auth">
+            <option value="WPA" selected>WPA / WPA2</option>
+            <option value="WEP">WEP</option>
+            <option value="nopass">비밀번호 없음</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>옵션</label>
+          <label class="check" style="padding-top:10px;"><input type="checkbox" id="hidden"> 숨김</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="card">
+      <div class="top">
+        <span class="pill">FREE Wi-Fi</span>
+        <div class="egg"><div class="egg-white"></div><div class="qrcode"></div></div>
+      </div>
+      <div class="bottom">
+        <h2>Scan &amp; Connect</h2>
+        <div class="langs">
+          <p class="lead">📷 카메라로 QR을 찍으면 연결돼요</p>
+          <p class="small">Scan the QR code with your camera</p>
+          <p class="small">カメラでQRを読み取ると接続できます</p>
+          <p class="small">用相机扫描二维码即可连接</p>
+        </div>
+        <div class="creds">
+          <div class="crow"><div class="k">Wi-Fi</div><div class="v" id="ssidLabel"></div></div>
+          <div class="crow" id="passRow"><div class="k">Password</div><div class="v" id="passLabel"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-show" onclick="showFull()">전체화면 보기</button>
+    <button class="btn-png" onclick="downloadPNG()">PNG로 저장</button>
+  </div>
+  <p class="hint">손님에게 보여줄 땐 "전체화면 보기" → 손님이 폰 카메라로 QR을 찍으면 끝.</p>
+</div>
+
+<button class="exit" onclick="exitFull()" aria-label="닫기">✕</button>
+
+<script>
+  function escWifi(s){ return String(s).replace(/([\\;,:"])/g, '\\$1'); }
+  function buildWifiString(){
+    var ssid=document.getElementById('ssid').value, pass=document.getElementById('pass').value;
+    var auth=document.getElementById('auth').value, hidden=document.getElementById('hidden').checked;
+    var str='WIFI:'+'T:'+auth+';'+'S:'+escWifi(ssid)+';';
+    if(auth!=='nopass') str+='P:'+escWifi(pass)+';';
+    if(hidden) str+='H:true;';
+    return str+';';
+  }
+  function render(){
+    var box=document.querySelector('.qrcode');
+    box.innerHTML='';
+    try{ new QRCode(box,{text:buildWifiString(),width:600,height:600,correctLevel:QRCode.CorrectLevel.M}); }
+    catch(e){ box.textContent='QR 오류'; }
+    var noPass=document.getElementById('auth').value==='nopass';
+    var passInput=document.getElementById('pass');
+    passInput.disabled=noPass; passInput.style.opacity=noPass?'0.45':'1';
+    passInput.placeholder=noPass?'비밀번호 없음':'';
+    document.getElementById('ssidLabel').textContent=document.getElementById('ssid').value||'—';
+    document.getElementById('passLabel').textContent=document.getElementById('pass').value||'—';
+    document.getElementById('passRow').style.display=noPass?'none':'';
+  }
+  function showFull(){ document.body.classList.add('show'); window.scrollTo(0,0); }
+  function exitFull(){ document.body.classList.remove('show'); }
+  function downloadPNG(){
+    var card=document.querySelector('.card');
+    if(typeof html2canvas==='undefined'){ alert('이미지 저장 모듈을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.'); return; }
+    html2canvas(card,{scale:3,backgroundColor:'#ffffff',useCORS:true}).then(function(canvas){
+      var a=document.createElement('a'); a.href=canvas.toDataURL('image/png');
+      a.download='wifi-qr-카드.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }).catch(function(){ alert('이미지 저장 중 오류가 났어요.'); });
+  }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') exitFull(); });
+  ['ssid','pass','auth','hidden'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',render);
+    document.getElementById(id).addEventListener('change',render);
+  });
+  window.addEventListener('load',render); render();
+</script>
+</body>
+</html>
