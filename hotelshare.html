@@ -1816,7 +1816,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_2222 (공유본)</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_0859 (공유본)</span></p>
   </footer>
 
 </div>
@@ -3302,8 +3302,8 @@ ${posts}
       cap.style.cssText = 'font-size:11px; color:#9aa; text-align:center;';
       cap.textContent = note ? '📷 (화면용) — 인쇄엔 위 안내문만 나옵니다' : '📷 카메라로 스캔하면 Wi-Fi 연결';
       qrHost.appendChild(cap);
-      try { new QRCode(qd, { text: qrStr, width: 124, height: 124, correctLevel: QRCode.CorrectLevel.M }); }
-      catch (e) { qd.textContent = 'QR 오류'; }
+      try { new QRCode(qd, { text: qrStr, width: 124, height: 124, correctLevel: QRCode.CorrectLevel.L }); }
+      catch (e) { qd.style.lineHeight = '1.4'; qd.style.color = '#c0392b'; qd.style.fontSize = '12px'; qd.textContent = 'QR 생성 실패 — 이름/비번이 너무 깁니다'; }
     }
     wifiF.inp.addEventListener('input', () => refresh(true));
     passF.inp.addEventListener('input', () => refresh(true));
@@ -3329,7 +3329,7 @@ ${posts}
     const qrStr = buildWifiQRString(creds.ssid, creds.pass);
     if (!qrStr) return '';
     const tmp = document.createElement('div');
-    try { new QRCode(tmp, { text: qrStr, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M }); }
+    try { new QRCode(tmp, { text: qrStr, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.L }); }
     catch (e) { return ''; }
     const cvs = tmp.querySelector('canvas');
     if (cvs) { try { return cvs.toDataURL('image/png'); } catch (e) {} }
