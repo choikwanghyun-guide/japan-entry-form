@@ -1740,6 +1740,13 @@
       ✨ JSON으로 결과 보기
     </button>
 
+    <div style="margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--border);">
+      <div class="textarea-helper" style="margin-bottom: 10px;">또는 엑셀·JSON 없이 <strong style="color:var(--text);">빈 양식에 직접 입력</strong>할 수도 있어요. 아래 버튼을 누르면 빈 표가 나오고, 칸을 눌러 바로 타이핑하면 됩니다.</div>
+      <button class="btn-primary" onclick="startBlankForm()" style="background: linear-gradient(135deg, var(--accent-green), #059669);">
+        ✍️ 빈 양식에 직접 입력
+      </button>
+    </div>
+
     <div class="status" id="status"></div>
   </section>
 
@@ -1806,7 +1813,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1750</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1756</span></p>
   </footer>
 
 </div>
@@ -3171,6 +3178,24 @@ ${posts}
     }
   }
 
+  // ===== 빈 양식에 직접 입력 =====
+  function startBlankForm() {
+    const hotelName = document.getElementById('hotelName').value.trim() || '';
+    // 표준 항목을 빈 값으로 채운 새 양식 생성
+    currentData = {
+      hotelName: hotelName,
+      fields: STANDARD_FIELDS.map(label => ({ label: label, value: '' })),
+      insights: ''
+    };
+    editingHotelId = null;  // 새 호텔로 인식 (덮어쓰기 방지)
+    renderResults(currentData);
+    // 직접 입력 시에도 핵심 포인트를 적을 수 있게 인사이트 칸 표시
+    document.getElementById('insightsBox').style.display = 'block';
+    document.getElementById('insightsContent').innerText = '';
+    showStatus('✓ 빈 양식을 만들었어요. 아래 표의 각 칸을 눌러 직접 입력하세요.', 'success');
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   // ===== Wi-Fi QR 코드 =====
   // WIFI 항목 값에서 ID(SSID)와 PW(비밀번호)를 읽어 QR 코드를 만든다.
   function parseWifiCreds(text) {
@@ -3204,6 +3229,15 @@ ${posts}
     return str + ';';
   }
   // WIFI 항목 칸을 "WiFi 이름 / 비밀번호" 입력칸 + QR 로 그린다.
+  // WIFI 값에서 "현장 확인 안내" 추출 (확인/현장확인/안내/메모 : 내용)
+  function parseWifiNote(text) {
+    let note = '';
+    String(text || '').split(/\n/).forEach(line => {
+      const m = line.match(/^\s*(확인|현장확인|안내|메모)\s*[:：=]\s*(.+)$/);
+      if (m && !note) note = m[2].trim();
+    });
+    return note;
+  }
   function renderWifiCell(tr, idx, valueStr) {
     const td = tr.querySelector('td');
     if (!td) return;
@@ -3228,8 +3262,14 @@ ${posts}
     };
     const wifiF = makeField('📶 WiFi 이름', creds.ssid, 'WiFi 이름 입력');
     const passF = makeField('🔑 비밀번호', creds.pass, '비밀번호 입력 (없으면 비워두기)');
+    const noteF = makeField('📝 현장 확인 안내', parseWifiNote(valueStr), '예: 체크인 시 프론트 확인 / 객실 내 안내서 참조');
     wrap.appendChild(wifiF.f);
     wrap.appendChild(passF.f);
+    wrap.appendChild(noteF.f);
+    const noteHint = document.createElement('div');
+    noteHint.style.cssText = 'font-size:11px; color:var(--accent-orange); display:none; text-align:left;';
+    noteHint.textContent = '⚠ 이 안내가 있으면 인쇄·이미지엔 WiFi ID/PW·QR 대신 이 안내만 나옵니다.';
+    wrap.appendChild(noteHint);
     const qrHost = document.createElement('div');
     qrHost.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:5px; margin-top:4px;';
     wrap.appendChild(qrHost);
@@ -3238,12 +3278,16 @@ ${posts}
     function refresh(write) {
       const ssid = wifiF.inp.value.trim();
       const pass = passF.inp.value.trim();
+      const note = noteF.inp.value.trim();
       if (write) {
         // 인쇄/이미지/저장 일관성을 위해 데이터에 정규화해 저장
-        let v = '';
-        if (ssid || pass) v = (ssid ? 'ID : ' + ssid : '') + (ssid && pass ? '\n' : '') + (pass ? 'PW : ' + pass : '');
-        currentData.fields[idx].value = v;
+        const parts = [];
+        if (ssid) parts.push('ID : ' + ssid);
+        if (pass) parts.push('PW : ' + pass);
+        if (note) parts.push('확인 : ' + note);
+        currentData.fields[idx].value = parts.join('\n');
       }
+      noteHint.style.display = note ? 'block' : 'none';
       qrHost.innerHTML = '';
       const qrStr = buildWifiQRString(ssid, pass);
       if (!qrStr || typeof QRCode === 'undefined') return;
@@ -3252,13 +3296,14 @@ ${posts}
       qrHost.appendChild(qd);
       const cap = document.createElement('div');
       cap.style.cssText = 'font-size:11px; color:#9aa; text-align:center;';
-      cap.textContent = '📷 카메라로 스캔하면 Wi-Fi 연결';
+      cap.textContent = note ? '📷 (화면용) — 인쇄엔 위 안내문만 나옵니다' : '📷 카메라로 스캔하면 Wi-Fi 연결';
       qrHost.appendChild(cap);
       try { new QRCode(qd, { text: qrStr, width: 124, height: 124, correctLevel: QRCode.CorrectLevel.M }); }
       catch (e) { qd.textContent = 'QR 오류'; }
     }
     wifiF.inp.addEventListener('input', () => refresh(true));
     passF.inp.addEventListener('input', () => refresh(true));
+    noteF.inp.addEventListener('input', () => refresh(true));
     refresh(false);  // 불러올 때는 값을 건드리지 않고 QR만 표시
   }
   function isWifiLabel(label) { return /wi-?fi|와이파이/i.test(String(label || '')); }
@@ -3293,6 +3338,15 @@ ${posts}
     const url = wifiQRDataURL(valueStr);
     if (!url) return '';
     return `<div style="margin-top:8px;"><img src="${url}" alt="Wi-Fi QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;"><div style="font-size:11px;color:#555;margin-top:3px;">📷 카메라로 스캔하면 Wi-Fi 연결</div></div>`;
+  }
+  // 인쇄/이미지 한 칸의 내용. WIFI에 "현장 확인 안내"가 있으면 ID/PW·QR 대신 안내문만 출력.
+  function fieldPrintCellHtml(field, valueStr, qrSize) {
+    if (isWifiLabel(field.label)) {
+      const note = parseWifiNote(valueStr);
+      if (note) return escapeHtml(note).replace(/\n/g, '<br>');
+      return escapeHtml(valueStr).replace(/\n/g, '<br>') + wifiQRImgHtml(field, valueStr, qrSize);
+    }
+    return escapeHtml(valueStr).replace(/\n/g, '<br>');
   }
 
   function renderResults(data) {
@@ -3412,7 +3466,7 @@ ${posts}
       if (!isFieldPrintSelected(i)) return;  // 체크 안 한 항목은 인쇄·이미지에서 제외
       html += `<tr>
         <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
-        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${escapeHtml(valueStr).replace(/\n/g, '<br>')}${wifiQRImgHtml(field, valueStr, 120)}</td>
+        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${fieldPrintCellHtml(field, valueStr, 120)}</td>
       </tr>`;
     });
     html += `</table>`;
@@ -3493,7 +3547,7 @@ ${posts}
       if (!isFieldPrintSelected(i)) return;  // 체크 안 한 항목은 인쇄·이미지에서 제외
       html += `<tr>
         <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
-        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${escapeHtml(valueStr).replace(/\n/g, '<br>')}${wifiQRImgHtml(field, valueStr, 150)}</td>
+        <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${fieldPrintCellHtml(field, valueStr, 150)}</td>
       </tr>`;
     });
     html += `</table>`;
