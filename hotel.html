@@ -1772,9 +1772,18 @@
     </div>
     </div>
 
+    <!-- 화면 표시용 가이드 연락처 -->
+    <div class="guide-contact" style="text-align: right; margin-top: 18px; font-size: 14px; color: var(--text-soft); line-height: 1.7;">
+      최광현 가이드<br>한국폰 : 010-2620-8072<br><strong style="color: var(--accent-blue);">일본폰 : 090-7555-7489</strong>
+    </div>
+
     <div class="download-bar">
       <div class="download-info" style="width: 100%;">
         검토가 끝나면 아래 버튼으로 저장하거나 출력하세요.
+        <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:var(--text-soft); cursor:pointer;">
+          <input type="checkbox" id="includeInsights" style="width:16px; height:16px; accent-color:var(--accent-purple);">
+          ✦ 가이드용 핵심 포인트도 인쇄·이미지에 포함 <span style="color:var(--text-dim);">(손님용 인쇄물엔 체크 해제)</span>
+        </label>
       </div>
       <div class="action-btn-row">
         <button class="action-btn act-save" onclick="saveToArchive()">
@@ -1797,7 +1806,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1659</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1710</span></p>
   </footer>
 
 </div>
@@ -3394,8 +3403,8 @@ ${posts}
     });
     html += `</table>`;
 
-    // 인사이트
-    if (currentData.insights) {
+    // 인사이트 (체크박스가 켜져 있을 때만 — 손님용 인쇄물엔 기본 제외)
+    if (currentData.insights && document.getElementById('includeInsights') && document.getElementById('includeInsights').checked) {
       html += `<div style="background: #f7f7f7; border: 1px solid #999; border-radius: 8px; padding: 12px 14px; margin-top: 12px; page-break-inside: avoid;">
         <div style="color: #7c5cf0; font-weight: 700; font-size: 14px; margin-bottom: 6px;">✦ 가이드용 핵심 포인트</div>
         <div style="font-size: 12px; line-height: 1.5; color: #000;">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div>
@@ -3474,8 +3483,8 @@ ${posts}
     });
     html += `</table>`;
 
-    // 인사이트
-    if (currentData.insights) {
+    // 인사이트 (체크박스가 켜져 있을 때만 — 손님용 이미지엔 기본 제외)
+    if (currentData.insights && document.getElementById('includeInsights') && document.getElementById('includeInsights').checked) {
       html += `<div style="background: #f7f7f7; border: 1px solid #999; border-radius: 8px; padding: 14px 16px; margin-top: 14px;">
         <div style="color: #7c5cf0; font-weight: 700; font-size: 15px; margin-bottom: 8px;">✦ 가이드용 핵심 포인트</div>
         <div style="font-size: 13px; line-height: 1.6; color: #1a1a1a;">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div>
