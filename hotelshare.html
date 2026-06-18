@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>호텔 정보 정리</title>
+<title>호텔 정보 공유 (가이드용)</title>
 <link rel="icon" type="image/svg+xml" href="favicons/hotel.svg">  
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1545,12 +1545,12 @@
 
   <header>
     <div class="header-badge">HOTEL INFO</div>
-    <h1>호텔 정보 정리</h1>
-    <p class="subtitle">일가방 게시글을 표준 양식으로 자동 정리</p>
+    <h1>호텔 정보 공유</h1>
+    <p class="subtitle">가이드용 — 빈 양식에 직접 입력해서 저장·인쇄·공유</p>
   </header>
 
   <!-- 클로드용 프롬프트 만들기 섹션 -->
-  <section id="jsonConvertSection" style="background: var(--bg-card); border-radius: 16px; padding: 28px; margin-bottom: 20px;">
+  <section id="jsonConvertSection" style="display:none; background: var(--bg-card); border-radius: 16px; padding: 28px; margin-bottom: 20px;">
     <div class="section-header">
       <div class="section-num">0</div>
       <div class="section-title">클로드용 프롬프트 만들기</div>
@@ -1645,8 +1645,8 @@
       <p class="archive-empty">저장된 호텔이 없어요. 호텔 정보를 정리한 뒤 "저장하기"를 누르면 여기에 보관됩니다.</p>
     </div>
 
-    <!-- JSON 파일 / 엑셀 파일에서 복구 -->
-    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <!-- JSON 파일 / 엑셀 파일에서 복구 (공유본: 숨김) -->
+    <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); display: none; gap: 8px; align-items: center; flex-wrap: wrap;">
       <button class="btn-backup" onclick="document.getElementById('importFileInput').click()">
         📥 JSON 파일에서 불러오기
       </button>
@@ -1687,11 +1687,11 @@
       <h2 class="section-title">호텔 정보 입력</h2>
     </div>
     <p class="section-desc">
-      일가방 게시글 링크를 추가하고, 클로드 채팅에서 받은 JSON을 붙여넣어 주세요.
+      아래 <strong>"✍️ 빈 양식에 직접 입력"</strong> 버튼을 누르면 빈 표가 나옵니다. 각 칸을 눌러 직접 입력한 뒤 저장·인쇄·공유하세요.
     </p>
 
-    <!-- 일가방 링크 -->
-    <div class="field">
+    <!-- 일가방 링크 (공유본: 숨김) -->
+    <div class="field" style="display:none;">
       <label>📎 일가방 게시글 링크 <span id="linkCountLabel" style="color: var(--text-dim); font-weight: 400; font-size: 13px;">(여러 가이드의 후기를 4~5개까지 추가하세요)</span></label>
       <div class="link-input-group">
         <input type="text" id="linkInput" placeholder="예: https://band.us/band/54695835/post/12345">
@@ -1730,13 +1730,13 @@
     <input type="password" id="apiKey" style="display: none;">
     <span id="apiSaved" style="display: none;"></span>
 
-    <div class="field" style="margin-top: 18px;">
+    <div class="field" style="margin-top: 18px; display:none;">
       <label>📋 클로드에서 받은 JSON 붙여넣기</label>
       <textarea id="jsonInput" placeholder='클로드 채팅에서 받은 JSON을 여기에 붙여넣어 주세요.&#10;&#10;{"fields": [...], "insights": "..."}' style="min-height: 200px; font-family: monospace; font-size: 13px;"></textarea>
       <div class="textarea-helper">팁 — 중괄호 { 부터 } 까지 전체를 복사해서 붙여넣어 주세요</div>
     </div>
 
-    <button class="btn-primary" onclick="loadFromJson()">
+    <button class="btn-primary" onclick="loadFromJson()" style="display:none;">
       ✨ JSON으로 결과 보기
     </button>
 
@@ -1888,6 +1888,7 @@
     }
     renderArchive();
     initGoogleApis();
+    startBlankForm();  // 공유본: 처음부터 직접입력 양식(정리된 호텔정보)이 보이게
   });
 
   // ===== 구글 API 초기화 =====
