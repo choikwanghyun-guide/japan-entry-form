@@ -124,18 +124,18 @@
 <div class="wrap">
   <div class="title">Wi-Fi QR 카드</div>
 
-  <div class="controls collapsed" id="controls">
-    <div class="ctrl-head" onclick="document.getElementById('controls').classList.toggle('collapsed')">
-      <b>와이파이 정보 수정</b><span class="chev">탭하여 열기 ▾</span>
+  <div class="controls" id="controls">
+    <div class="ctrl-head" onclick="toggleControls()">
+      <b>와이파이 정보 수정</b><span class="chev" id="ctrlChev">탭하여 닫기 ▴</span>
     </div>
     <div class="ctrl-body">
       <div class="field">
         <label for="ssid">와이파이 이름 (SSID)</label>
-        <input type="text" id="ssid" value="KT_GiGA_5G_D370" autocomplete="off">
+        <input type="text" id="ssid" value="" placeholder="대문자, 소문자, 기호 등 정확하게 입력해 주세요" autocomplete="off">
       </div>
       <div class="field">
         <label for="pass">비밀번호</label>
-        <input type="text" id="pass" value="1cd63ff617" autocomplete="off">
+        <input type="text" id="pass" value="" placeholder="대문자, 소문자, 기호 등 정확하게 입력해 주세요" autocomplete="off">
       </div>
       <div class="row2">
         <div class="field">
@@ -145,10 +145,6 @@
             <option value="WEP">WEP</option>
             <option value="nopass">비밀번호 없음</option>
           </select>
-        </div>
-        <div class="field">
-          <label>옵션</label>
-          <label class="check" style="padding-top:10px;"><input type="checkbox" id="hidden"> 숨김</label>
         </div>
       </div>
     </div>
@@ -189,10 +185,9 @@
   function escWifi(s){ return String(s).replace(/([\\;,:"])/g, '\\$1'); }
   function buildWifiString(){
     var ssid=document.getElementById('ssid').value, pass=document.getElementById('pass').value;
-    var auth=document.getElementById('auth').value, hidden=document.getElementById('hidden').checked;
+    var auth=document.getElementById('auth').value;
     var str='WIFI:'+'T:'+auth+';'+'S:'+escWifi(ssid)+';';
     if(auth!=='nopass') str+='P:'+escWifi(pass)+';';
-    if(hidden) str+='H:true;';
     return str+';';
   }
   function render(){
@@ -203,10 +198,16 @@
     var noPass=document.getElementById('auth').value==='nopass';
     var passInput=document.getElementById('pass');
     passInput.disabled=noPass; passInput.style.opacity=noPass?'0.45':'1';
-    passInput.placeholder=noPass?'비밀번호 없음':'';
+    passInput.placeholder=noPass?'비밀번호 없음':'대문자, 소문자, 기호 등 정확하게 입력해 주세요';
     document.getElementById('ssidLabel').textContent=document.getElementById('ssid').value||'—';
     document.getElementById('passLabel').textContent=document.getElementById('pass').value||'—';
     document.getElementById('passRow').style.display=noPass?'none':'';
+  }
+  function toggleControls(){
+    var c=document.getElementById('controls');
+    c.classList.toggle('collapsed');
+    var collapsed=c.classList.contains('collapsed');
+    document.getElementById('ctrlChev').textContent=collapsed?'탭하여 열기 ▾':'탭하여 닫기 ▴';
   }
   function showFull(){ document.body.classList.add('show'); window.scrollTo(0,0); }
   function exitFull(){ document.body.classList.remove('show'); }
@@ -219,7 +220,7 @@
     }).catch(function(){ alert('이미지 저장 중 오류가 났어요.'); });
   }
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') exitFull(); });
-  ['ssid','pass','auth','hidden'].forEach(function(id){
+  ['ssid','pass','auth'].forEach(function(id){
     document.getElementById(id).addEventListener('input',render);
     document.getElementById(id).addEventListener('change',render);
   });
