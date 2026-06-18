@@ -1797,7 +1797,7 @@
   </section>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1641</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0618_1655</span></p>
   </footer>
 
 </div>
@@ -3163,14 +3163,23 @@ ${posts}
   // WIFI 항목 값에서 ID(SSID)와 PW(비밀번호)를 읽어 QR 코드를 만든다.
   function parseWifiCreds(text) {
     // 비번 표시어가 한 줄에 같이 있으면 그 앞에서 줄을 나눠 분리 정확도를 높인다.
-    const t = String(text || '').replace(/\s+(pw|pass|password|비번|비밀번호|암호)\s*([:：=])/gi, '\n$1$2');
+    let t = String(text || '').replace(/\s+(pw|pass(?:word)?|비번|비밀번호|암호)(?=[\s:：=])/gi, '\n$1');
     let ssid = '', pass = '';
-    t.split(/[\n,]/).forEach(seg => {
-      const m = seg.match(/^\s*([^:：=]+)[:：=]\s*(.+?)\s*$/);
-      if (!m) return;
-      const key = m[1].toLowerCase().replace(/\s/g, '');
-      const val = m[2].trim();
-      if (!ssid && /ssid|아이디|이름|네트워크|^id/.test(key)) ssid = val;
+    t.split(/[\n,\/]/).forEach(raw => {
+      const seg = raw.trim();
+      if (!seg) return;
+      let key, val;
+      const sep = seg.match(/^(.+?)\s*[:：=]\s*(.+)$/);   // "ID : 값" 처럼 구분자 있는 경우
+      if (sep) { key = sep[1]; val = sep[2]; }
+      else {                                              // "ID 값" 처럼 콜론 없이 띄어쓴 경우
+        const kw = seg.match(/^(ssid|id|pw|pass(?:word)?|비번|비밀번호|암호|아이디|이름|key)\s+(.+)$/i);
+        if (!kw) return;
+        key = kw[1]; val = kw[2];
+      }
+      key = key.toLowerCase().replace(/\s/g, '');
+      val = val.trim();
+      if (!val) return;
+      if (!ssid && (key === 'id' || /ssid|아이디|이름|네트워크/.test(key))) ssid = val;
       else if (!pass && /pw|pass|password|비번|비밀번호|암호|key/.test(key)) pass = val;
     });
     return { ssid, pass };
