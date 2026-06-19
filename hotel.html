@@ -40,6 +40,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -1885,7 +1886,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0045</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0120</span></p>
   </footer>
 
 </div>
@@ -2448,19 +2449,71 @@
   }
 
   // ===== 공유 보관함 (JSONBin) — 모든 가이드가 함께 모으는 풀 =====
-  const SHARED_BIN_ID = '6a35454bda38895dfeddaec6';
+  // 무료 플랜은 빈 1개당 100KB 한도라, 호텔을 4개 빈에 나눠 담고 gzip 압축해서 저장한다.
+  const SHARED_BIN_IDS = [
+    '6a35454bda38895dfeddaec6',
+    '6a3565cfda38895dfede69b7',
+    '6a356605f5f4af5e290fef61',
+    '6a356634da38895dfede6be0'
+  ];
   const SHARED_ACCESS_KEY = '$2a$10$IqaK4jy2QBuTrTV1RCE3vuKFbkP/7wC0pZ8KNgbE3ls8WLPdP/I9a';
 
+  // 호텔 id로 어느 빈에 들어갈지 결정 (항상 같은 빈 → 저장/삭제는 그 빈 하나만 건드림)
+  function shardIndexFor(id) {
+    let h = 0; const s = String(id || '');
+    for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return h % SHARED_BIN_IDS.length;
+  }
+  // 빈에 저장되는 형태: {"gz":"<base64 gzip JSON>"} (옛 비압축 {"hotels":[...]}도 읽을 수 있게)
+  function encodeHotels(arr) {
+    const json = JSON.stringify(arr || []);
+    const gz = pako.gzip(json);
+    let bin = '';
+    for (let i = 0; i < gz.length; i++) bin += String.fromCharCode(gz[i]);
+    return { gz: btoa(bin) };
+  }
+  function decodeRecord(record) {
+    if (!record) return [];
+    if (Array.isArray(record.hotels)) return record.hotels;   // 옛 비압축 형식 호환
+    if (record.gz) {
+      try {
+        const binStr = atob(record.gz);
+        const bytes = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+        const json = pako.ungzip(bytes, { to: 'string' });
+        const obj = JSON.parse(json);
+        return Array.isArray(obj) ? obj : (obj.hotels || []);
+      } catch (e) { console.warn('decodeRecord', e); return []; }
+    }
+    return [];
+  }
+  async function fetchShard(idx) {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    return decodeRecord(d.record);
+  }
+  async function putShard(idx, arr) {
+    const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
+      body: JSON.stringify(encodeHotels(arr))
+    });
+    if (!put.ok) throw new Error('HTTP ' + put.status);
+  }
+
   async function pullSharedPool(silent) {
-    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return;
+    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return;
     try {
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const d = await res.json();
-      const hotels = (d.record && d.record.hotels) || [];
-      archiveData = hotels;
+      const parts = await Promise.all(SHARED_BIN_IDS.map((_, i) => fetchShard(i)));
+      const all = []; const seen = {};
+      parts.forEach(p => p.forEach(h => {
+        if (h && h.id) { if (seen[h.id]) return; seen[h.id] = 1; }
+        all.push(h);
+      }));
+      archiveData = all;
       renderArchive();
-      if (!silent) showStatus(`✓ 공유 보관함을 불러왔어요 (${hotels.length}개 호텔)`, 'success');
+      if (!silent) showStatus(`✓ 공유 보관함을 불러왔어요 (${all.length}개 호텔)`, 'success');
     } catch (e) {
       console.warn('pullSharedPool', e);
       if (!silent) showStatus('공유 보관함 불러오기 실패: ' + e.message + ' (인터넷 확인)', 'error');
@@ -2468,25 +2521,23 @@
   }
 
   async function pushSharedPool() {
-    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return false;
+    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
     try {
-      // 다른 가이드가 그새 추가한 걸 안 잃도록: 원격 최신 + 로컬 병합 (같은 id는 로컬 우선)
-      let remote = [];
-      try {
-        const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-        if (res.ok) { const d = await res.json(); remote = (d.record && d.record.hotels) || []; }
-      } catch (e) {}
-      const map = {};
-      remote.forEach(h => { if (h && h.id) map[h.id] = h; });
-      archiveData.forEach(h => { if (h && h.id) map[h.id] = h; });
-      const merged = Object.values(map);
-      archiveData = merged;
-      const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
-        body: JSON.stringify({ hotels: merged })
-      });
-      if (!put.ok) throw new Error('HTTP ' + put.status);
+      // 호텔을 빈별로 그룹핑 후, 각 빈마다 원격 최신과 병합(같은 id는 로컬 우선)해서 저장
+      const localByShard = SHARED_BIN_IDS.map(() => []);
+      archiveData.forEach(h => { if (h && h.id) localByShard[shardIndexFor(h.id)].push(h); });
+      const mergedAll = [];
+      for (let i = 0; i < SHARED_BIN_IDS.length; i++) {
+        let remote = [];
+        try { remote = await fetchShard(i); } catch (e) {}
+        const map = {};
+        remote.forEach(h => { if (h && h.id) map[h.id] = h; });
+        localByShard[i].forEach(h => { if (h && h.id) map[h.id] = h; });
+        const merged = Object.values(map);
+        await putShard(i, merged);
+        merged.forEach(h => mergedAll.push(h));
+      }
+      archiveData = mergedAll;
       renderArchive();
       return true;
     } catch (e) {
@@ -2496,19 +2547,14 @@
   }
 
   async function deleteFromSharedPool(id) {
-    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return false;
+    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
     try {
+      const idx = shardIndexFor(id);
       let remote = [];
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-      if (res.ok) { const d = await res.json(); remote = (d.record && d.record.hotels) || []; }
+      try { remote = await fetchShard(idx); } catch (e) {}
       const updated = remote.filter(h => h && h.id !== id);
-      archiveData = updated;
-      const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
-        body: JSON.stringify({ hotels: updated })
-      });
-      if (!put.ok) throw new Error('HTTP ' + put.status);
+      await putShard(idx, updated);
+      archiveData = archiveData.filter(h => h && h.id !== id);
       renderArchive();
       return true;
     } catch (e) { console.warn('deleteFromSharedPool', e); return false; }
