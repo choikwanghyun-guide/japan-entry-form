@@ -1567,13 +1567,13 @@
   </section>
 
   <!-- 구글 드라이브 동기화 영역 -->
-  <div class="sync-section" id="syncSection" style="display:none;">
+  <div class="sync-section" id="syncSection">
     <!-- 로그인 안 된 상태 -->
     <div class="sync-info" id="syncInfoLoggedOut">
       <span class="sync-status-dot"></span>
       <div class="sync-info-text">
-        <strong>구글 드라이브에 데이터가 저장됩니다.</strong><br>
-        구글 계정으로 로그인하면 어떤 기기에서든 같은 데이터를 볼 수 있어요.
+        <strong>기존 호텔을 공유 풀로 옮기려면 여기서 구글 로그인하세요.</strong><br>
+        예전에 드라이브에 저장해둔 호텔을 불러온 뒤 아래 "📤 공유 풀에 올리기"를 누르면 끝이에요. (평소 새 저장은 로그인 없이 공유 보관함에 자동 저장됩니다)
       </div>
     </div>
     <!-- 로그인 된 상태 (숨김) -->
@@ -1620,6 +1620,7 @@
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <button class="btn-clear" onclick="startNew()">+ 새로 작성</button>
+        <button class="btn-clear" onclick="migrateToSharedPool()" style="border-color: var(--accent-green); color: var(--accent-green);" title="구글 로그인으로 불러온 기존 호텔을 공유 풀에 한 번에 올리기 (최초 1회)">📤 공유 풀에 올리기</button>
         <button class="collapse-btn" id="collapseBtn" onclick="toggleArchiveCollapse()" title="접기/펼치기">▶</button>
       </div>
     </div>
@@ -1884,7 +1885,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_2256</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_2308</span></p>
   </footer>
 
 </div>
@@ -2491,6 +2492,19 @@
       console.warn('pushSharedPool', e);
       return false;
     }
+  }
+
+  // 기존 보관함(구글 드라이브에서 불러온 것)을 공유 풀에 한 번에 올리기 (관리자 마이그레이션용)
+  async function migrateToSharedPool() {
+    if (!archiveData || archiveData.length === 0) {
+      alert('올릴 호텔이 없어요. 먼저 위 "구글 로그인"을 눌러 기존 호텔(드라이브)을 불러온 뒤 다시 눌러주세요.');
+      return;
+    }
+    if (!confirm(`현재 보관함의 ${archiveData.length}개 호텔을 공유 풀에 올릴까요?
+(다른 가이드도 보게 됩니다)`)) return;
+    showStatus(`${archiveData.length}개 호텔을 공유 풀에 올리는 중...`, 'loading');
+    const ok = await pushSharedPool();
+    showStatus(ok ? `✓ ${archiveData.length}개 호텔을 공유 풀에 올렸어요! hotelshare에서도 보여요.` : '업로드 실패 — 인터넷 확인 후 다시 시도해 주세요.', ok ? 'success' : 'error');
   }
 
   async function deleteFromSharedPool(id) {
