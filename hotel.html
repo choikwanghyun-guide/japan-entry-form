@@ -704,6 +704,20 @@
   .link-input-group input {
     flex: 1;
     font-size: 14px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .link-input-group input::placeholder { color: var(--text-dim); }
+  .link-input-group input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.18);
   }
 
   .link-list {
@@ -1910,7 +1924,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1330</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1400</span></p>
   </footer>
 
 </div>
