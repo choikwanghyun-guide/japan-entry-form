@@ -1782,8 +1782,8 @@
     <table id="resultsTable">
       <thead>
         <tr>
-          <th style="width:25%;">항목 (클릭하여 수정)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
-          <th style="width:75%;">내용 (클릭하여 수정)</th>
+          <th style="width:38%;">항목 (클릭하여 수정 가능)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
+          <th style="width:62%;">내용</th>
         </tr>
       </thead>
       <tbody id="resultsBody"></tbody>
@@ -1908,7 +1908,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1016</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1232</span></p>
   </footer>
 
 </div>
@@ -1949,21 +1949,21 @@
   const STANDARD_FIELDS = [
     "주소",
     "전화번호",
-    "룸투룸 (방에서 방으로 전화걸기)",
+    "룸투룸\n(방에서 방으로 전화걸기)",
     "프론트 전화 / 위치",
-    "WIFI 유무\nWIFI 비밀번호",
+    "WIFI ID\nWIFI 비밀번호",
     "조,석식 종류 (뷔페식,가이세키,정식)\n식사시간\n식당위치\n식권 필요 유,무",
-    "온천,대욕장 유무,수건유무\n이용시간등",
+    "온천,대욕장 유,무\n수건 유,무\n이용시간 및 기타 전달사항",
     "키 (형태 : 카드키 / 일반키)\n카드키일 경우 터치형 / 삽입형\n방번호 기재 여부",
     "전기 턴온 \n(카드 삽입식인지 바로 켤수 있는지)",
     "냉난방 조절기",
-    "금연 / 흡연 ",
+    "금연실 / 흡연실 (흡연 가능장소)",
     "금고 유,무",
     "슬리퍼 유,무",
-    "실내복 유,무\n형태 : 유카타,가운,진베이 등\n이용범위 : 관내,호텔",
+    "관내복, 실내복 유,무\n형태 : 유카타,가운,진베이 등\n이용범위",
     "포트,드라이 유무",
     "냉장고 유,무\n객실 내 물 제공 유,무",
-    "샴푸,린스,바디클렌져 비치 여부 ",
+    "어메니티 위치 / 픽업장소",
     "매점,편의점,선술집,수퍼 근처에있는가?",
     "특이사항"
   ];
@@ -3178,21 +3178,21 @@ ${posts}
   "fields": [
     {"label": "주소", "value": "..."},
     {"label": "전화번호", "value": "..."},
-    {"label": "룸투룸 (방에서 방으로 전화걸기)", "value": "..."},
+    {"label": "룸투룸\\n(방에서 방으로 전화걸기)", "value": "..."},
     {"label": "프론트 전화 / 위치", "value": "..."},
-    {"label": "WIFI 유무\\nWIFI 비밀번호", "value": "..."},
+    {"label": "WIFI ID\\nWIFI 비밀번호", "value": "..."},
     {"label": "조,석식 종류 (뷔페식,가이세키,정식)\\n식사시간\\n식당위치\\n식권 필요 유,무", "value": "..."},
-    {"label": "온천,대욕장 유무,수건유무\\n이용시간등", "value": "..."},
+    {"label": "온천,대욕장 유,무\\n수건 유,무\\n이용시간 및 기타 전달사항", "value": "..."},
     {"label": "키 (형태 : 카드키 / 일반키)\\n카드키일 경우 터치형 / 삽입형\\n방번호 기재 여부", "value": "..."},
     {"label": "전기 턴온 \\n(카드 삽입식인지 바로 켤수 있는지)", "value": "..."},
     {"label": "냉난방 조절기", "value": "..."},
-    {"label": "금연 / 흡연 ", "value": "..."},
+    {"label": "금연실 / 흡연실 (흡연 가능장소)", "value": "..."},
     {"label": "금고 유,무", "value": "..."},
     {"label": "슬리퍼 유,무", "value": "..."},
-    {"label": "실내복 유,무\\n형태 : 유카타,가운,진베이 등\\n이용범위 : 관내,호텔", "value": "..."},
+    {"label": "관내복, 실내복 유,무\\n형태 : 유카타,가운,진베이 등\\n이용범위", "value": "..."},
     {"label": "포트,드라이 유무", "value": "..."},
     {"label": "냉장고 유,무\\n객실 내 물 제공 유,무", "value": "..."},
-    {"label": "샴푸,린스,바디클렌져 비치 여부 ", "value": "..."},
+    {"label": "어메니티 위치 / 픽업장소", "value": "..."},
     {"label": "매점,편의점,선술집,수퍼 근처에있는가?", "value": "..."},
     {"label": "특이사항", "value": "..."}
   ],
@@ -3861,21 +3861,21 @@ ${rawText}
   "fields": [
     {"label": "주소", "value": "..."},
     {"label": "전화번호", "value": "..."},
-    {"label": "룸투룸 (방에서 방으로 전화걸기)", "value": "..."},
+    {"label": "룸투룸\\n(방에서 방으로 전화걸기)", "value": "..."},
     {"label": "프론트 전화 / 위치", "value": "..."},
-    {"label": "WIFI 유무\\nWIFI 비밀번호", "value": "..."},
+    {"label": "WIFI ID\\nWIFI 비밀번호", "value": "..."},
     {"label": "조,석식 종류 (뷔페식,가이세키,정식)\\n식사시간\\n식당위치\\n식권 필요 유,무", "value": "..."},
-    {"label": "온천,대욕장 유무,수건유무\\n이용시간등", "value": "..."},
+    {"label": "온천,대욕장 유,무\\n수건 유,무\\n이용시간 및 기타 전달사항", "value": "..."},
     {"label": "키 (형태 : 카드키 / 일반키)\\n카드키일 경우 터치형 / 삽입형\\n방번호 기재 여부", "value": "..."},
     {"label": "전기 턴온 \\n(카드 삽입식인지 바로 켤수 있는지)", "value": "..."},
     {"label": "냉난방 조절기", "value": "..."},
-    {"label": "금연 / 흡연 ", "value": "..."},
+    {"label": "금연실 / 흡연실 (흡연 가능장소)", "value": "..."},
     {"label": "금고 유,무", "value": "..."},
     {"label": "슬리퍼 유,무", "value": "..."},
-    {"label": "실내복 유,무\\n형태 : 유카타,가운,진베이 등\\n이용범위 : 관내,호텔", "value": "..."},
+    {"label": "관내복, 실내복 유,무\\n형태 : 유카타,가운,진베이 등\\n이용범위", "value": "..."},
     {"label": "포트,드라이 유무", "value": "..."},
     {"label": "냉장고 유,무\\n객실 내 물 제공 유,무", "value": "..."},
-    {"label": "샴푸,린스,바디클렌져 비치 여부 ", "value": "..."},
+    {"label": "어메니티 위치 / 픽업장소", "value": "..."},
     {"label": "매점,편의점,선술집,수퍼 근처에있는가?", "value": "..."},
     {"label": "특이사항", "value": "..."}
   ],
