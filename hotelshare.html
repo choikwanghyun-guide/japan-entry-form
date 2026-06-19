@@ -319,30 +319,37 @@
 
   /* Status messages */
   .status {
-    margin-top: 16px;
-    padding: 12px 16px;
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    max-width: 92vw;
+    z-index: 9999;
+    padding: 14px 20px;
     border-radius: 10px;
     font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22);
     display: none;
   }
 
   .status.show { display: block; }
 
   .status.loading {
-    background: rgba(245, 158, 11, 0.1);
-    border-left: 3px solid var(--accent-orange);
+    background: var(--bg-card);
+    border-left: 4px solid var(--accent-orange);
     color: var(--accent-orange);
   }
 
   .status.error {
-    background: rgba(239, 68, 68, 0.1);
-    border-left: 3px solid var(--accent-red);
+    background: var(--bg-card);
+    border-left: 4px solid var(--accent-red);
     color: var(--accent-red);
   }
 
   .status.success {
-    background: rgba(16, 185, 129, 0.1);
-    border-left: 3px solid var(--accent-green);
+    background: var(--bg-card);
+    border-left: 4px solid var(--accent-green);
     color: var(--accent-green);
   }
 
@@ -1773,9 +1780,15 @@
     </div>
     </div>
 
-    <!-- 화면 표시용 가이드 연락처 -->
-    <div class="guide-contact" style="text-align: right; margin-top: 18px; font-size: 14px; color: var(--text-soft); line-height: 1.7;">
-      최광현 가이드<br>한국폰 : 010-2620-8072<br><strong style="color: var(--accent-blue);">일본폰 : 090-7555-7489</strong>
+    <!-- 가이드 본인 정보 (이 기기에 저장, 인쇄·이미지·엑셀 하단 + 저장한 호텔에 표시) -->
+    <div class="guide-info-edit" style="margin-top: 18px; padding: 14px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;">
+      <div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px;">👤 내 가이드 정보</div>
+      <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">인쇄물·이미지 하단과, 내가 저장한 호텔에 표시됩니다. (이 기기에만 저장돼요)</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <input id="guideName" type="text" placeholder="가이드 이름" oninput="saveGuideInfo()" style="flex:1 1 120px; min-width:110px; box-sizing:border-box; padding:9px 11px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
+        <input id="guidePhoneKr" type="text" placeholder="한국폰 (예: 010-1234-5678)" oninput="saveGuideInfo()" style="flex:1 1 150px; min-width:140px; box-sizing:border-box; padding:9px 11px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
+        <input id="guidePhoneJp" type="text" placeholder="일본폰 (예: 090-1234-5678)" oninput="saveGuideInfo()" style="flex:1 1 150px; min-width:140px; box-sizing:border-box; padding:9px 11px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
+      </div>
     </div>
 
     <div class="download-bar">
@@ -1886,7 +1899,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0210</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0245</span></p>
   </footer>
 
 </div>
@@ -1961,6 +1974,7 @@
     pullSharedPool(true);
     ['hotelName','infoDate'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('input', function(){ if(currentData && id==='hotelName') currentData.hotelName = el.value; updateRequiredGate(); }); });
     updateRequiredGate();
+    loadGuideInfo();
     startBlankForm();  // 공유본: 처음부터 직접입력 양식(정리된 호텔정보)이 보이게
   });
 
@@ -2694,6 +2708,7 @@
           ${infoDateStr}
           ${metaStr ? `<div class="archive-card-meta">${escapeHtml(metaStr)}</div>` : ''}
           <div class="archive-card-date" title="저장된 날짜">💾 ${dateStr}</div>
+          ${item.savedBy ? `<div style="font-size:11px; color:var(--text-dim); margin-top:4px;">✍️ ${escapeHtml(item.savedBy)} 가이드</div>` : ''}
         </div>
       `;
     }).join('') + '</div>';
@@ -2719,6 +2734,7 @@
           <div class="archive-row-aliases">${aliasesStr}</div>
           ${infoDateBadge}
           <div class="archive-row-date" title="저장된 날짜">${linkIcon}💾 ${dateStr}</div>
+          ${item.savedBy ? `<span style="font-size:11px; color:var(--text-dim); margin-left:6px;">✍️ ${escapeHtml(item.savedBy)}</span>` : ''}
           <button class="archive-row-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">✕</button>
         </div>
       `;
@@ -2766,6 +2782,7 @@
       insights: currentData.insights,
       links: [...currentLinks],
       posts: document.getElementById('bandPosts').value,
+      savedBy: getGuideInfo().name,
       savedAt: Date.now()
     };
 
@@ -3249,6 +3266,44 @@
     }
   }
 
+  // ===== 가이드 본인 정보 (이 기기 localStorage에 저장) =====
+  function getGuideInfo() {
+    return {
+      name: (localStorage.getItem('guideName') || '').trim(),
+      kr: (localStorage.getItem('guidePhoneKr') || '').trim(),
+      jp: (localStorage.getItem('guidePhoneJp') || '').trim()
+    };
+  }
+  function saveGuideInfo() {
+    const v = id => (document.getElementById(id) ? document.getElementById(id).value.trim() : '');
+    localStorage.setItem('guideName', v('guideName'));
+    localStorage.setItem('guidePhoneKr', v('guidePhoneKr'));
+    localStorage.setItem('guidePhoneJp', v('guidePhoneJp'));
+  }
+  function loadGuideInfo() {
+    const gi = getGuideInfo();
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    set('guideName', gi.name); set('guidePhoneKr', gi.kr); set('guidePhoneJp', gi.jp);
+  }
+  // 인쇄/이미지 하단 연락처 HTML (입력된 항목만)
+  function guideContactHtml() {
+    const gi = getGuideInfo();
+    const lines = [];
+    if (gi.name) lines.push(escapeHtml(gi.name) + ' 가이드');
+    if (gi.kr) lines.push('한국폰 : ' + escapeHtml(gi.kr));
+    if (gi.jp) lines.push('<strong style="text-decoration: underline;">일본폰 : ' + escapeHtml(gi.jp) + '</strong>');
+    return lines.join('<br>');
+  }
+  // 엑셀 하단 연락처 텍스트
+  function guideContactText() {
+    const gi = getGuideInfo();
+    const lines = [];
+    if (gi.name) lines.push(gi.name + ' 가이드');
+    if (gi.kr) lines.push('한국폰 : ' + gi.kr);
+    if (gi.jp) lines.push('일본폰 : ' + gi.jp);
+    return lines.join('\n');
+  }
+
   function showStatus(message, type = 'loading') {
     const el = document.getElementById('status');
     el.className = `status show ${type}`;
@@ -3256,6 +3311,10 @@
       el.innerHTML = `<span class="spinner"></span>${message}`;
     } else {
       el.textContent = message;
+    }
+    if (window.__statusTimer) { clearTimeout(window.__statusTimer); window.__statusTimer = null; }
+    if (type !== 'loading') {
+      window.__statusTimer = setTimeout(() => { el.classList.remove('show'); }, 5000);
     }
   }
 
@@ -3756,7 +3815,7 @@ ${posts}
 
     // 연락처
     html += `<div style="text-align: right; margin-top: 14px; font-size: 12px; color: #333; line-height: 1.6;">
-      최광현 가이드<br>한국폰 : 010-2620-8072<br><strong style="text-decoration: underline;">일본폰 : 090-7555-7489</strong>
+      ${guideContactHtml()}
     </div>`;
 
     printArea.innerHTML = html;
@@ -3844,7 +3903,7 @@ ${posts}
 
     // 연락처
     html += `<div style="text-align: right; margin-top: 16px; font-size: 13px; color: #333; line-height: 1.6;">
-      최광현 가이드<br>한국폰 : 010-2620-8072<br><strong style="text-decoration: underline;">일본폰 : 090-7555-7489</strong>
+      ${guideContactHtml()}
     </div>`;
 
     captureBox.innerHTML = html;
@@ -3902,7 +3961,7 @@ ${posts}
     usedFields.forEach(f => rows.push([f.label, f.value]));
     rows.push(['', '']);
     const contactIdx = rows.length;  // 연락처 행 0-based 인덱스
-    rows.push(['', '가이드 최광현 \n한국폰 : 010-2620-8072\n일본폰 : 090-7555-7489']);
+    rows.push(['', guideContactText()]);
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
     ws['!cols'] = [{ wch: 42 }, { wch: 50 }];
