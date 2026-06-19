@@ -1926,7 +1926,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0320</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0350</span></p>
   </footer>
 
 </div>
@@ -3826,7 +3826,7 @@ ${posts}
       const valColor = isEmpty ? '#c2410c' : '#000000';
       if (!isFieldPrintSelected(i)) return;  // 체크 안 한 항목은 인쇄·이미지에서 제외
       html += `<tr>
-        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
+        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${escapeHtml(field.label)}</th>
         <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 13px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${fieldPrintCellHtml(field, valueStr, 120)}</td>
       </tr>`;
     });
@@ -3914,7 +3914,7 @@ ${posts}
       const valColor = isEmpty ? '#c2410c' : '#000000';
       if (!isFieldPrintSelected(i)) return;  // 체크 안 한 항목은 인쇄·이미지에서 제외
       html += `<tr>
-        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${i + 1}. ${escapeHtml(field.label)}</th>
+        <th style="background: #f2f2f2; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; font-weight: 600; text-align: center; vertical-align: middle; word-break: break-word; color: #000; line-height: 1.35;">${escapeHtml(field.label)}</th>
         <td style="background: #fff; border: 1px solid #aaa; padding: 4px 10px; font-size: 14px; text-align: center; vertical-align: middle; color: ${valColor}; word-break: break-word; line-height: 1.35;">${fieldPrintCellHtml(field, valueStr, 150)}</td>
       </tr>`;
     });
