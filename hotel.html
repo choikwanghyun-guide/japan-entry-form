@@ -1886,7 +1886,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0120</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0145</span></p>
   </footer>
 
 </div>
@@ -2487,19 +2487,32 @@
     }
     return [];
   }
+  function sharedSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  // JSONBin 무료 플랜은 짧은 시간에 요청이 몰리면 막을 때가 있어, 재시도(backoff)로 감싼다.
+  async function sharedFetch(url, opts, tries) {
+    tries = tries || 4;
+    let lastErr;
+    for (let t = 0; t < tries; t++) {
+      try {
+        const res = await fetch(url, opts);
+        if (res.ok) return res;
+        if ((res.status === 429 || res.status >= 500) && t < tries - 1) { await sharedSleep(600 * (t + 1)); continue; }
+        throw new Error('HTTP ' + res.status);
+      } catch (e) { lastErr = e; if (t < tries - 1) await sharedSleep(600 * (t + 1)); }
+    }
+    throw lastErr;
+  }
   async function fetchShard(idx) {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const res = await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
     const d = await res.json();
     return decodeRecord(d.record);
   }
   async function putShard(idx, arr) {
-    const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}`, {
+    await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
       body: JSON.stringify(encodeHotels(arr))
     });
-    if (!put.ok) throw new Error('HTTP ' + put.status);
   }
 
   async function pullSharedPool(silent) {
@@ -2528,12 +2541,14 @@
       archiveData.forEach(h => { if (h && h.id) localByShard[shardIndexFor(h.id)].push(h); });
       const mergedAll = [];
       for (let i = 0; i < SHARED_BIN_IDS.length; i++) {
+        if (i > 0) await sharedSleep(400);   // 요청 몰림(속도 제한) 방지
         let remote = [];
         try { remote = await fetchShard(i); } catch (e) {}
         const map = {};
         remote.forEach(h => { if (h && h.id) map[h.id] = h; });
         localByShard[i].forEach(h => { if (h && h.id) map[h.id] = h; });
         const merged = Object.values(map);
+        await sharedSleep(250);
         await putShard(i, merged);
         merged.forEach(h => mergedAll.push(h));
       }
