@@ -1815,7 +1815,7 @@
 
     <!-- 📎 네이버 밴드(일가방) 게시글 링크 -->
     <div class="field" style="margin-top: 18px; padding: 14px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;">
-      <label style="font-weight:700;">📎 네이버 밴드(일가방) 게시글 링크 <span id="linkCountLabel" style="color: var(--text-dim); font-weight: 400; font-size: 13px;"></span></label>
+      <label style="font-weight:700;">📎 일가방 게시글 링크 <span id="linkCountLabel" style="color: var(--text-dim); font-weight: 400; font-size: 13px;"></span></label>
       <div style="font-size:12px; color:var(--text-dim); margin:4px 0 10px; line-height:1.5;">여기엔 사진을 붙일 수 없어요. 사진이 있는 <strong>밴드 글 주소</strong>를 걸어두면, 눌렀을 때 그 글로 이동해 사진을 볼 수 있어요. (여러 개면 "+ 추가")</div>
       <div class="link-input-group">
         <input type="text" id="linkInput" placeholder="예: https://band.us/band/54695835/post/12345">
@@ -1937,7 +1937,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1400</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1430</span></p>
   </footer>
 
 </div>
@@ -2451,7 +2451,7 @@
     // 개수 라벨 업데이트
     if (countLabel) {
       if (currentLinks.length === 0) {
-        countLabel.textContent = '(여러 가이드의 후기를 4~5개까지 추가하세요)';
+        countLabel.textContent = '(여러 가이드님의 후기를 추가 할 수 있습니다.)';
         countLabel.style.color = 'var(--text-dim)';
       } else if (currentLinks.length <= 5) {
         countLabel.textContent = `(${currentLinks.length}개 추가됨)`;
