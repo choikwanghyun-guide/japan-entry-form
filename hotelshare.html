@@ -1908,7 +1908,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1247</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1321</span></p>
   </footer>
 
 </div>
@@ -3465,6 +3465,59 @@ ${posts}
     if (gate) gate.style.display = ok ? 'none' : 'block';
   }
 
+  // 항목별 빠른 선택(칩) 설정 — 라벨 키워드로 매칭
+  function presetsFor(label) {
+    var L = String(label || '');
+    if (/턴온|전기/.test(L)) return ['벽면 키박스에 카드 삽입', '상시 사용 가능'];
+    if (/냉난방/.test(L)) return ['리모컨', '벽면 온도조절기', '볼륨으로 풍량만 조절', '버튼으로 풍량만 조절'];
+    if (/금연|흡연/.test(L)) return ['금연실', '흡연실'];
+    if (/금고/.test(L)) return ['있음', '없음'];
+    if (/슬리퍼/.test(L)) return ['있음', '없음'];
+    if (/포트|드라이/.test(L)) return ['있음', '없음'];
+    if (/냉장고/.test(L)) return ['냉장고 있음', '냉장고 없음', '물 있음', '물 없음'];
+    if (/어메니티|샴푸|린스|바디/.test(L)) return ['있음', '없음'];
+    return null;
+  }
+  // 빠른 선택 칸 그리기: 칩 버튼 클릭으로 채우고, 직접 입력도 가능
+  function renderPresetCell(tr, idx, valueStr, options) {
+    var td = tr.querySelector('td');
+    if (!td) return;
+    td.innerHTML = '';
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; align-items:stretch; max-width:360px; margin:0 auto;';
+    var chips = document.createElement('div');
+    chips.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; justify-content:center;';
+    var input = document.createElement('textarea');
+    input.value = valueStr || '';
+    input.placeholder = '위 버튼을 누르거나 직접 입력하세요';
+    input.style.cssText = 'width:100%; box-sizing:border-box; padding:8px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; min-height:42px; resize:vertical; line-height:1.45; text-align:center;';
+    function commit() { if (currentData && currentData.fields[idx]) currentData.fields[idx].value = input.value; }
+    input.addEventListener('input', commit);
+    options.forEach(function (opt) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = opt;
+      b.style.cssText = 'padding:5px 12px; background:var(--bg-input); border:1px solid var(--border); border-radius:14px; color:var(--text); font-size:13px; cursor:pointer; font-family:inherit;';
+      b.addEventListener('click', function () {
+        var cur = input.value.trim();
+        var parts = cur ? cur.split('/').map(function (x) { return x.trim(); }).filter(Boolean) : [];
+        if (parts.indexOf(opt) === -1) parts.push(opt);
+        input.value = parts.join(' / ');
+        commit();
+      });
+      chips.appendChild(b);
+    });
+    var clear = document.createElement('button');
+    clear.type = 'button';
+    clear.textContent = '지우기';
+    clear.style.cssText = 'padding:5px 12px; background:transparent; border:1px solid var(--border); border-radius:14px; color:var(--text-dim); font-size:13px; cursor:pointer; font-family:inherit;';
+    clear.addEventListener('click', function () { input.value = ''; commit(); });
+    chips.appendChild(clear);
+    wrap.appendChild(chips);
+    wrap.appendChild(input);
+    td.appendChild(wrap);
+  }
+
   function renderResults(data) {
     const meta = document.getElementById('hotelMeta');
     const parsedName = parseHotelName(data.hotelName || '');
@@ -3492,6 +3545,7 @@ ${posts}
       tbody.appendChild(tr);
       // WIFI 항목이면 WiFi/비밀번호 입력칸 + QR 코드로 표시
       if (isWifiLabel(field.label)) renderWifiCell(tr, i, valueStr);
+      else { var __pre = presetsFor(field.label); if (__pre) renderPresetCell(tr, i, valueStr, __pre); }
     });
 
     // 값 편집
