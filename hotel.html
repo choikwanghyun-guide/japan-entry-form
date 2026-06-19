@@ -1658,27 +1658,7 @@
     </div>
   </div>
 
-  <!-- Section 1: 호텔 기본 정보 -->
-  <section>
-    <div class="section-header">
-      <div class="section-num">1</div>
-      <h2 class="section-title">호텔 기본 정보</h2>
-    </div>
-    <p class="section-desc">호텔명을 입력해주세요. 다른 표기법은 <strong>#</strong>으로 구분해서 추가할 수 있어요.</p>
-
-    <div class="form-row" style="grid-template-columns: 2fr 1fr;">
-      <div class="field">
-        <label>호텔명 (별칭은 # 으로 구분)</label>
-        <input type="text" id="hotelName" placeholder="예: 리버 호텔 오사카 #LIBER HOTEL OSAKA #리베르 호텔 #リバーホテル">
-        <div class="textarea-helper">첫 번째 이름이 메인 이름이 되고, # 뒤의 이름들은 별칭으로 검색·표시됩니다</div>
-      </div>
-      <div class="field">
-        <label>📅 정보 확인일 (선택)</label>
-        <input type="text" id="infoDate" placeholder="예: 2024-10, 2024년 가을">
-        <div class="textarea-helper">이 호텔 정보가 언제 기준인지</div>
-      </div>
-    </div>
-  </section>
+  <!-- 호텔 기본 정보는 아래 "정리된 호텔 정보"로 합쳐짐 -->
 
   <!-- Section 2: 일가방 게시글 -->
   <section>
@@ -1760,6 +1740,19 @@
       <strong>항목 이름과 내용 모두</strong> 클릭하면 직접 수정할 수 있어요. 정보가 부족한 항목은 주황색으로 표시됩니다.
     </p>
 
+    <div class="form-row" style="grid-template-columns: 2fr 1fr;">
+      <div class="field">
+        <label>호텔명 (별칭은 # 으로 구분)</label>
+        <input type="text" id="hotelName" placeholder="예: 리버 호텔 오사카 #LIBER HOTEL OSAKA #리베르 호텔 #リバーホテル">
+        <div class="textarea-helper">첫 번째 이름이 메인 이름이 되고, # 뒤의 이름들은 별칭으로 검색·표시됩니다</div>
+      </div>
+      <div class="field">
+        <label>📅 정보 확인일 (선택)</label>
+        <input type="text" id="infoDate" placeholder="예: 2024-10, 2024년 가을">
+        <div class="textarea-helper">이 호텔 정보가 언제 기준인지</div>
+      </div>
+    </div>
+
     <div id="captureArea">
     <div class="hotel-meta" id="hotelMeta"></div>
 
@@ -1774,7 +1767,7 @@
     </table>
 
     <div class="insights-box" id="insightsBox" style="display: none;">
-      <div class="insights-title">✦ 가이드용 핵심 포인트</div>
+      <div class="insights-title">✦ 나만보기</div>
       <div class="insights-content" id="insightsContent" contenteditable="true"></div>
     </div>
     </div>
@@ -1789,15 +1782,15 @@
         검토가 끝나면 아래 버튼으로 저장하거나 출력하세요.
         <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:var(--text-soft); cursor:pointer;">
           <input type="checkbox" id="includeInsights" style="width:16px; height:16px; accent-color:var(--accent-purple);">
-          ✦ 가이드용 핵심 포인트도 인쇄·이미지에 포함 <span style="color:var(--text-dim);">(손님용 인쇄물엔 체크 해제)</span>
+          ✦ 나만보기도 인쇄·이미지에 포함 <span style="color:var(--text-dim);">(손님용 인쇄물엔 체크 해제)</span>
         </label>
       </div>
       <div class="action-btn-row">
         <button class="action-btn act-save" onclick="saveToArchive()">
-          <span class="act-icon">💾</span><span class="act-label">저장</span>
+          <span class="act-icon">💾</span><span class="act-label">구글저장</span>
         </button>
         <button class="action-btn act-sync" onclick="saveAndSyncToCloud()">
-          <span class="act-icon">☁️</span><span class="act-label">동기화</span>
+          <span class="act-icon">☁️</span><span class="act-label">구글동기화</span>
         </button>
         <button class="action-btn act-excel" onclick="downloadExcel()">
           <span class="act-icon">📗</span><span class="act-label">엑셀</span>
@@ -1815,8 +1808,84 @@
     </div>
   </section>
 
+  <!-- ===== 개선사항 보내기 ===== -->
+  <div id="feedbackBox" style="max-width:960px; margin:24px auto 0; padding:20px 24px; background:var(--bg-card); border:1px solid var(--border); border-radius:16px;">
+    <div style="font-size:16px; font-weight:700; color:var(--text); margin-bottom:4px;">&#128172; 개선사항 보내기 <span style="font-size:12px; font-weight:400; color:var(--text-dim);">(다른 사람한테 안 보입니다)</span></div>
+    <div style="font-size:13px; color:var(--text-soft); margin-bottom:14px; line-height:1.6;">쓰다가 불편한 점이나 "이런 기능 있으면 좋겠다" 싶은 게 있으면 적어 주세요. 더 좋게 고치는 데 큰 도움이 됩니다.</div>
+    <input id="fbName" type="text" placeholder="이름 또는 닉네임 (선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
+    <input id="fbEmail" type="email" placeholder="이메일 (회신용, 선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
+    <textarea id="fbMsg" rows="3" placeholder="불편한 점 / 개선 아이디어를 적어 주세요" style="width:100%; box-sizing:border-box; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; resize:vertical; line-height:1.6;"></textarea>
+    <button id="fbSend" style="margin-top:12px; padding:11px 26px; background:linear-gradient(135deg, var(--accent-purple), #6366f1); color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">보내기</button>
+    <div id="fbMsgAlert" style="display:none; margin-top:10px; font-size:13px;"></div>
+    <div id="fbList" style="margin-top:16px;"></div>
+  </div>
+
+  <script>
+  (function(){
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    var GFORM_ACTION='https://docs.google.com/forms/d/e/1FAIpQLSdCEgI75rt1d8DSmnQph5xStyLsNig0I8vpcbE6M_OB6cnfgA/formResponse';
+    var GFORM_ENTRY_NAME='entry.1995044252', GFORM_ENTRY_EMAIL='entry.2114123196', GFORM_ENTRY_MSG='entry.1028756479';
+    function submitToGoogleForm(d){
+      if(!GFORM_ACTION) return false;
+      var sink=document.getElementById('gformSink');
+      if(!sink){ sink=document.createElement('iframe'); sink.name='gformSink'; sink.id='gformSink'; sink.style.display='none'; document.body.appendChild(sink); }
+      var f=document.createElement('form'); f.action=GFORM_ACTION; f.method='POST'; f.target='gformSink'; f.style.display='none';
+      function add(n,v){ if(!n) return; var i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=(v==null?'':v); f.appendChild(i); }
+      add(GFORM_ENTRY_NAME,d.name); add(GFORM_ENTRY_EMAIL,d.email); add(GFORM_ENTRY_MSG,d.msg);
+      document.body.appendChild(f); try{ f.submit(); }catch(e){ return false; }
+      setTimeout(function(){ if(f.parentNode) f.parentNode.removeChild(f); }, 1500);
+      return true;
+    }
+    var FB_KEY='hotelFeedback_v1';
+    var fbName=document.getElementById('fbName'), fbEmail=document.getElementById('fbEmail'), fbMsg=document.getElementById('fbMsg');
+    var fbSend=document.getElementById('fbSend'), fbList=document.getElementById('fbList'), fbAlert=document.getElementById('fbMsgAlert');
+    function loadFB(){ try{ return JSON.parse(localStorage.getItem(FB_KEY)||'[]'); }catch(e){ return []; } }
+    function renderFB(){
+      if(!fbList) return;
+      var arr=loadFB();
+      if(!arr.length){ fbList.innerHTML=''; return; }
+      var h='<div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;"><span>보낸 의견 ('+arr.length+')</span><button id="fbClearAll" style="background:none; border:none; color:var(--text-dim); font-size:11px; cursor:pointer; text-decoration:underline; font-family:inherit;">전체 삭제</button></div>';
+      arr.slice().reverse().forEach(function(it){
+        h += '<div style="position:relative; padding:9px 30px 9px 12px; margin-bottom:6px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px;">'
+          + '<button class="fbDel" data-id="'+esc(it.id||'')+'" title="삭제" style="position:absolute; top:6px; right:8px; background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer; line-height:1; font-family:inherit;">&#10005;</button>'
+          + '<div style="font-size:11px; color:var(--text-dim); margin-bottom:3px;">'+esc(it.date)+(it.name?(' · '+esc(it.name)):'')+(it.email?(' · '+esc(it.email)):'')+'</div>'
+          + '<div style="font-size:13px; color:var(--text); white-space:pre-wrap; word-break:break-word;">'+esc(it.msg)+'</div></div>';
+      });
+      fbList.innerHTML=h;
+      var dels=fbList.querySelectorAll('.fbDel');
+      for(var di=0; di<dels.length; di++){
+        dels[di].addEventListener('click', function(){
+          if(!confirm('이 의견을 목록에서 지울까요?')) return;
+          var id=this.getAttribute('data-id');
+          var a=loadFB().filter(function(x){ return String(x.id)!==String(id); });
+          try{ localStorage.setItem(FB_KEY, JSON.stringify(a)); }catch(e){}
+          renderFB();
+        });
+      }
+      var ca=document.getElementById('fbClearAll');
+      if(ca) ca.addEventListener('click', function(){ if(!confirm('이 목록을 전체 삭제할까요? (이 화면에서만 지워져요)')) return; try{ localStorage.setItem(FB_KEY,'[]'); }catch(e){} renderFB(); });
+    }
+    function fbToast(msg, ok){ if(!fbAlert) return; fbAlert.style.display='block'; fbAlert.style.color=ok?'var(--accent-green)':'var(--accent-red)'; fbAlert.textContent=msg; setTimeout(function(){ fbAlert.style.display='none'; }, 4500); }
+    if(fbSend) fbSend.addEventListener('click', function(){
+      var msg=(fbMsg && fbMsg.value || '').trim();
+      if(!msg){ fbToast('내용을 입력해 주세요.', false); return; }
+      var name=(fbName && fbName.value || '').trim(), email=(fbEmail && fbEmail.value || '').trim();
+      var dt=new Date();
+      var date=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2)+' '+('0'+dt.getHours()).slice(-2)+':'+('0'+dt.getMinutes()).slice(-2);
+      var arr=loadFB(); arr.push({id:(Date.now()+'_'+Math.random().toString(36).slice(2,7)), name:name, email:email, msg:msg, date:date});
+      try{ localStorage.setItem(FB_KEY, JSON.stringify(arr)); }catch(e){}
+      var sent=submitToGoogleForm({name:(name||'익명'), email:email, msg:'[호텔정보] '+msg});
+      if(fbMsg) fbMsg.value=''; if(fbName) fbName.value=''; if(fbEmail) fbEmail.value='';
+      renderFB();
+      fbToast(sent ? '보냈어요. 감사합니다!' : '저장했어요. 감사합니다!', true);
+    });
+    if(document.readyState!=='loading') renderFB();
+    else document.addEventListener('DOMContentLoaded', renderFB);
+  })();
+  </script>
+
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_0859</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_0916</span></p>
   </footer>
 
 </div>
@@ -3477,7 +3546,7 @@ ${posts}
     // 인사이트 (체크박스가 켜져 있을 때만 — 손님용 인쇄물엔 기본 제외)
     if (currentData.insights && document.getElementById('includeInsights') && document.getElementById('includeInsights').checked) {
       html += `<div style="background: #f7f7f7; border: 1px solid #999; border-radius: 8px; padding: 12px 14px; margin-top: 12px; page-break-inside: avoid;">
-        <div style="color: #7c5cf0; font-weight: 700; font-size: 14px; margin-bottom: 6px;">✦ 가이드용 핵심 포인트</div>
+        <div style="color: #7c5cf0; font-weight: 700; font-size: 14px; margin-bottom: 6px;">✦ 나만보기</div>
         <div style="font-size: 12px; line-height: 1.5; color: #000;">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div>
       </div>`;
     }
@@ -3558,7 +3627,7 @@ ${posts}
     // 인사이트 (체크박스가 켜져 있을 때만 — 손님용 이미지엔 기본 제외)
     if (currentData.insights && document.getElementById('includeInsights') && document.getElementById('includeInsights').checked) {
       html += `<div style="background: #f7f7f7; border: 1px solid #999; border-radius: 8px; padding: 14px 16px; margin-top: 14px;">
-        <div style="color: #7c5cf0; font-weight: 700; font-size: 15px; margin-bottom: 8px;">✦ 가이드용 핵심 포인트</div>
+        <div style="color: #7c5cf0; font-weight: 700; font-size: 15px; margin-bottom: 8px;">✦ 나만보기</div>
         <div style="font-size: 13px; line-height: 1.6; color: #1a1a1a;">${escapeHtml(currentData.insights).replace(/\n/g, '<br>')}</div>
       </div>`;
     }
@@ -3655,7 +3724,7 @@ ${posts}
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
     if (currentData.insights) {
-      const insightRows = [['가이드용 핵심 포인트'], [''], [currentData.insights]];
+      const insightRows = [['나만보기'], [''], [currentData.insights]];
       const ws2 = XLSX.utils.aoa_to_sheet(insightRows);
       ws2['!cols'] = [{ wch: 90 }];
       ws2['!rows'] = [{ hpt: 30 }, { hpt: 15 }, { hpt: 400 }];
