@@ -15,20 +15,20 @@
     /* 라이트 모드 (기본) */
     --bg: #f7f6f3;
     --bg-card: #ffffff;
-    --bg-input: #f3f2ef;
-    --bg-hover: #ecebe7;
-    --border: #e3e1db;
-    --border-soft: #eeece7;
-    --text: #2b2926;
-    --text-soft: #5c5a54;
-    --text-dim: #8d8b85;
-    --accent-purple: #7c5cf0;
-    --accent-green: #0ca678;
-    --accent-orange: #e8590c;
+    --bg-input: #f4f3f0;
+    --bg-hover: #ecebe6;
+    --border: #e9e8e3;
+    --border-soft: #efeee9;
+    --text: #37352f;
+    --text-soft: #6b6a64;
+    --text-dim: #a3a199;
+    --accent-purple: #2383e2;
+    --accent-green: #0f9d6f;
+    --accent-orange: #c2792a;
     --accent-blue: #2383e2;
-    --accent-red: #e03131;
-    --accent-rev: #e0504a;
-    --table-line: #cdcbc3;
+    --accent-red: #d4453b;
+    --accent-rev: #b6b4ad;
+    --table-line: #ebe9e4;
   }
   body.dark {
     /* 다크 모드 */
@@ -41,7 +41,7 @@
     --text: #ffffff;
     --text-soft: #a0a8c0;
     --text-dim: #6b7390;
-    --accent-purple: #8b7cf6;
+    --accent-purple: #4c9bf5;
     --accent-green: #10b981;
     --accent-orange: #f59e0b;
     --accent-blue: #38bdf8;
@@ -64,10 +64,7 @@
   }
 
   body {
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(139, 124, 246, 0.06) 0%, transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(56, 189, 248, 0.05) 0%, transparent 40%);
-    background-attachment: fixed;
+    background-image: none;
   }
 
   .container {
@@ -79,33 +76,28 @@
   /* Header */
   header {
     background: var(--bg-card);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 32px 28px;
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     position: relative;
     overflow: hidden;
   }
 
   header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--accent-purple), var(--accent-green), var(--accent-orange), var(--accent-blue));
+    content: none;
   }
 
   .header-badge {
     display: inline-block;
-    background: rgba(139, 124, 246, 0.15);
-    color: var(--accent-purple);
-    padding: 5px 14px;
-    border-radius: 999px;
-    font-size: 13px;
+    background: var(--bg-input);
+    color: var(--text-dim);
+    padding: 5px 13px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     margin-bottom: 12px;
   }
 
@@ -125,9 +117,10 @@
   /* Sections */
   section {
     background: var(--bg-card);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 28px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .section-header {
@@ -138,15 +131,15 @@
   }
 
   .section-num {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(139, 124, 246, 0.15);
-    color: var(--accent-purple);
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: rgba(35, 131, 226, 0.10);
+    color: var(--accent-blue);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     flex-shrink: 0;
   }
@@ -230,23 +223,22 @@
 
   /* Buttons */
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent-purple), #6366f1);
+    background: var(--text);
     color: white;
     border: none;
-    padding: 14px 30px;
-    border-radius: 10px;
+    padding: 13px 28px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     margin-top: 16px;
-    box-shadow: 0 4px 12px rgba(139, 124, 246, 0.25);
+    box-shadow: none;
   }
 
   .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(139, 124, 246, 0.35);
+    background: #2b2926;
   }
 
   .btn-primary:disabled {
@@ -275,22 +267,21 @@
   }
 
   .btn-download {
-    background: linear-gradient(135deg, var(--accent-green), #059669);
+    background: var(--accent-green);
     color: white;
     border: none;
-    padding: 14px 30px;
-    border-radius: 10px;
+    padding: 13px 28px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    box-shadow: none;
   }
 
   .btn-download:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+    filter: brightness(0.94);
   }
 
   /* Status messages */
@@ -495,7 +486,7 @@
     outline: none;
     background: var(--bg-card);
     border-color: var(--accent-purple);
-    box-shadow: 0 0 0 3px rgba(139, 124, 246, 0.15);
+    box-shadow: 0 0 0 3px rgba(35, 131, 226, 0.15);
   }
 
   .editable-label {
@@ -509,14 +500,14 @@
   }
 
   .editable-label:hover {
-    background: rgba(139, 124, 246, 0.12);
+    background: rgba(35, 131, 226, 0.10);
     border-color: var(--border-soft);
   }
 
   .editable-label:focus {
     background: var(--bg-card);
     border-color: var(--accent-purple);
-    box-shadow: 0 0 0 2px rgba(139, 124, 246, 0.15);
+    box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.15);
   }
 
   .th-num {
@@ -537,10 +528,10 @@
 
   /* Insights box */
   .insights-box {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: #fdf9f1;
+    border: 1px solid #f0e6d0;
     border-left: 3px solid var(--accent-orange);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 18px 22px;
     margin-top: 24px;
   }
@@ -578,10 +569,9 @@
 
   /* Download bar */
   .download-bar {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    border-top: 3px solid var(--accent-green);
-    border-radius: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
     padding: 20px 24px;
     margin-top: 24px;
     display: flex;
@@ -616,14 +606,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 6px;
     padding: 14px 8px;
-    border-radius: 14px;
-    border: 1.5px solid transparent;
-    background: var(--bg-input);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-soft);
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.18s ease;
+    transition: all 0.15s ease;
   }
 
   .action-btn .act-icon {
@@ -637,67 +628,16 @@
   }
 
   .action-btn:hover {
-    transform: translateY(-3px) scale(1.03);
+    background: var(--bg-hover);
+    border-color: var(--text-dim);
+    color: var(--text);
   }
 
   .action-btn:active {
-    transform: translateY(-1px) scale(0.99);
+    background: var(--bg-input);
   }
 
-  /* 저장 - 보라 */
-  .act-save {
-    border-color: rgba(139, 124, 246, 0.4);
-    color: var(--accent-purple);
-  }
-  .act-save:hover {
-    background: rgba(139, 124, 246, 0.15);
-    border-color: var(--accent-purple);
-    box-shadow: 0 6px 16px rgba(139, 124, 246, 0.25);
-  }
-
-  /* 동기화 - 초록 */
-  .act-sync {
-    border-color: rgba(16, 185, 129, 0.4);
-    color: var(--accent-green);
-  }
-  .act-sync:hover {
-    background: rgba(16, 185, 129, 0.15);
-    border-color: var(--accent-green);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
-  }
-
-  /* 엑셀 - 진초록 */
-  .act-excel {
-    border-color: rgba(34, 197, 94, 0.4);
-    color: #22c55e;
-  }
-  .act-excel:hover {
-    background: rgba(34, 197, 94, 0.15);
-    border-color: #22c55e;
-    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.25);
-  }
-
-  /* 프린트 - 파랑 */
-  .act-print {
-    border-color: rgba(56, 189, 248, 0.4);
-    color: var(--accent-blue);
-  }
-  .act-print:hover {
-    background: rgba(56, 189, 248, 0.15);
-    border-color: var(--accent-blue);
-    box-shadow: 0 6px 16px rgba(56, 189, 248, 0.25);
-  }
-
-  /* 이미지 - 분홍 */
-  .act-image {
-    border-color: rgba(236, 72, 153, 0.4);
-    color: #ec4899;
-  }
-  .act-image:hover {
-    background: rgba(236, 72, 153, 0.15);
-    border-color: #ec4899;
-    box-shadow: 0 6px 16px rgba(236, 72, 153, 0.25);
-  }
+  /* 액션 버튼 - 통일된 노션 톤 (색상 구분 없이 정갈하게) */
 
   @media (max-width: 520px) {
     .action-btn .act-label { font-size: 12px; }
@@ -803,10 +743,10 @@
   /* 저장된 호텔 목록 (보관함) */
   .archive-section {
     background: var(--bg-card);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 18px 24px;
-    margin-bottom: 20px;
-    border-left: 3px solid var(--accent-blue);
+    margin-bottom: 16px;
   }
 
   .archive-header {
@@ -1031,15 +971,15 @@
   /* 구글 동기화 영역 */
   .sync-section {
     background: var(--bg-card);
-    border-radius: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 18px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
-    border-left: 3px solid var(--accent-blue);
   }
 
   .sync-info {
@@ -1121,11 +1061,11 @@
   }
 
   .btn-sync {
-    background: linear-gradient(135deg, var(--accent-blue), #0284c7);
+    background: var(--accent-blue);
     color: white;
     border: none;
     padding: 10px 18px;
-    border-radius: 10px;
+    border-radius: 8px;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
@@ -1134,12 +1074,11 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+    box-shadow: none;
   }
 
   .btn-sync:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.35);
+    filter: brightness(0.94);
   }
 
   .btn-sync:disabled {
@@ -1208,7 +1147,7 @@
 
   .excel-modal {
     background: var(--bg-card);
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 28px;
     max-width: 900px;
     width: 100%;
@@ -1319,11 +1258,11 @@
   }
 
   .excel-modal-actions .btn-confirm {
-    background: linear-gradient(135deg, var(--accent-green), #059669);
+    background: var(--accent-green);
     color: white;
     border: none;
     padding: 11px 24px;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
     font-size: 14px;
@@ -1331,8 +1270,7 @@
   }
 
   .excel-modal-actions .btn-confirm:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    filter: brightness(0.94);
   }
 
   .excel-warning {
@@ -1591,7 +1529,7 @@
       <textarea id="hotelRawText" placeholder="호텔 안내문 텍스트를 여기에 붙여넣으세요...&#10;예: 호텔 아주르 시오노마루 안내 TEL: 089-847-0707 ..." style="width: 100%; padding: 12px 15px; background: var(--bg-input); border: 1px solid transparent; border-radius: 10px; color: var(--text); font-family: inherit; font-size: 15px; transition: all 0.15s; min-height: 180px; resize: vertical;"></textarea>
     </div>
 
-    <button class="btn-primary" onclick="copyClaudePrompt()" style="background: linear-gradient(135deg, var(--accent-blue), #0284c7); margin-top: 16px;">📋 클로드용 프롬프트 복사</button>
+    <button class="btn-primary" onclick="copyClaudePrompt()" style="background: var(--accent-blue); margin-top: 16px;">📋 클로드용 프롬프트 복사</button>
 
     <div id="copyStatus" style="margin-top: 12px; padding: 10px 14px; text-align: center; font-size: 14px; color: var(--accent-green); background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: none;"></div>
   </section>
@@ -1611,7 +1549,7 @@
       <span class="sync-status-dot connected" id="syncStatusDot"></span>
       <div class="sync-user">
         <div class="sync-user-name" id="syncUserName">사용자명</div>
-        <div class="sync-user-meta" id="syncUserMeta">user@gmail.com</div>
+        <div class="sync-user-meta" id="syncUserMeta"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f085839582b0979d91999cde939f9d">[email&#160;protected]</a></div>
         <div class="last-sync" id="lastSyncTime"></div>
       </div>
     </div>
@@ -1630,7 +1568,7 @@
       <button class="btn-sync" id="btnSyncUpload" onclick="syncToCloud()" style="display: none;">
         ☁ 드라이브에 동기화
       </button>
-      <button class="btn-sync" id="btnSyncDownload" onclick="syncFromCloud()" style="display: none; background: linear-gradient(135deg, #6366f1, #4f46e5);">
+      <button class="btn-sync" id="btnSyncDownload" onclick="syncFromCloud()" style="display: none; background: var(--accent-blue);">
         🔄 불러오기
       </button>
       <button class="btn-logout" id="btnLogout" onclick="handleLogout()" style="display: none;">
@@ -1751,7 +1689,7 @@
 
     <div style="margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--border);">
       <div class="textarea-helper" style="margin-bottom: 10px;">또는 엑셀·JSON 없이 <strong style="color:var(--text);">빈 양식에 직접 입력</strong>할 수도 있어요. 아래 버튼을 누르면 빈 표가 나오고, 칸을 눌러 바로 타이핑하면 됩니다.</div>
-      <button class="btn-primary" onclick="startBlankForm()" style="background: linear-gradient(135deg, var(--accent-green), #059669);">
+      <button class="btn-primary" onclick="startBlankForm()" style="background: var(--accent-green);">
         ✍️ 빈 양식에 직접 입력
       </button>
     </div>
@@ -1844,12 +1782,12 @@
     <input id="fbName" type="text" placeholder="이름 또는 닉네임 (선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
     <input id="fbEmail" type="email" placeholder="이메일 (회신용, 선택)" style="width:100%; box-sizing:border-box; margin-bottom:8px; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit;">
     <textarea id="fbMsg" rows="3" placeholder="불편한 점 / 개선 아이디어를 적어 주세요" style="width:100%; box-sizing:border-box; padding:11px 13px; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; font-family:inherit; resize:vertical; line-height:1.6;"></textarea>
-    <button id="fbSend" style="margin-top:12px; padding:11px 26px; background:linear-gradient(135deg, var(--accent-purple), #6366f1); color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">보내기</button>
+    <button id="fbSend" style="margin-top:12px; padding:11px 26px; background:var(--text); color:#fff; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">보내기</button>
     <div id="fbMsgAlert" style="display:none; margin-top:10px; font-size:13px;"></div>
     <div id="fbList" style="margin-top:16px;"></div>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   (function(){
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
     var GFORM_ACTION='https://docs.google.com/forms/d/e/1FAIpQLSdCEgI75rt1d8DSmnQph5xStyLsNig0I8vpcbE6M_OB6cnfgA/formResponse';
@@ -1914,7 +1852,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1330</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1403</span></p>
   </footer>
 
 </div>
