@@ -1913,7 +1913,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1000</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1030</span></p>
   </footer>
 
 </div>
@@ -3948,6 +3948,18 @@ ${posts}
     }
     const contactRow = contactIdx + 1;  // 1-based
     if (ws['B' + contactRow]) ws['B' + contactRow].s = rightStyle;
+
+    // 표 영역(제목행 ~ 마지막 항목행)에 테두리(바깥+내부 격자) 입히기 — 빈 칸도 포함
+    const __thin = { style: 'thin', color: { rgb: '000000' } };
+    const __bd = { top: __thin, bottom: __thin, left: __thin, right: __thin };
+    const __lastRow = fieldStart + usedFields.length - 1; // 0-based 마지막 항목행
+    for (let __r = 0; __r <= __lastRow; __r++) {
+      for (let __c = 0; __c <= 1; __c++) {
+        const __ref = XLSX.utils.encode_cell({ r: __r, c: __c });
+        if (!ws[__ref]) ws[__ref] = { t: 's', v: '' };
+        ws[__ref].s = Object.assign({}, ws[__ref].s || {}, { border: __bd });
+      }
+    }
 
     let sheetName = (parsedName.main || '호텔정보').substring(0, 31).replace(/[\\/?*\[\]:]/g, '_');
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
