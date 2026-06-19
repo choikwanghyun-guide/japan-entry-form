@@ -1567,7 +1567,7 @@
   </section>
 
   <!-- 구글 드라이브 동기화 영역 -->
-  <div class="sync-section" id="syncSection">
+  <div class="sync-section" id="syncSection" style="display:none;">
     <!-- 로그인 안 된 상태 -->
     <div class="sync-info" id="syncInfoLoggedOut">
       <span class="sync-status-dot"></span>
@@ -1786,10 +1786,10 @@
       </div>
       <div class="action-btn-row">
         <button class="action-btn act-save" onclick="saveToArchive()">
-          <span class="act-icon">💾</span><span class="act-label">구글저장</span>
+          <span class="act-icon">💾</span><span class="act-label">저장</span>
         </button>
-        <button class="action-btn act-sync" onclick="saveAndSyncToCloud()">
-          <span class="act-icon">🔄</span><span class="act-label">구글동기화</span>
+        <button class="action-btn act-sync" onclick="pullSharedPool()">
+          <span class="act-icon">🔄</span><span class="act-label">새로고침</span>
         </button>
         <button class="action-btn act-excel" onclick="downloadExcel()">
           <span class="act-icon">📗</span><span class="act-label">엑셀</span>
@@ -1884,7 +1884,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1417</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_2243</span></p>
   </footer>
 
 </div>
@@ -1956,6 +1956,7 @@
     }
     renderArchive();
     initGoogleApis();
+    pullSharedPool(true);
     ['hotelName','infoDate'].forEach(function(id){ var el=document.getElementById(id); if(el) el.addEventListener('input', function(){ if(currentData && id==='hotelName') currentData.hotelName = el.value; updateRequiredGate(); }); });
     updateRequiredGate();
   });
@@ -2444,6 +2445,73 @@
     updateLastSyncDisplay();
   }
 
+  // ===== 공유 보관함 (JSONBin) — 모든 가이드가 함께 모으는 풀 =====
+  const SHARED_BIN_ID = '6a35454bda38895dfeddaec6';
+  const SHARED_ACCESS_KEY = '$2a$10$IqaK4jy2QBuTrTV1RCE3vuKFbkP/7wC0pZ8KNgbE3ls8WLPdP/I9a';
+
+  async function pullSharedPool(silent) {
+    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return;
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+      const hotels = (d.record && d.record.hotels) || [];
+      archiveData = hotels;
+      renderArchive();
+      if (!silent) showStatus(`✓ 공유 보관함을 불러왔어요 (${hotels.length}개 호텔)`, 'success');
+    } catch (e) {
+      console.warn('pullSharedPool', e);
+      if (!silent) showStatus('공유 보관함 불러오기 실패: ' + e.message + ' (인터넷 확인)', 'error');
+    }
+  }
+
+  async function pushSharedPool() {
+    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return false;
+    try {
+      // 다른 가이드가 그새 추가한 걸 안 잃도록: 원격 최신 + 로컬 병합 (같은 id는 로컬 우선)
+      let remote = [];
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
+        if (res.ok) { const d = await res.json(); remote = (d.record && d.record.hotels) || []; }
+      } catch (e) {}
+      const map = {};
+      remote.forEach(h => { if (h && h.id) map[h.id] = h; });
+      archiveData.forEach(h => { if (h && h.id) map[h.id] = h; });
+      const merged = Object.values(map);
+      archiveData = merged;
+      const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
+        body: JSON.stringify({ hotels: merged })
+      });
+      if (!put.ok) throw new Error('HTTP ' + put.status);
+      renderArchive();
+      return true;
+    } catch (e) {
+      console.warn('pushSharedPool', e);
+      return false;
+    }
+  }
+
+  async function deleteFromSharedPool(id) {
+    if (!SHARED_BIN_ID || !SHARED_ACCESS_KEY) return false;
+    try {
+      let remote = [];
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
+      if (res.ok) { const d = await res.json(); remote = (d.record && d.record.hotels) || []; }
+      const updated = remote.filter(h => h && h.id !== id);
+      archiveData = updated;
+      const put = await fetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
+        body: JSON.stringify({ hotels: updated })
+      });
+      if (!put.ok) throw new Error('HTTP ' + put.status);
+      renderArchive();
+      return true;
+    } catch (e) { console.warn('deleteFromSharedPool', e); return false; }
+  }
+
   // 보관함 보기 상태
   let viewMode = 'cards';  // 'cards' or 'rows'
   let archiveCollapsed = true;  // 기본은 접힘 (호텔 개수만 보여주기)
@@ -2604,11 +2672,6 @@
       return;
     }
 
-    if (!googleUser) {
-      alert('먼저 위에서 구글 로그인을 해주세요.\n로그인하지 않으면 저장한 내용이 사라져요.');
-      return;
-    }
-
     // 인사이트 최신값 반영
     const insightsEl = document.getElementById('insightsContent');
     if (insightsEl) currentData.insights = insightsEl.innerText;
@@ -2659,7 +2722,10 @@
     renderArchive();
 
     const displayName = parseHotelName(currentData.hotelName).main;
-    showStatus(`✓ "${displayName}" 보관함에 저장됐어요. "☁ 드라이브 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+    showStatus(`💾 "${displayName}" 공유 보관함에 올리는 중...`, 'loading');
+    pushSharedPool().then(ok => {
+      showStatus(ok ? `✓ "${displayName}" 공유 보관함에 저장됐어요! 다른 가이드도 볼 수 있어요.` : `"${displayName}"는 화면엔 있지만 공유 업로드 실패. 인터넷 확인 후 다시 저장해 주세요.`, ok ? 'success' : 'error');
+    });
   }
 
   // 보관함 저장 + 드라이브 동기화를 한 번에
@@ -2715,12 +2781,13 @@
     const item = archive.find(h => h.id === id);
     if (!item) return;
 
-    if (!confirm(`"${parseHotelName(item.hotelName).main}" 정보를 보관함에서 삭제할까요?\n삭제 후 "☁ 드라이브에 동기화"를 눌러야 드라이브에서도 사라져요.`)) return;
+    if (!confirm(`"${parseHotelName(item.hotelName).main}" 정보를 공유 보관함에서 삭제할까요?\n모든 가이드 화면에서 사라집니다.`)) return;
 
     const updated = archive.filter(h => h.id !== id);
     saveArchive(updated);
     if (editingHotelId === id) editingHotelId = null;
     renderArchive();
+    deleteFromSharedPool(id);
   }
 
   // === JSON 파일에서 보관함 복구 ===
@@ -3016,7 +3083,8 @@
 
     closeExcelModal();
 
-    showStatus(`✓ ${newEntries.length}개 호텔 정보를 보관함에 추가했어요! "☁ 드라이브에 동기화"를 눌러서 드라이브에도 저장하세요.`, 'success');
+    showStatus(`✓ ${newEntries.length}개 호텔을 공유 보관함에 올리는 중...`, 'loading');
+    pushSharedPool().then(ok => showStatus(ok ? `✓ ${newEntries.length}개 호텔을 공유 보관함에 올렸어요!` : '공유 업로드 실패 — 다시 시도해 주세요.', ok ? 'success' : 'error'));
   }
 
   function importFromJsonFile(event) {
@@ -3045,6 +3113,7 @@
           hasUnsavedChanges = true;
           updateLastSyncDisplay();
           renderArchive();
+          pushSharedPool();
           alert(`✓ ${data.hotels.length}개 호텔 정보를 불러왔어요!\n\n이제 "☁ 드라이브에 동기화"를 누르면 드라이브에도 저장됩니다.`);
           event.target.value = '';
           return;
@@ -3083,6 +3152,7 @@
         hasUnsavedChanges = true;
         updateLastSyncDisplay();
         renderArchive();
+        pushSharedPool();
         alert(`✓ 복구 완료!\n새로 ${added}개 추가, ${updated}개 업데이트\n총 ${archiveData.length}개 호텔\n\n"☁ 드라이브에 동기화"로 드라이브에도 반영하세요.`);
         event.target.value = '';
       } catch (err) {
