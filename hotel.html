@@ -1885,7 +1885,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0015</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0023</span></p>
   </footer>
 
 </div>
@@ -2262,7 +2262,8 @@
       hasUnsavedChanges = false;
       updateLastSyncDisplay();
       setSyncStatus('connected');
-      showStatus(`✓ ${archiveData.length}개 호텔 정보를 구글 드라이브에 저장했어요!`, 'success');
+      const __shared = await pushSharedPool();
+      showStatus(__shared ? `✓ ${archiveData.length}개 호텔을 드라이브 + 공유 보관함에 올렸어요! 이제 hotelshare에도 보여요.` : `✓ 드라이브엔 저장됐는데 공유 보관함 업로드는 실패했어요. 인터넷 확인 후 다시 눌러주세요.`, __shared ? 'success' : 'error');
     } catch (err) {
       console.error('동기화 오류:', err);
       setSyncStatus('connected');
