@@ -1926,7 +1926,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1100</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1130</span></p>
   </footer>
 
 </div>
@@ -4008,15 +4008,25 @@ ${posts}
     const contactRow = contactIdx + 1;  // 1-based
     if (ws['B' + contactRow]) ws['B' + contactRow].s = rightStyle;
 
-    // 표 영역(제목행 ~ 마지막 항목행)에 테두리(바깥+내부 격자) 입히기 — 빈 칸도 포함
+    // 표 영역 테두리: 바깥=굵은선(medium), 안쪽=얇은선(thin), 헤더(제목/정보기준) 하단=굵은선, 제목행=연회색
+    const __med = { style: 'medium', color: { rgb: '000000' } };
     const __thin = { style: 'thin', color: { rgb: '000000' } };
-    const __bd = { top: __thin, bottom: __thin, left: __thin, right: __thin };
+    const __grayFill = { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } };
     const __lastRow = fieldStart + usedFields.length - 1; // 0-based 마지막 항목행
+    const __headerSep = fieldStart - 1;                   // 헤더 마지막 행(정보기준 or 제목) → 하단 굵은선
     for (let __r = 0; __r <= __lastRow; __r++) {
       for (let __c = 0; __c <= 1; __c++) {
         const __ref = XLSX.utils.encode_cell({ r: __r, c: __c });
         if (!ws[__ref]) ws[__ref] = { t: 's', v: '' };
-        ws[__ref].s = Object.assign({}, ws[__ref].s || {}, { border: __bd });
+        const __bd = {
+          top: (__r === 0) ? __med : __thin,
+          bottom: (__r === __lastRow || __r === __headerSep) ? __med : __thin,
+          left: (__c === 0) ? __med : __thin,
+          right: (__c === 1) ? __med : __thin
+        };
+        const __st = Object.assign({}, ws[__ref].s || {}, { border: __bd });
+        if (__r === 0) __st.fill = __grayFill;   // 제목(호텔명) 행 연회색
+        ws[__ref].s = __st;
       }
     }
 
