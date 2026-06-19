@@ -426,6 +426,7 @@
 
   table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: separate;
     border-spacing: 0;
     font-size: 14px;
@@ -441,7 +442,7 @@
     padding: 14px 14px;
     font-weight: 600;
     font-size: 15px;
-    width: 34%;
+    width: 25%;
     vertical-align: middle;
     white-space: pre-wrap;
     border-bottom: 1px solid var(--border-soft);
@@ -797,7 +798,7 @@
   .archive-section {
     background: var(--bg-card);
     border-radius: 16px;
-    padding: 24px 28px;
+    padding: 18px 24px;
     margin-bottom: 20px;
     border-left: 3px solid var(--accent-blue);
   }
@@ -1757,7 +1758,7 @@
     <div class="section-header">
       <h2 class="section-title">정리된 호텔 정보</h2>
     </div>
-    <p class="section-desc">
+    <p class="section-desc" style="margin-left:0;">
       <strong>항목 이름과 내용 모두</strong> 클릭하면 직접 수정할 수 있어요. 정보가 부족한 항목은 주황색으로 표시됩니다.
     </p>
 
@@ -1765,11 +1766,11 @@
       <div class="field">
         <label>호텔명 <span style="color:var(--accent-red);">*</span> (별칭은 # 으로 구분)</label>
         <input type="text" id="hotelName" placeholder="예: 리버 호텔 오사카 #LIBER HOTEL OSAKA #리베르 호텔 #リバーホテル">
-        <div class="textarea-helper">첫 번째 이름이 메인 이름이 되고, # 뒤의 이름들은 별칭으로 검색·표시됩니다</div>
+        <div class="textarea-helper">첫 번째 이름이 인쇄되는 호텔명이고, 뒤에는 #해시태그처럼 붙이는 검색어입니다</div>
       </div>
       <div class="field">
         <label>📅 정보 확인일 <span style="color:var(--accent-red);">*</span></label>
-        <input type="text" id="infoDate" placeholder="예: 2024-10, 2024년 가을">
+        <input type="text" id="infoDate" placeholder="예 : 2026-06-06">
         <div class="textarea-helper">이 호텔 정보가 언제 기준인지</div>
       </div>
     </div>
@@ -1781,8 +1782,8 @@
     <table id="resultsTable">
       <thead>
         <tr>
-          <th>항목 (클릭하여 수정)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
-          <th>내용 (클릭하여 수정)</th>
+          <th style="width:25%;">항목 (클릭하여 수정)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
+          <th style="width:75%;">내용 (클릭하여 수정)</th>
         </tr>
       </thead>
       <tbody id="resultsBody"></tbody>
@@ -1812,7 +1813,7 @@
           <span class="act-icon">💾</span><span class="act-label">구글저장</span>
         </button>
         <button class="action-btn act-sync" onclick="saveAndSyncToCloud()">
-          <span class="act-icon">☁️</span><span class="act-label">구글동기화</span>
+          <span class="act-icon">🔄</span><span class="act-label">구글동기화</span>
         </button>
         <button class="action-btn act-excel" onclick="downloadExcel()">
           <span class="act-icon">📗</span><span class="act-label">엑셀</span>
@@ -1907,7 +1908,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_0928</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1016</span></p>
   </footer>
 
 </div>
