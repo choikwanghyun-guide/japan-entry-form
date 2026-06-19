@@ -201,7 +201,7 @@
 <!-- 푸터 -->
 <footer class="site-footer">
   Created by Choi KwangHyun · © 2026<br>
-  <span class="rev">rev 2026.0611.2131</span>
+  <span class="rev">rev 2026.0619.2212</span>
 </footer>
 
 <script>
@@ -215,14 +215,14 @@
    1) GUIDE_NAME     : 가이드 이름
    2) KAKAO_LINK     : 카카오톡 오픈채팅 링크
    3) BIN_ID         : JSONBin 에서 만든 Bin 의 ID
-   4) MASTER_KEY     : JSONBin X-Master-Key (저장 권한. 절대 외부에 공유 금지!)
+   4) ACCESS_KEY     : JSONBin Access Key (Read+Update 권한. 랜드 페이지엔 넣지 말 것)
    ※ 구글 캘린더 iCal 주소는 화면의 '구글 캘린더 연동' 칸에 붙여넣으세요.
 =================================================================== */
 const GUIDE_NAME="최광현 가이드";
 const KAKAO_LINK="https://open.kakao.com/o/SAMPLE";
 
 const BIN_ID="6a1819d1ddf5aa59f76f71c6";        // ← 예: "65a1b2c3..." (비워두면 저장·연동 안 됨)
-const MASTER_KEY="$2a$10$WveitzlKXJ.E8YYrL7z6/Olt/o.1YzI8ELKz14ujn1EBDFOLhck5W";    // ← 예: "$2a$10$..." (쓰기 전용. 랜드 페이지엔 절대 넣지 마세요)
+const ACCESS_KEY="$2a$10$RcwUnOuVTtWJfznBOc367O5g0yVk1n4xlETff7gzIgjUf0CVq8Sm6";    // ← 읽기+쓰기 Access Key (Master Key 아님. 랜드 페이지엔 넣지 마세요)
 // iCal 주소는 화면의 '구글 캘린더 연동' 칸에 붙여넣으면 됩니다. (코드 수정 불필요)
 
 // 구글 iCal은 브라우저가 직접 못 읽어서(CORS) 무료 프록시를 거칩니다.
@@ -437,9 +437,9 @@ $('saveSettings').onclick=async()=>{
   settings.icalUrl=($('icalInput').value||'').trim();
   settings.landUrl=($('landUrlInput').value||'').trim();
 
-  if(!BIN_ID||!MASTER_KEY){
+  if(!BIN_ID||!ACCESS_KEY){
     $('savedMsg').style.color='var(--no)';
-    $('savedMsg').textContent="저장 안 됨: BIN_ID·MASTER_KEY가 비어 있어요.";
+    $('savedMsg').textContent="저장 안 됨: BIN_ID·ACCESS_KEY가 비어 있어요.";
     $('savedMsg').classList.add('show');
     setTimeout(()=>{$('savedMsg').classList.remove('show');$('savedMsg').style.color='';},3500);
     return;
@@ -456,7 +456,7 @@ $('saveSettings').onclick=async()=>{
     };
     const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
       method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':MASTER_KEY},
+      headers:{'Content-Type':'application/json','X-Access-Key':ACCESS_KEY},
       body:JSON.stringify(payload)
     });
     if(!res.ok)throw new Error('HTTP '+res.status);
@@ -473,7 +473,7 @@ $('saveSettings').onclick=async()=>{
 async function loadFromCloud(){
   if(!BIN_ID)return; // 저장소 미설정이면 기본값 유지
   try{
-    const headers=MASTER_KEY?{'X-Master-Key':MASTER_KEY}:{};
+    const headers=ACCESS_KEY?{'X-Access-Key':ACCESS_KEY}:{};
     const res=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{headers});
     if(!res.ok)return;
     const data=await res.json();
