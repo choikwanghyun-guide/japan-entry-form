@@ -1884,7 +1884,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_2243</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_2256</span></p>
   </footer>
 
 </div>
@@ -2564,11 +2564,7 @@
       controlsEl.style.display = 'none';
       searchWrapEl.style.display = 'none';
       resultCountEl.style.display = 'none';
-      if (!googleUser) {
-        contentEl.innerHTML = '<p class="archive-empty">먼저 위에서 <strong>구글 로그인</strong>해주세요. 그러면 저장된 호텔 정보가 여기에 나타납니다.</p>';
-      } else {
-        contentEl.innerHTML = '<p class="archive-empty">저장된 호텔이 없어요. 호텔 정보를 정리한 뒤 "💾 보관함에 저장"을 누르고, "☁ 드라이브에 동기화"하면 어떤 기기에서든 다시 볼 수 있어요.</p>';
-      }
+      contentEl.innerHTML = '<p class="archive-empty">아직 공유 보관함에 저장된 호텔이 없어요. 호텔 정보를 입력하고 "💾 저장"을 누르면 여기(공유 보관함)에 모여요. 다른 가이드가 올린 것도 자동으로 표시됩니다.</p>';
       return;
     }
 
