@@ -1926,7 +1926,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0350</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_0900</span></p>
   </footer>
 
 </div>
@@ -2884,7 +2884,7 @@
     const item = archive.find(h => h.id === id);
     if (!item) return;
 
-    if (!confirm(`"${parseHotelName(item.hotelName).main}" 정보를 공유 보관함에서 삭제할까요?\n모든 가이드 화면에서 사라집니다.`)) return;
+    if (!confirm(`"${parseHotelName(item.hotelName).main}" 정말 삭제하실건가요? 다른 가이드님들이 사용 할 수 없게 됩니다. ㅠㅠ`)) return;
 
     const updated = archive.filter(h => h.id !== id);
     saveArchive(updated);
