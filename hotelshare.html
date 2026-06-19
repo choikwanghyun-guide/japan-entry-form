@@ -1885,7 +1885,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0015</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0045</span></p>
   </footer>
 
 </div>
@@ -3701,9 +3701,16 @@ ${posts}
     printArea.innerHTML = html;
     document.body.appendChild(printArea);
 
-    // 인쇄 후 정리
-    window.print();
-    setTimeout(() => { if (printArea) printArea.remove(); }, 500);
+    // QR 등 이미지가 다 그려진 뒤 인쇄 (안 그러면 가끔 QR이 빈 칸으로 인쇄됨)
+    var __imgs = Array.prototype.slice.call(printArea.querySelectorAll('img'));
+    var __waitImgs = Promise.all(__imgs.map(function(img){
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise(function(res){ img.onload = res; img.onerror = res; });
+    }));
+    Promise.race([__waitImgs, new Promise(function(r){ setTimeout(r, 1500); })]).then(function(){
+      window.print();
+      setTimeout(function(){ if (printArea) printArea.remove(); }, 500);
+    });
   }
 
   // ===== 이미지로 저장 (캡처) =====
