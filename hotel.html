@@ -1651,7 +1651,7 @@
     <!-- 검색창 (항상 보임 - 접혀 있어도 검색은 가능) -->
     <div class="archive-search-wrap" id="archiveSearchWrap" style="margin-bottom: 12px;">
       <div class="archive-search">
-        <input type="text" id="archiveSearchInput" placeholder="호텔명 또는 별칭으로 검색 (예: 오사카, 리버, LIBER)" oninput="filterArchive()">
+        <input type="text" id="archiveSearchInput" placeholder="호텔명·별칭·전화번호로 검색 (예: 오사카, LIBER, 092-734)" oninput="filterArchive()">
         <button class="archive-search-clear" id="searchClearBtn" onclick="clearSearch()" title="검색어 지우기">✕</button>
       </div>
     </div>
@@ -1908,7 +1908,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1232</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0619_1247</span></p>
   </footer>
 
 </div>
@@ -2537,7 +2537,14 @@
     if (searchQuery) {
       filtered = archive.filter(item => {
         const parsed = parseHotelName(item.hotelName || '');
-        return parsed.all.some(name => name.toLowerCase().includes(searchQuery));
+        // 호텔명 + 별칭 검색
+        if (parsed.all.some(name => name.toLowerCase().includes(searchQuery))) return true;
+        // 전화번호 검색 (하이픈/공백 무시, 숫자 3자리 이상 입력 시 모든 항목의 번호에서 검색)
+        const qDigits = searchQuery.replace(/[^0-9]/g, '');
+        if (qDigits.length >= 3) {
+          return (item.fields || []).some(f => String(f.value || '').replace(/[^0-9]/g, '').includes(qDigits));
+        }
+        return false;
       });
       resultCountEl.style.display = '';
       resultCountEl.textContent = `검색 결과 ${filtered.length}개`;
