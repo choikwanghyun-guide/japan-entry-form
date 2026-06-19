@@ -1568,7 +1568,7 @@
   </section>
 
   <!-- 구글 드라이브 동기화 영역 -->
-  <div class="sync-section" id="syncSection" style="display:none;">
+  <div class="sync-section" id="syncSection">
     <!-- 로그인 안 된 상태 -->
     <div class="sync-info" id="syncInfoLoggedOut">
       <span class="sync-status-dot"></span>
@@ -1759,8 +1759,8 @@
     <table id="resultsTable">
       <thead>
         <tr>
-          <th style="width:38%;">항목 (클릭하여 수정 가능)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
-          <th style="width:62%;">내용</th>
+          <th style="width:42%;">항목 (클릭하여 수정 가능)<br><label style="font-weight:400; font-size:12px; color:var(--text-dim); cursor:pointer;"><input type="checkbox" id="printCheckAll" checked onclick="toggleAllPrintChecks(this.checked)"> ☑ 전체 인쇄 선택/해제</label></th>
+          <th style="width:58%;">내용</th>
         </tr>
       </thead>
       <tbody id="resultsBody"></tbody>
@@ -1885,7 +1885,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0008</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0620_0015</span></p>
   </footer>
 
 </div>
@@ -3391,7 +3391,7 @@ ${posts}
     const creds = parseWifiCreds(valueStr);  // 기존 값에서 자동 추출해 입력칸에 채움
     td.innerHTML = '';
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; align-items:stretch; max-width:280px; margin:0 auto;';
+    wrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; align-items:stretch;';
     const makeField = (labelText, val, ph, multiline) => {
       const f = document.createElement('div');
       f.style.cssText = 'text-align:left;';
@@ -3526,7 +3526,7 @@ ${posts}
     if (!td) return;
     td.innerHTML = '';
     var wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; align-items:stretch; max-width:360px; margin:0 auto;';
+    wrap.style.cssText = 'display:flex; flex-direction:column; gap:8px; align-items:stretch;';
     var chips = document.createElement('div');
     chips.style.cssText = 'display:flex; flex-wrap:wrap; gap:6px; justify-content:center;';
     var input = document.createElement('textarea');
