@@ -1924,7 +1924,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1500</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_1530</span></p>
   </footer>
 
 </div>
@@ -2090,8 +2090,9 @@
         // UI 업데이트
         updateLoginUI(true);
 
-        // 자동으로 드라이브에서 데이터 불러오기
-        await syncFromCloud(true);  // silent=true (사용자 메시지 없이)
+        // 공유 보관함을 최신으로 다시 불러온 뒤, 드라이브에 자동 백업 (공유 풀이 원본, 드라이브는 백업)
+        await pullSharedPool(true);
+        await autoBackupToDrive();
 
         // 호텔이 30개 이상이면 자동으로 한 줄 모드로 전환 (페이지 너무 길어지지 않게)
         if (archiveData.length >= 30) {
@@ -2310,6 +2311,38 @@
     } finally {
       btnUpload.disabled = false;
       btnUpload.textContent = '☁ 드라이브에 동기화';
+    }
+  }
+
+  // ===== 드라이브 자동 백업 (날짜별 파일, 공유 풀 전체를 광현님 드라이브에 보관) =====
+  async function autoBackupToDrive() {
+    if (!googleUser || !googleUser.token) return;
+    if (!archiveData || archiveData.length === 0) return; // 빈 풀은 백업 안 함(백업 손상 방지)
+    try {
+      const now = new Date();
+      const kst = new Date(now.getTime() + (now.getTimezoneOffset() + 540) * 60000); // KST
+      const ymd = kst.getFullYear() + '-' + String(kst.getMonth() + 1).padStart(2, '0') + '-' + String(kst.getDate()).padStart(2, '0');
+      const name = 'hotel-backup-' + ymd + '.json';
+      const content = JSON.stringify({ type: 'hotel_pool_backup', lastModified: now.toISOString(), hotelCount: archiveData.length, hotels: archiveData }, null, 2);
+      const q = encodeURIComponent("name='" + name + "' and trashed=false");
+      let fileId = null;
+      const fres = await fetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&spaces=drive&fields=files(id)', { headers: { 'Authorization': 'Bearer ' + googleUser.token } });
+      if (fres.ok) { const fd = await fres.json(); if (fd.files && fd.files.length) fileId = fd.files[0].id; }
+      if (fileId) {
+        await updateArchiveFile(fileId, content);
+      } else {
+        const CRLF = String.fromCharCode(13, 10);
+        const boundary = '-------hotelbackup' + ymd;
+        const delim = CRLF + '--' + boundary + CRLF;
+        const closeDelim = CRLF + '--' + boundary + '--';
+        const body = delim + 'Content-Type: application/json' + CRLF + CRLF + JSON.stringify({ name: name, mimeType: 'application/json' }) + delim + 'Content-Type: application/json' + CRLF + CRLF + content + closeDelim;
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { 'Authorization': 'Bearer ' + googleUser.token, 'Content-Type': 'multipart/related; boundary="' + boundary + '"' }, body: body });
+        if (!res.ok) throw new Error('백업 파일 생성 실패 ' + res.status);
+      }
+      showStatus('✓ 드라이브에 백업했어요 (' + name + ' · 호텔 ' + archiveData.length + '개)', 'success');
+    } catch (e) {
+      console.warn('autoBackupToDrive', e);
+      showStatus('드라이브 백업 실패: ' + e.message, 'error');
     }
   }
 
