@@ -2170,7 +2170,9 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
         var cm=info.colMap||{};
         var hasName=(cm.fullName!==undefined)||(cm.lastName!==undefined);
         var __passInHeader = (info.header||[]).some(function(h){ h=String(h||''); return /passport/i.test(h) || (/여권/.test(h) && !/만료|만기|유효|expir/i.test(h)); });
-        keyOK=hasName && (cm.birth!==undefined) && ((cm.passport!==undefined) || !__passInHeader);
+        var __birthInHeader = (info.header||[]).some(function(h){ h=String(h||''); return /생년|생일|生年|birth|dob/i.test(h) || /주민/.test(h); });
+        var __birthOK = (cm.birth!==undefined) || (cm.ssn!==undefined) || !__birthInHeader;
+        keyOK=hasName && __birthOK && ((cm.passport!==undefined) || !__passInHeader);
         header=info.header.filter(function(x){ return x && String(x).trim(); }).join(' | ');
         sheet=info.sheet||'';
         mapStr='영문이름='+(hasName?'O':'X')+', 생년월일='+(cm.birth!==undefined?'O':'X')+', 여권번호='+(cm.passport!==undefined?'O':'X')+', 성별='+(cm.gender!==undefined?'O':'X')+', 만료일='+(cm.expiry!==undefined?'O':'X');
@@ -2243,7 +2245,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0617_0747</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0620_2254</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
