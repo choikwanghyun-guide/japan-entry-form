@@ -79,7 +79,8 @@
   .creds .v{font-weight:800; font-size:26px; line-height:1.15; white-space:nowrap;}
 
   /* actions */
-  .actions{display:flex; gap:10px; margin-top:18px;}
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .actions button{min-width:96px;}
   button{
     flex:1; padding:15px; font-size:16px; font-weight:700; font-family:inherit;
     border:none; border-radius:13px; cursor:pointer; -webkit-appearance:none;
@@ -174,7 +175,8 @@
 
   <div class="actions">
     <button class="btn-show" onclick="showFull()">전체화면 보기</button>
-    <button class="btn-png" onclick="downloadPNG()">PNG로 저장</button>
+    <button class="btn-png" onclick="downloadPNG()">카드 저장</button>
+    <button class="btn-png" onclick="downloadQR()">QR만 저장</button>
   </div>
   <p class="hint">손님에게 보여줄 땐 "전체화면 보기" → 손님이 폰 카메라로 QR을 찍으면 끝.</p>
 </div>
@@ -218,6 +220,15 @@
       var a=document.createElement('a'); a.href=canvas.toDataURL('image/png');
       a.download='wifi-qr-카드.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }).catch(function(){ alert('이미지 저장 중 오류가 났어요.'); });
+  }
+  function downloadQR(){
+    var box=document.querySelector('.qrcode');
+    var cvs=box.querySelector('canvas');
+    var img=box.querySelector('img');
+    var url=cvs ? cvs.toDataURL('image/png') : (img && img.src ? img.src : '');
+    if(!url){ alert('QR을 찾지 못했어요. 새로고침 후 다시 시도해 주세요.'); return; }
+    var a=document.createElement('a'); a.href=url; a.download='wifi-qr.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
   document.addEventListener('keydown', function(e){ if(e.key==='Escape') exitFull(); });
   ['ssid','pass','auth'].forEach(function(id){
