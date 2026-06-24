@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0615_2256"></script>
+<script src="landsa_templates.js?v=2026_0624_2159"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0615_2256</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0624_2159</span>
 </div>
 
 <script>
@@ -1436,17 +1436,27 @@ function renderGroundTable() {
           if (item) {
             if (r.isAmount) {
               const picked = pickAmount(item);
-              const tagColor = picked.source === "포스트잇 수기" ? "#fef08a"
+              const multi = items.length > 1;
+              // 같은 날짜에 여러 건(예: 같은 날 중식 2곳)이면 합산 — 하루 1칸이라 누락 방지
+              let sumVal = 0; items.forEach(it => { sumVal += pickAmount(it).value; });
+              const tagColor = multi ? "#e9d5ff"
+                             : picked.source === "포스트잇 수기" ? "#fef08a"
                              : picked.source === "V표시" ? "#bbf7d0"
                              : "#dbeafe";
-              const tagLabel = picked.source === "포스트잇 수기" ? "포스트"
+              const tagLabel = multi ? (items.length + "건합산")
+                             : picked.source === "포스트잇 수기" ? "포스트"
                              : picked.source === "V표시" ? "V표"
                              : "스캔";
-              td.innerHTML = fmt(picked.value) +
-                ` <span class="src-tag" style="background:${tagColor};" title="출처: ${picked.source}\n파일: ${item.file}">${tagLabel}</span>`;
-              rowTotal += picked.value;
+              const titleTxt = multi
+                ? items.map(it => `${it.name||"?"}: ${fmt(pickAmount(it).value)}`).join("\n")
+                : `출처: ${picked.source}\n파일: ${item.file}`;
+              td.innerHTML = fmt(sumVal) +
+                ` <span class="src-tag" style="background:${tagColor};" title="${titleTxt}">${tagLabel}</span>`;
+              rowTotal += sumVal;
             } else if (!r.isAutoCalc) {
-              td.textContent = item[r.field] || "";
+              // 여러 건이면 이름·인원도 합쳐서 표시(중복 제거)
+              const vals = items.map(it => it[r.field]).filter(v => v !== undefined && v !== null && v !== "");
+              td.textContent = [...new Set(vals.map(String))].join(" / ");
             }
           }
           tr.appendChild(td);
