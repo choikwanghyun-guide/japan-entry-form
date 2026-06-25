@@ -389,6 +389,10 @@
           <input type="radio" name="customsOrient" value="portrait-left" onchange="updateOrientUI()" style="accent-color:var(--warning);">
           <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (왼쪽 정렬)</span>
         </label>
+        <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-landscape">
+          <input type="radio" name="customsOrient" value="landscape" onchange="updateOrientUI()" style="accent-color:var(--warning);">
+          <span style="font-size:13px; color:var(--text);">🛃 가로방향 인쇄 (눕혀서)</span>
+        </label>
       </div>
 
       <!-- 세관신고서 위치 미세조정 -->
@@ -1503,7 +1507,8 @@ function setMode(mode) {
     // 세관신고서 정렬: 'portrait'(가운데, 기본) / 'portrait-left'(왼쪽)
     const cOrient = document.querySelector('input[name="customsOrient"]:checked');
     const customsAlign = (cOrient && cOrient.value === 'portrait-left') ? 'left' : 'center';
-    document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY, customsAlign)).join('');
+    const customsOrient = (cOrient && cOrient.value === 'landscape') ? 'landscape' : 'portrait';
+    document.getElementById('printArea').innerHTML = list.map(p => buildCustomsCard(p, info, offsetX, offsetY, customsAlign, customsOrient)).join('');
     document.body.classList.remove('imm-portrait');
   } else {
     // 입국신고서: 선택된 방향에 따라 회전 적용
@@ -1743,7 +1748,7 @@ function onOccupationInput(idx, inp) {
 }
 
 // ── 세관신고서 생성 ──
-function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center') {
+function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center', orient='portrait') {
   const field = (left, top, size, val) =>
     `<div style="position:absolute; left:${left+offsetX}mm; top:${top+offsetY}mm; transform:translate(-50%,-50%); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
 
@@ -1761,6 +1766,34 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center') {
   const arr = (info.arrivalDate || '').split('-');
   const arrYear = arr[0] || '', arrMonth = arr[1] || '', arrDay = arr[2] || '';
   // 왼쪽 정렬: 카드 전체를 좌측으로 60mm 이동 (기본 70mm에서 우측으로 10mm 줄임 → 슬라이더 0인 상태로 바로 맞도록)
+  // ─── 가로 모드 (세로 좌표를 반시계 90° 회전 - 상대위치 보존) ───
+  if (orient === 'landscape') {
+    const BX = -7.5, BY = 247.5;  // 가로 기본 배치 (필요시 미세조정 슬라이더로)
+    const lf = (L, T, size, val) =>
+      `<div style="position:absolute; left:${T+BX+offsetX}mm; top:${BY-L+offsetY}mm; transform:translate(-50%,-50%) rotate(-90deg); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
+    const lpink = (Lc, Tc, w, h) =>
+      pinkOn
+        ? `<div style="position:absolute; left:${Tc+BX+offsetX}mm; top:${BY-Lc+offsetY}mm; width:${h}mm; height:${w}mm; transform:translate(-50%,-50%); background:#ff80b3; opacity:0.4; mix-blend-mode:multiply; pointer-events:none;"></div>`
+        : '';
+    return `<div class="print-page">
+    ${lf(92,  38, 13, p.lastName)}
+    ${lf(122, 38, 13, p.firstName)}
+    ${lf(131, 61, 12, p.birthDay)}
+    ${lf(114, 61, 12, p.birthMonth)}
+    ${lf(90,  61, 12, p.birthYear)}
+    ${lf(134, 24, 11, info.cityName || '')}
+    ${lf(98,  24, 11, info.flightNo || '')}
+    ${lf(115, 46, hotelSize, info.hotelName || '')}
+    ${lf(115, 52, 12, info.telNo || '')}
+    ${lf(90,  28, 10, arrYear)}
+    ${lf(113, 28, 10, arrMonth)}
+    ${lf(132, 28, 10, arrDay)}
+    ${lf(112, 65, 10, p.passport || '')}
+    ${lf(90,  56, 11, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
+    ${lf(130, 56, 11, (p.occupation !== undefined ? p.occupation : getOccupation(p.birthYear, p.birthMonth, p.birthDay)))}
+    ${lpink(71.5, 204, 15, 6)}
+  </div>`;
+  }
   const pageStyle = align === 'left' ? ' style="transform: translateX(-60mm);"' : '';
   return `<div class="print-page"${pageStyle}>
     ${field(92,  38, 13, p.lastName)}
@@ -2245,7 +2278,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0620_2254</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1600</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
