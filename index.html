@@ -1768,7 +1768,7 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center', orient=
   // 왼쪽 정렬: 카드 전체를 좌측으로 60mm 이동 (기본 70mm에서 우측으로 10mm 줄임 → 슬라이더 0인 상태로 바로 맞도록)
   // ─── 가로 모드 (세로 좌표를 반시계 90° 회전 - 상대위치 보존) ───
   if (orient === 'landscape') {
-    const BX = -7.5, BY = 160;  // 가로 기본 배치: 좌우는 검증값 유지, 상하는 상단(인쇄 시작부)로 / ±10mm 미세조정
+    const BX = 15, BY = 140;  // 가로 기본 배치(읽는방향: 아래+오른쪽으로 이동). 회전좌표계라 BX↑=아래, BY↓=오른쪽 / ±10mm 미세조정
     const lf = (L, T, size, val) =>
       `<div style="position:absolute; left:${T+BX+offsetX}mm; top:${BY-L+offsetY}mm; transform:translate(-50%,-50%) rotate(-90deg); font-family:Arial,sans-serif; font-size:${size}pt; font-weight:normal; color:#000; white-space:nowrap;">${val}</div>`;
     const lpink = (Lc, Tc, w, h) =>
@@ -2278,7 +2278,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1619</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1635</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
