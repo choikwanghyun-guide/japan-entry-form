@@ -332,11 +332,11 @@
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="landscape">
-          <input type="radio" name="immOrient" value="landscape" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <input type="radio" name="immOrient" value="landscape" onchange="updateOrientUI()" style="accent-color:var(--accent);">
           <span style="font-size:13px; color:var(--text);">📄 가로방향 인쇄</span>
         </label>
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait">
-          <input type="radio" name="immOrient" value="portrait" onchange="updateOrientUI()" style="accent-color:var(--accent);">
+          <input type="radio" name="immOrient" value="portrait" checked onchange="updateOrientUI()" style="accent-color:var(--accent);">
           <span style="font-size:13px; color:var(--text);">📋 세로방향 인쇄 (가운데 정렬)</span>
         </label>
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="portrait-left">
@@ -383,7 +383,7 @@
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-landscape">
           <input type="radio" name="customsOrient" value="landscape" onchange="updateOrientUI()" style="accent-color:var(--warning);">
-          <span style="font-size:13px; color:var(--text);">🛃 가로방향 인쇄 (눕혀서)</span>
+          <span style="font-size:13px; color:var(--text);">🛃 가로방향 인쇄</span>
         </label>
         <label style="flex:1; min-width:160px; display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s;" class="orient-label" data-val="customs-portrait">
           <input type="radio" name="customsOrient" value="portrait" checked onchange="updateOrientUI()" style="accent-color:var(--warning);">
@@ -2278,7 +2278,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1700</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1819</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
