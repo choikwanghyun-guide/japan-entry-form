@@ -1934,7 +1934,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_2000</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_2100</span></p>
   </footer>
 
 </div>
@@ -2723,10 +2723,10 @@
         const parsed = parseHotelName(item.hotelName || '');
         // 호텔명 + 별칭 검색
         if (parsed.all.some(name => name.toLowerCase().includes(searchQuery))) return true;
-        // 전화번호 검색 (하이픈/공백 무시, 숫자 3자리 이상 입력 시 모든 항목의 번호에서 검색)
+        // 전화번호 검색 (하이픈/공백 무시, 숫자 3자리 이상 입력 시 '전화' 항목의 번호에서만 검색)
         const qDigits = searchQuery.replace(/[^0-9]/g, '');
         if (qDigits.length >= 3) {
-          return (item.fields || []).some(f => String(f.value || '').replace(/[^0-9]/g, '').includes(qDigits));
+          return (item.fields || []).some(f => String(f.label || '').includes('전화') && String(f.value || '').replace(/[^0-9]/g, '').includes(qDigits));
         }
         return false;
       });
