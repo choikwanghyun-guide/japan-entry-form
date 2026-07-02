@@ -1227,6 +1227,18 @@ function parseBirth(raw) {
   const matchYMD = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (matchYMD) return { year: matchYMD[1], month: matchYMD[2], day: matchYMD[3] };
 
+  // GDS(여행사) 형식: DD-MON-YY / DD-MON-YYYY (예: 24-JUN-57, 15-JUL-2014)
+  const matchMon = raw.match(/^(\d{1,2})[-\/ ]([A-Za-z]{3})[-\/ ](\d{2}|\d{4})$/);
+  if (matchMon) {
+    const _mon = { JAN:'01',FEB:'02',MAR:'03',APR:'04',MAY:'05',JUN:'06',JUL:'07',AUG:'08',SEP:'09',OCT:'10',NOV:'11',DEC:'12' };
+    const _mm = _mon[matchMon[2].toUpperCase()];
+    if (_mm) {
+      let _y = matchMon[3];
+      if (_y.length === 2) _y = parseInt(_y) < 30 ? '20' + _y : '19' + _y;
+      return { year: _y, month: _mm, day: matchMon[1].padStart(2,'0') };
+    }
+  }
+
   const digits = raw.replace(/[^0-9]/g, '');
 
   // ★ 핵심 수정: YYYYMMDD-숫자 형태 (예: "19670213-1") → 8자리 생년월일
@@ -2278,7 +2290,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0625_1819</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0702_2002</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
