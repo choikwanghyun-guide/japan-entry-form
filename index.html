@@ -2236,14 +2236,21 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
       } else {
         return;
       }
-      if(keyOK) return;
+      // 값 파싱 실패 감지: 헤더는 인식됐고 원본 생년월일 값도 있는데 파싱된 연도가 하나도 없을 때
+      var _pl = (typeof passengers !== 'undefined' && passengers) ? passengers : [];
+      var _birthColOK = (cm.birth!==undefined) || (cm.ssn!==undefined);
+      var _hasBirthRaw = _pl.some(function(p){ return p && p.birthRaw && String(p.birthRaw).trim(); });
+      var _hasBirthVal = _pl.some(function(p){ return p && p.birthYear; });
+      var _birthValFail = _birthColOK && _hasBirthRaw && !_hasBirthVal;
+      if(_birthValFail){ mapStr += ' / 생년월일 값파싱실패(형식 미지원)'; }
+      if(keyOK && !_birthValFail) return;
       var sig=sheet+'||'+header;
       var __sent; try{ __sent=JSON.parse(localStorage.getItem('guideAutoReportSent_v1')||'{}'); }catch(e){ __sent={}; }
       if(__sent[sig] || __reported[sig]) return;
       __sent[sig]=Date.now(); __reported[sig]=true;
       try{ localStorage.setItem('guideAutoReportSent_v1', JSON.stringify(__sent)); }catch(e){}
       var rs=document.getElementById('revStamp');
-      var label=(hasName && cm.passport!==undefined && cm.birth===undefined) ? '생년월일 미기재 (공란 출력)' : '인식 실패';
+      var label=_birthValFail ? '생년월일 값 형식 인식 실패(헤더는 정상)' : (hasName && cm.passport!==undefined && cm.birth===undefined) ? '생년월일 미기재 (공란 출력)' : '인식 실패';
       var msg='['+label+' 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
       submitToGoogleForm({ name:'⚙️자동보고', email:'', msg:msg });
     }catch(e){}
@@ -2302,7 +2309,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0702_2004</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0702_2237</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
