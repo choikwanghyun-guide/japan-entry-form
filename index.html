@@ -834,6 +834,9 @@ function detectColumns(rowCells) {
           if (/^성별$/.test(c) || /^sex$/i.test(c) || /^gender$/i.test(c)) colMap.gender = idx;
           if (/여권만료일|만료일|여권만료|유효\s*기간/.test(c)) colMap.expiry = idx;
           if (/^no\.?$/i.test(c) || /^번호$/.test(c)) colMap.no = idx;
+          // 통합 영문명: '영문성/명','성/명','성/이름'처럼 성+이름이 한 칸에 슬래시로 합쳐진 경우 -> fullName (성 단독 오분류 방지)
+          if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName === undefined
+              && (/성\s*\/\s*(명|이름)/.test(c) || /surname\s*\/\s*given/i.test(c))) colMap.fullName = idx;
           // ── 표기 변형에 너그러운 폴백 (이미 잡힌 항목은 안 건드리고, 혼동 항목은 가드) ──
           // 영문 성/이름 분리: '영문성','영문 성' 등 (단 '영문성명'·'영문성별'은 제외)
           if (colMap.lastName === undefined && colMap.fullName === undefined
@@ -2265,14 +2268,16 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
       var _hasBirthVal = _pl.some(function(p){ return p && p.birthYear; });
       var _birthValFail = _birthColOK && _hasBirthRaw && !_hasBirthVal;
       if(_birthValFail){ mapStr += ' / 생년월일 값파싱실패(형식 미지원)'; }
-      if(keyOK && !_birthValFail) return;
+      var _nameSplitFail = _pl.some(function(p){ return p && p.lastName && String(p.lastName).indexOf('/')>=0; });
+      if(_nameSplitFail){ mapStr += ' / 영문성명 분리실패(성칸에 성+이름)'; }
+      if(keyOK && !_birthValFail && !_nameSplitFail) return;
       var sig=sheet+'||'+header;
       var __sent; try{ __sent=JSON.parse(localStorage.getItem('guideAutoReportSent_v1')||'{}'); }catch(e){ __sent={}; }
       if(__sent[sig] || __reported[sig]) return;
       __sent[sig]=Date.now(); __reported[sig]=true;
       try{ localStorage.setItem('guideAutoReportSent_v1', JSON.stringify(__sent)); }catch(e){}
       var rs=document.getElementById('revStamp');
-      var label=_birthValFail ? '생년월일 값 형식 인식 실패(헤더는 정상)' : (hasName && cm.passport!==undefined && cm.birth===undefined) ? '생년월일 미기재 (공란 출력)' : '인식 실패';
+      var label=_nameSplitFail ? '영문 성/이름 분리 실패' : _birthValFail ? '생년월일 값 형식 인식 실패(헤더는 정상)' : (hasName && cm.passport!==undefined && cm.birth===undefined) ? '생년월일 미기재 (공란 출력)' : '인식 실패';
       var msg='['+label+' 자동 보고]\n시트: '+(sheet||'(알수없음)')+'\n헤더: '+header+'\n인식결과: '+mapStr+'\n승객수: '+(d.count!=null?d.count:'?')+'\n'+(rs?rs.textContent:'');
       submitToGoogleForm({ name:'⚙️자동보고', email:'', msg:msg });
     }catch(e){}
@@ -2331,7 +2336,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0703_0040</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0703_2221</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
