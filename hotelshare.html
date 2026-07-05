@@ -1952,7 +1952,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0622_0020</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0622_0100</span></p>
   </footer>
 
 </div>
@@ -2665,7 +2665,8 @@
   }
   async function backupNewToPrivate() {
     const btn = document.getElementById('backupBtn');
-    if (btn) btn.disabled = true;
+    const btnLabel = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 확인 중...'; }
     try {
       showStatus('공유 보관함 확인 중...', 'loading');
       const shared = [];
@@ -2698,7 +2699,7 @@
       console.warn('backupNewToPrivate', e);
       showStatus('백업 복사 실패: ' + e.message + ' — 다시 시도해 주세요.', 'error');
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
     }
   }
   // 선택 복사용 상태
