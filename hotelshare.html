@@ -1952,7 +1952,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_2350</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0622_0020</span></p>
   </footer>
 
 </div>
@@ -3944,10 +3944,9 @@ ${posts}
       });
     });
 
-    if (data.insights) {
-      document.getElementById('insightsBox').style.display = 'block';
-      document.getElementById('insightsContent').innerText = data.insights;
-    }
+    // 나만보기 상자는 항상 표시 (비어 있으면 직접 적어 넣을 수 있게)
+    document.getElementById('insightsBox').style.display = 'block';
+    document.getElementById('insightsContent').innerText = data.insights || '';
 
     document.getElementById('results-section').classList.add('show');
     updateRequiredGate();
