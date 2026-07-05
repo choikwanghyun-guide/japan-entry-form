@@ -1952,7 +1952,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_2300</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0621_2350</span></p>
   </footer>
 
 </div>
@@ -2679,14 +2679,21 @@
         await sharedSleep(300);
         privParts.push(await fetchPrivShard(i));
       }
-      const privIds = new Set();
-      privParts.forEach(p => p.forEach(h => { if (h && h.id) privIds.add(h.id); }));
-      const fresh = shared.filter(h => h && h.id && !privIds.has(h.id));
-      if (!fresh.length) { showStatus('✓ 새 호텔 없음 — 백업이 이미 최신이에요.', 'success'); return; }
+      const privMap = {};
+      privParts.forEach(p => p.forEach(h => { if (h && h.id) privMap[h.id] = h; }));
+      // 내용 지문(작성자/저장시각 제외) — 다르면 "변경됨"
+      const fp = h => JSON.stringify({ n: h.hotelName || '', d: h.infoDate || '', f: h.fields || [], i: h.insights || '', l: h.links || [], p: h.posts || '' });
+      const fresh = [], changed = [];
+      shared.forEach(h => {
+        if (!h || !h.id) return;
+        const mine = privMap[h.id];
+        if (!mine) fresh.push(h);
+        else if (fp(mine) !== fp(h)) changed.push(h);
+      });
       hideStatus();
-      __backupFresh = fresh;
       __backupPrivParts = privParts;
-      showBackupPicker(fresh);
+      if (!fresh.length && !changed.length) { backupResultPopup('✅ 백업이 이미 최신이에요!', '새로 올라오거나 변경된 호텔이 없습니다.'); return; }
+      showBackupPicker(fresh, changed);
     } catch (e) {
       console.warn('backupNewToPrivate', e);
       showStatus('백업 복사 실패: ' + e.message + ' — 다시 시도해 주세요.', 'error');
@@ -2695,54 +2702,80 @@
     }
   }
   // 선택 복사용 상태
-  let __backupFresh = [];
+  let __backupItems = [];
   let __backupPrivParts = null;
 
-  // 새 호텔 목록을 체크박스로 보여주는 선택 창
-  function showBackupPicker(fresh) {
+  // 결과 팝업 — 백업 결과를 확실하게 보여준다
+  function backupResultPopup(title, sub) {
+    const old = document.getElementById('backupResult');
+    if (old) old.remove();
+    const ov = document.createElement('div');
+    ov.id = 'backupResult';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;max-width:420px;width:100%;padding:26px 22px;text-align:center;">
+      <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px;">${title}</div>
+      <div style="font-size:13px;color:var(--text-soft);line-height:1.6;margin-bottom:18px;">${sub || ''}</div>
+      <button onclick="document.getElementById('backupResult').remove()" style="padding:11px 30px;background:var(--accent-blue);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">확인</button>
+    </div>`;
+    document.body.appendChild(ov);
+  }
+
+  // 신규/변경 호텔 목록을 체크박스로 보여주는 선택 창
+  function showBackupPicker(fresh, changed) {
     const old = document.getElementById('backupPicker');
     if (old) old.remove();
+    __backupItems = fresh.map(h => ({ h: h, kind: 'new' })).concat(changed.map(h => ({ h: h, kind: 'chg' })));
     const dstr = ts => { const d = new Date(ts || Date.now()); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const row = (it, i) => `
+        <label style="display:flex;gap:8px;align-items:center;padding:8px 4px;border-top:1px solid var(--border-soft);cursor:pointer;font-size:14px;color:var(--text);">
+          <input type="checkbox" class="bk-item" data-bk-index="${i}" checked>
+          <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;${it.kind==='new' ? 'background:rgba(16,185,129,.15);color:var(--accent-green);' : 'background:rgba(245,158,11,.15);color:var(--accent-orange);'}">${it.kind==='new' ? '신규' : '변경'}</span>
+          <span style="flex:1;">${escapeHtml(parseHotelName(it.h.hotelName || '').main)}</span>
+          <span style="font-size:11px;color:var(--text-dim);">${it.h.savedBy ? escapeHtml(it.h.savedBy) + ' · ' : ''}${dstr(it.h.savedAt)}</span>
+        </label>`;
     const ov = document.createElement('div');
     ov.id = 'backupPicker';
     ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
     ov.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;max-width:560px;width:100%;max-height:80vh;display:flex;flex-direction:column;">
-      <div style="padding:16px 18px 10px;font-weight:700;color:var(--text);">⤵ 백업할 호텔 선택 <span style="font-weight:400;font-size:12px;color:var(--text-dim);">(새로 올라온 ${fresh.length}개 · 체크한 것만 복사)</span></div>
+      <div style="padding:16px 18px 10px;font-weight:700;color:var(--text);">⤵ 백업할 호텔 선택 <span style="font-weight:400;font-size:12px;color:var(--text-dim);">(신규 ${fresh.length} · 변경 ${changed.length} — 체크한 것만 백업)</span></div>
       <div style="padding:0 18px 8px;"><label style="font-size:13px;color:var(--text-soft);cursor:pointer;"><input type="checkbox" id="bkAll" checked onclick="document.querySelectorAll('.bk-item').forEach(c=>c.checked=this.checked)"> 전체 선택/해제</label></div>
-      <div style="overflow-y:auto;padding:0 18px;flex:1;">${fresh.map((h, i) => `
-        <label style="display:flex;gap:8px;align-items:center;padding:8px 4px;border-top:1px solid var(--border-soft);cursor:pointer;font-size:14px;color:var(--text);">
-          <input type="checkbox" class="bk-item" data-bk-index="${i}" checked>
-          <span style="flex:1;">${escapeHtml(parseHotelName(h.hotelName || '').main)}</span>
-          <span style="font-size:11px;color:var(--text-dim);">${h.savedBy ? escapeHtml(h.savedBy) + ' · ' : ''}${dstr(h.savedAt)}</span>
-        </label>`).join('')}</div>
-      <div style="padding:14px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);">
+      <div style="overflow-y:auto;padding:0 18px;flex:1;">${__backupItems.map(row).join('')}</div>
+      <div style="padding:10px 18px 0;font-size:11px;color:var(--text-dim);">"변경"은 가이드가 수정한 호텔 — 체크하면 백업본이 공유본 내용으로 바뀝니다.</div>
+      <div style="padding:14px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);margin-top:10px;">
         <button onclick="document.getElementById('backupPicker').remove()" style="padding:10px 16px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-family:inherit;">닫기</button>
-        <button onclick="backupCopySelected()" style="padding:10px 16px;background:var(--accent-green);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">선택한 것만 복사</button>
+        <button onclick="backupCopySelected()" style="padding:10px 16px;background:var(--accent-green);border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;">선택한 것만 백업</button>
       </div>
     </div>`;
     document.body.appendChild(ov);
   }
 
-  // 체크된 호텔만 개인 백업으로 복사
+  // 체크된 호텔만 개인 백업으로 저장 (신규는 추가, 변경은 교체)
   async function backupCopySelected() {
     const checks = Array.from(document.querySelectorAll('.bk-item:checked'));
-    const picked = checks.map(c => __backupFresh[parseInt(c.dataset.bkIndex)]).filter(Boolean);
+    const picked = checks.map(c => __backupItems[parseInt(c.dataset.bkIndex)]).filter(Boolean);
     const ov = document.getElementById('backupPicker');
     if (ov) ov.remove();
-    if (!picked.length) { showStatus('선택된 호텔이 없어요.', 'error'); return; }
+    if (!picked.length) { backupResultPopup('선택된 호텔이 없어요', '체크박스를 선택한 뒤 다시 눌러주세요.'); return; }
     try {
-      showStatus(`${picked.length}개를 백업으로 복사 중...`, 'loading');
+      showStatus(`${picked.length}개를 백업으로 저장 중...`, 'loading');
       const byShard = PRIVATE_BIN_IDS.map(() => []);
-      picked.forEach(h => byShard[shardIndexFor(h.id)].push(h));
+      picked.forEach(it => byShard[shardIndexFor(it.h.id)].push(it.h));
       for (let i = 0; i < PRIVATE_BIN_IDS.length; i++) {
         if (!byShard[i].length) continue;
         await sharedSleep(400);
-        await putPrivShard(i, __backupPrivParts[i].concat(byShard[i]));
+        const ids = new Set(byShard[i].map(h => h.id));
+        const merged = __backupPrivParts[i].filter(h => !(h && ids.has(h.id))).concat(byShard[i]);
+        await putPrivShard(i, merged);
+        __backupPrivParts[i] = merged;
       }
-      showStatus(`✓ ${picked.length}개 호텔을 백업 보관함(hotel.html)으로 복사했어요! (공유본은 그대로)`, 'success');
+      hideStatus();
+      const nNew = picked.filter(it => it.kind === 'new').length;
+      const nChg = picked.length - nNew;
+      backupResultPopup('✅ 백업 완료!', `신규 ${nNew}개 · 변경 ${nChg}개를 백업 보관함(hotel.html)에 저장했어요.<br>공유 보관함은 그대로입니다.`);
     } catch (e) {
       console.warn('backupCopySelected', e);
-      showStatus('백업 복사 실패: ' + e.message + ' — 다시 시도해 주세요.', 'error');
+      hideStatus();
+      backupResultPopup('❌ 백업 실패', (e.message || '') + ' — 인터넷 확인 후 다시 시도해 주세요.');
     }
   }
 
