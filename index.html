@@ -812,6 +812,8 @@ function detectColumns(rowCells) {
           const c = cell.trim();
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
           if (/^영문이름$/.test(c) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
+          // '영문성'(성)이 이미 잡힌 명부의 '영문명'/'영문 명'은 통합명이 아니라 이름(given)
+          if ((/^영문명$/.test(c) || /^영문\s*명$/.test(c)) && colMap.lastName !== undefined && colMap.firstName === undefined) colMap.firstName = idx;
           if (/영문성명/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
@@ -879,6 +881,11 @@ function detectColumns(rowCells) {
         if (colMap.lastName !== undefined && colMap.firstName === undefined) {
           const headerCell = row[colMap.lastName];
           if (/성명/.test(headerCell)) { colMap.fullName = colMap.lastName; delete colMap.lastName; }
+        }
+        // '영문성'+'영문명' 명부에서 영문명이 통합명으로 잡혔으면 이름(given)으로 교정(열 순서 뒤바뀐 경우)
+        if (colMap.lastName !== undefined && colMap.fullName !== undefined && colMap.firstName === undefined) {
+          const fc2 = String(row[colMap.fullName] || '').trim();
+          if (/^영문\s*명$/.test(fc2)) { colMap.firstName = colMap.fullName; delete colMap.fullName; }
         }
   if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.korName !== undefined) {
     const kc = String(row[colMap.korName] || '');
@@ -2341,7 +2348,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0709_1942</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0709_2030</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
