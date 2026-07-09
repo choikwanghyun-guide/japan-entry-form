@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0624_2159"></script>
+<script src="landsa_templates.js?v=2026_0709_2244"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0624_2159</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0709_2244</span>
 </div>
 
 <script>
@@ -2227,8 +2227,13 @@ function fillGroundFromReceipts(cardsArg) {
       data[sec].push(e);
     } else if (BUS_ITEM_N[cn])    { addObj("bus",    BUS_ITEM_N[cn],    amt, c.note); }
     else if (GUIDE_ITEM_N[cn])    { addObj("guide",  GUIDE_ITEM_N[cn],  amt, c.note); }
-    else if (ETCYEN_ITEM_N[cn])   { addObj("etcYen", ETCYEN_ITEM_N[cn], amt, c.note); }
-    else if (cn === "기타경비")   { addObj("etc",    "기타경비",        amt, c.note); }
+    else if (ETCYEN_ITEM_N[cn]) {
+      // 기타(엔화): 적어놓은 내역명(place)을 항목명으로 → 전달금·물값 등 서로 다른 기타가 각각 별도 칸
+      let it = ETCYEN_ITEM_N[cn];
+      if (it === "기타" && place) it = place;
+      addObj("etcYen", it, amt, c.note);
+    }
+    else if (cn === "기타경비")   { addObj("etc", place || "기타경비", amt, c.note); }  // 기타(원화)도 적어놓은 내역명 사용
     else { skipped.push(cat); did = false; }
     if (did) { placed++; c._filled = true; }   // 표에 들어간 카드 표시 → 지출금 중복합산 방지
   });
@@ -2471,7 +2476,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
       '  "amount": 금액 숫자만 (콤마/통화기호 없이; receipts amount들의 합),\n' +
       '  "receipts": [이 항목의 영수증들 — 각 영수증마다 {"place": 상호, "date": "YYYY-MM-DD", "amount": 인쇄金額(숫자)}. 1장이면 1개, 여러 장이면 각각 나열. ★모서리 손글씨 합계는 넣지 마세요★],\n' +
       '  "currency": "yen 또는 won",\n' +
-      '  "place": "사용처/상호명",\n' +
+      '  "place": "사용처/상호명. 단 category가 기타/기타경비인데 영수증 위·주변에 손글씨 용도 라벨이 있으면(예: 기타(전달금)→전달금, 기타(물값)→물값, 선물/팁/잡비 등) 상호명 대신 그 용도 라벨을 넣으세요.",\n' +
       '  "people": "인원수 (금액>0인 메인 식사/입장 항목의 수량 ×N 합; ¥0 부가항목·품수(○品)·客数 제외; 없으면 빈 문자열)",\n' +
       '  "note": "내용 요약 (메뉴/특이사항 등; 인원은 people에 넣기)"\n' +
       "}\n\n" +
