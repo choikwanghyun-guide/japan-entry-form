@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0709_2244"></script>
+<script src="landsa_templates.js?v=2026_0709_2254"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0709_2244</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0709_2254</span>
 </div>
 
 <script>
@@ -2469,6 +2469,7 @@ async function analyzeReceiptWithAI(id, btnEl, opts = {}) {
       "- 규칙3) receipts의 각 amount와 항목 amount는 반드시 각 領収証/領収書 박스 안에 인쇄된 金額(税込)입니다. 사진 모서리(우측 상단)에 손으로 크게 적은 합계 숫자는 검증용이니 절대 금액으로 쓰지 마세요.\n" +
       "- 규칙4) 서로 다른 영수증의 금액·상호·날짜를 섞지 마세요. 각 영수증의 place·date·amount는 그 영수증에서 나와야 합니다.\n" +
       "- 규칙5) 영수증이 한 장이면 receipts에 1개만 넣으세요.\n" +
+      "- 규칙6) ★금액 교차검증★ 金額(총액)이 손글씨라 불확실하면, 반드시 같은 영수증의 (a) 内訳 税抜金額+消費税額 합계, (b) 단가×수량(예: '@1,350 × 14 NET'=18,900), (c) 但し서/메뉴 라인 계산과 대조해서 맞는 값을 쓰세요. 손글씨를 헷갈리게 읽었어도 이 계산들과 일치하는 값으로 보정하세요. (예: 손글씨가 21,890처럼 보여도 税抜17,181+税1,719=18,900이고 1,350×14=18,900이면 → 18,900)\n" +
       "각 항목의 형식:\n" +
       "{\n" +
       '  "date": "YYYY-MM-DD 형식 또는 빈 문자열",\n' +
