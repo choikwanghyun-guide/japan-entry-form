@@ -852,6 +852,11 @@ function detectColumns(rowCells) {
               && /영문/.test(c) && (/(명|이름|성명)/.test(c) || /name/i.test(c))) colMap.fullName = idx;
           // 한글 이름: '한글명','한글 이름','한글성명' 등
           if (colMap.korName === undefined && /한글/.test(c) && /(명|이름|성명)/.test(c)) colMap.korName = idx;
+          // 영어 루밍 헤더: name(KOR)->한글명, name(ENG)->통합영문명, D.O.B->생년월일, Seq->순번
+          if (colMap.korName === undefined && /name/i.test(c) && (/\(kor\)/i.test(c) || /korean/i.test(c) || /kor/i.test(c))) colMap.korName = idx;
+          if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName === undefined && /name/i.test(c) && (/\(eng\)/i.test(c) || /english/i.test(c) || /eng/i.test(c))) colMap.fullName = idx;
+          if (colMap.birth === undefined && /^d\.?\s*o\.?\s*b\.?$/i.test(c)) colMap.birth = idx;
+          if (colMap.no === undefined && /^seq$/i.test(c)) colMap.no = idx;
           // 생년월일: '생년월일','생년 월일','생일','BIRTH','DOB'
           if (colMap.birth === undefined && (/생년|생일|生年/.test(c) || /birth/i.test(c) || /\bdob\b/i.test(c))) colMap.birth = idx;
           // 여권번호: '여권번호','여권 번호','여권No','PASSPORT' (만료일은 제외)
@@ -2336,7 +2341,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0703_2221</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0709_1929</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
