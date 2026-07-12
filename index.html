@@ -990,6 +990,11 @@ function parsePassengers(wb) {
         }
       }
 
+      // '영문성' 헤더인데 값에 성+이름이 함께 든 경우(예: KIM/CHOONHEE): 이름/통합 컬럼이 없으면 분리
+      if (colMap.firstName === undefined && colMap.fullName === undefined && lastName && !firstName && /[\/\s]/.test(lastName)) {
+        const parsedLN = parseFullName(lastName, korName);
+        if (parsedLN.first) { lastName = parsedLN.last; firstName = parsedLN.first; }
+      }
       if (fullName && (!lastName || !firstName)) {
         const parsed = parseFullName(fullName, korName);
         lastName = parsed.last;
@@ -2348,7 +2353,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0709_2030</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0712_1833</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
