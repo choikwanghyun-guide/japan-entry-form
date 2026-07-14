@@ -785,8 +785,8 @@
   <div id="syncInfoLoggedOut" style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
     <span class="sync-dot"></span>
     <div style="flex:1; min-width:200px; font-size:14px; color:var(--text2); line-height:1.6;">
-      <strong style="color:var(--text);">구글 드라이브에 일정표가 저장됩니다.</strong><br>
-      구글 계정으로 로그인하면 어떤 기기에서든 같은 일정표를 볼 수 있어요.
+      <strong style="color:var(--text);">구글 드라이브에 일정표 저장</strong><br>
+      구글 계정으로 로그인하여 저장된 일정표를 확인 할 수 있음
     </div>
     <button id="btnGoogleLogin" class="sync-btn-google" onclick="handleGoogleLogin()">
       <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6c-2 1.5-4.6 2.4-7.7 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4 5.6l6.6 5.6c-.5.4 7.1-5.2 7.1-15.2 0-1.3-.1-2.3-.4-3.5z"/></svg>
@@ -883,13 +883,13 @@
   <p class="imp-sub">👉 아래 AI 중 하나를 열고, "📋 명령어(프롬프트) 복사" 후 버튼을 누른 내용과 함께 확정서(이미지·한글·PDF)를 첨부함. 받은 JSON을 3번 칸에 붙여넣으면 내용 채워짐</p>
   <button type="button" class="imp-btn imp-copy" onclick="copyConvertPrompt(this)">📋 명령어(프롬프트) 복사</button>
   <div class="imp-row">
-    <a class="imp-btn imp-gpt" href="https://chatgpt.com/" target="_blank" rel="noopener">챗GPT ↗</a>
-    <a class="imp-btn imp-gemini" href="https://gemini.google.com/app" target="_blank" rel="noopener">재미나이 ↗</a>
-    <a class="imp-btn imp-claude" href="https://claude.ai/new" target="_blank" rel="noopener">클로드 ↗</a>
+    <a class="imp-btn imp-gpt" href="https://chatgpt.com/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;flex-shrink:0;"><path d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-3.99 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.52 2.9A5.98 5.98 0 0 0 13.26 22a6.05 6.05 0 0 0 5.77-4.19 5.98 5.98 0 0 0 3.99-2.9 6.05 6.05 0 0 0-.74-7.1zm-9.02 12.6a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.78.78 0 0 0 .39-.68v-6.74l2.02 1.17a.07.07 0 0 1 .04.06v5.58a4.5 4.5 0 0 1-4.49 4.49zM3.6 18.3a4.47 4.47 0 0 1-.54-3.01l.14.09 4.78 2.76a.78.78 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.07l-4.83 2.79a4.5 4.5 0 0 1-6.14-1.65zM2.34 7.9a4.48 4.48 0 0 1 2.34-1.97V11.6a.78.78 0 0 0 .39.68l5.84 3.37-2.02 1.17a.07.07 0 0 1-.07 0l-4.83-2.8A4.5 4.5 0 0 1 2.34 7.9zm16.6 3.86-5.84-3.37 2.02-1.17a.07.07 0 0 1 .07 0l4.83 2.79a4.49 4.49 0 0 1-.68 8.1v-5.67a.78.78 0 0 0-.4-.68zm2.01-3.02-.14-.09-4.78-2.76a.78.78 0 0 0-.78 0L9.42 9.26V6.93a.08.08 0 0 1 .03-.07l4.83-2.79a4.49 4.49 0 0 1 6.67 4.65zM8.32 12.9 6.3 11.73a.07.07 0 0 1-.04-.06V6.09a4.49 4.49 0 0 1 7.37-3.45l-.14.08-4.78 2.76a.78.78 0 0 0-.39.68v6.74zm1.1-2.37L12 9.05l2.6 1.5v3l-2.6 1.5-2.6-1.5v-3z"/></svg>챗GPT ↗</a>
+    <a class="imp-btn imp-gemini" href="https://gemini.google.com/app" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;flex-shrink:0;"><path d="M12 1.5c.3 5.85 4.65 10.2 10.5 10.5-5.85.3-10.2 4.65-10.5 10.5-.3-5.85-4.65-10.2-10.5-10.5C6.85 11.7 11.2 7.35 11.5 1.5z"/></svg>제미나이 ↗</a>
+    <a class="imp-btn imp-claude" href="https://claude.ai/new" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" style="margin-right:6px;flex-shrink:0;"><line x1="12" y1="2.5" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="21.5" y2="12"/><line x1="5.3" y1="5.3" x2="18.7" y2="18.7"/><line x1="18.7" y1="5.3" x2="5.3" y2="18.7"/></svg>클로드 ↗</a>
   </div>
 
-  <div class="imp-step">3) 확정서 텍스트 또는 AI가 준 JSON 붙여넣기</div>
-  <textarea id="jsonInput" class="imp-jsonbox" placeholder="AI(클로드 등)가 만들어준 JSON을 여기에 붙여넣으세요" oninput="checkJsonInput(this)"></textarea>
+  <div class="imp-step">3) AI로 변환한 JSON 붙여넣기</div>
+  <textarea id="jsonInput" class="imp-jsonbox" placeholder="JSON 여기에 붙여넣기" oninput="checkJsonInput(this)"></textarea>
   <button type="button" class="imp-fill" onclick="pasteJson()">채우기</button>
   <div style="display:flex;justify-content:flex-end;margin-top:6px;">
     <button type="button" onclick="document.getElementById('jsonInput').value=''; document.getElementById('jsonAlert').innerHTML='';" style="background:transparent; color:var(--text2); border:none; font-size:12.5px; cursor:pointer; font-family:inherit;">🗑 지우기</button>
@@ -1057,7 +1057,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0714_2358</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0007</span></div>
 
 <script>
 // ── 전역 상태 ──
