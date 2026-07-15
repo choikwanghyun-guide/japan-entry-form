@@ -1091,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0941</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1007</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1655,7 +1655,7 @@ const CONVERT_PROMPT = `아래는 모두투어 여행상품 일정이야. 다음
       "depart": "출발 HH:MM 또는 빈값",
       "transport": "항공편명 또는 전용버스/도보 등",
       "place": "장소명(소제목) · 지도 길찾기용",
-      "desc": "화면 '내용' 칸에 표시됨 · 관광지는 소제목(장소명) 그대로",
+      "desc": "화면 '장소' 칸에 표시됨 · 관광지·호텔은 소제목(장소명) 그대로",
       "meal": "조식/중식/석식 내용 또는 빈값",
       "note": "비고",
       "type": "flight/hotel/move/meal/tour/other 중 하나" } ] } ] }
@@ -1663,7 +1663,8 @@ const CONVERT_PROMPT = `아래는 모두투어 여행상품 일정이야. 다음
 규칙:
 - 공항 출발/도착·탑승은 type:"flight", 일정 안의 transport에 편명
 - 호텔 체크인/숙박은 type:"hotel", 식사는 type:"meal"(meal 칸에 메뉴), 관광은 type:"tour", 단순 이동은 type:"move"
-- 관광지(tour)는 사진 아래 굵은 '소제목(장소 이름)'을 desc(=화면 '내용' 칸)에 그대로 넣기 (예: desc:"이마바리 타올 미술관" / "젠쓰지절" / "리츠린 정원"). 같은 소제목을 place에도 넣기(지도용). 소제목 바로 아래 한 줄 홍보 문구(예: "고품질 타올의…", "미쉐린 그린 가이드에서…")는 '내용'이 아니므로 desc에 쓰지 말 것 — 꼭 필요하면 note에만 짧게
+- 관광지(tour)는 사진 아래 굵은 '소제목(장소 이름)'을 desc(=화면 '장소' 칸)에 그대로 넣기 (예: desc:"이마바리 타올 미술관" / "젠쓰지절" / "리츠린 정원"). 같은 소제목을 place에도 넣기(지도용). 소제목 바로 아래 한 줄 홍보 문구(예: "고품질 타올의…", "미쉐린 그린 가이드에서…")는 장소명이 아니므로 desc에 쓰지 말 것 — 꼭 필요하면 note에만 짧게
+- 호텔(hotel)도 호텔 이름을 desc와 place 둘 다에 그대로 넣기 (예: desc:"호텔 크레센트 아사히카와"). '호텔 체크인 후 휴식' 같은 상투 문구만 desc에 쓰지 말 것
 - 최상위 departureFlight/returnFlight에는 편명만 (예: BX134), 항공사명 빼기
 - pax는 '예약인원 현재 N명'의 숫자만, region은 '여행도시' 값 그대로
 - groupName은 '단체번호'가 아니라 '상품코드'를 넣기
@@ -1734,18 +1735,26 @@ function pasteJson() {
   // items 없는 day 처리
   data.days = data.days.map(day => ({
     ...day,
-    items: (day.items || []).map(item => ({
-      arrive: item.arrive || item.time || '',
-      depart: item.depart || item.time || '',
-      moveDur: item.moveDur || '',
-      stayDur: item.stayDur || '',
-      transport: item.transport || '',
-      place: item.place || '',
-      desc: (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
-      meal: item.meal || item.note || '',
-      note: item.note || item.meal || '',
-      type: item.type || 'other'
-    }))
+    items: (day.items || []).map(item => {
+      let desc = (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '');
+      const place = item.place || '';
+      // 호텔은 이름이 place에만 있으면 화면(장소 칸)에 안 보이므로 desc 앞에 붙여줌
+      if (item.type === 'hotel' && place && !desc.includes(place)) {
+        desc = desc ? `${place} · ${desc}` : place;
+      }
+      return {
+        arrive: item.arrive || item.time || '',
+        depart: item.depart || item.time || '',
+        moveDur: item.moveDur || '',
+        stayDur: item.stayDur || '',
+        transport: item.transport || '',
+        place: place,
+        desc: desc,
+        meal: item.meal || item.note || '',
+        note: item.note || item.meal || '',
+        type: item.type || 'other'
+      };
+    })
   }));
 
   parsedData = data;
