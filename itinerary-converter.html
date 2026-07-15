@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1149</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1155</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4576,8 +4576,7 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
 }
 
 // ── 카드형(인포그래픽) 인쇄 ──
-// 일자별 세로 컬럼 + 컬러 헤더 + 아이콘 요약 카드. 손님 공유용.
-// 카드는 요약이 목적이라 장소 칸 텍스트의 첫 구절(" / " 앞)만 표시함.
+// 일자별 세로 컬럼 + 컬러 헤더 + 아이콘. 가이드용 — 장소 전체 + 내용/비고까지 모두 표시.
 function printCardItinerary() {
   if (!parsedData) return;
 
@@ -4615,15 +4614,15 @@ function printCardItinerary() {
       const t = (item.arrive && item.depart && item.arrive !== item.depart)
         ? `${item.arrive}~${item.depart}`
         : (item.depart || item.arrive || item.time || '');
-      const raw = (item.desc || item.place || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '');
-      const txt = raw.split(' / ')[0].trim();
-      if (!txt) return;
+      const txt = (item.desc || item.place || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
+      const noteText = [item.note || item.meal || '', item.note2 || ''].filter(Boolean).join(' · ');
+      if (!txt && !noteText) return;
       const mv = durText(item.moveDur);
       if (mv) items += `<div class="mv">🚌 ${mv} 이동</div>`;
       const typeCls = item.type === 'hotel' ? ' it-hotel' : item.type === 'flight' ? ' it-flight' : item.type === 'meal' ? ' it-meal' : '';
       items += `<div class="it${typeCls}">
         <div class="it-time" style="color:${c}">${t}</div>
-        <div class="it-txt">${icon} ${txt}</div>
+        <div class="it-txt">${icon} ${txt}${noteText ? `<div class="it-note">${noteText}</div>` : ''}</div>
       </div>`;
     });
     daysHtml += `<div class="day" style="border-color:${c}">
@@ -4651,7 +4650,8 @@ function printCardItinerary() {
   .items { padding:8px 8px 5px; }
   .it { display:flex; gap:6px; align-items:flex-start; padding:4px; border-radius:6px; margin-bottom:2px; }
   .it-time { flex:0 0 72px; font-weight:700; font-size:11px; text-align:right; white-space:nowrap; }
-  .it-txt { flex:1; font-size:11.5px; line-height:1.45; }
+  .it-txt { flex:1; font-size:11.5px; line-height:1.45; word-break:break-word; }
+  .it-note { font-size:9.5px; color:#777; margin-top:1px; }
   .it-hotel { background:#fff8e1; }
   .it-flight { background:#e8f0fe; }
   .it-meal { background:#eafaf1; }
