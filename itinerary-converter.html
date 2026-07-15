@@ -793,6 +793,9 @@
   .act-print { border-color: rgba(79,142,247,0.4); color: var(--accent); }
   .act-print:hover { background: rgba(79,142,247,0.15); border-color: var(--accent); box-shadow: 0 6px 16px rgba(79,142,247,0.25); }
 
+  .act-card { border-color: rgba(243,156,18,0.4); color: #f39c12; }
+  .act-card:hover { background: rgba(243,156,18,0.15); border-color: #f39c12; box-shadow: 0 6px 16px rgba(243,156,18,0.25); }
+
   .act-image { border-color: rgba(236,72,153,0.4); color: #ec4899; }
   .act-image:hover { background: rgba(236,72,153,0.15); border-color: #ec4899; box-shadow: 0 6px 16px rgba(236,72,153,0.25); }
 
@@ -1041,6 +1044,9 @@
     <button class="action-btn act-print" onclick="printItinerary()">
       <span class="act-icon">🖨️</span><span class="act-label">프린트</span>
     </button>
+    <button class="action-btn act-card" onclick="printCardItinerary()">
+      <span class="act-icon">🎨</span><span class="act-label">카드형</span>
+    </button>
     <button class="action-btn act-image" onclick="captureItinerary()">
       <span class="act-icon">📸</span><span class="act-label">이미지</span>
     </button>
@@ -1091,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1142</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1149</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4561,6 +4567,105 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
   });
 
   html += `<div style="text-align:center;font-size:9px;color:#999;margin-top:10px;">Created by Choi KwangHyun · © 2026</div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+// ── 카드형(인포그래픽) 인쇄 ──
+// 일자별 세로 컬럼 + 컬러 헤더 + 아이콘 요약 카드. 손님 공유용.
+// 카드는 요약이 목적이라 장소 칸 텍스트의 첫 구절(" / " 앞)만 표시함.
+function printCardItinerary() {
+  if (!parsedData) return;
+
+  const region = document.getElementById('infoTitle').value || parsedData.region || '';
+  const groupName = document.getElementById('infoGroupName').value || '';
+  const startDate = document.getElementById('infoStartDate').value || '';
+  const flight1 = document.getElementById('infoDepartureFlight').value || '';
+  const flight2 = document.getElementById('infoReturnFlight').value || '';
+  const pax = document.getElementById('infoPax').value || '';
+  const dayCount = parsedData.days.length;
+  const nights = parseInt(document.getElementById('infoNights').value) || (dayCount - 1);
+  const mainTitle = `${region || parsedData.title || '여행'} ${nights}박 ${nights+1}일 여행 일정표`;
+
+  const DAY_COLORS = ['#2e86de', '#10ac84', '#ee5253', '#8e44ad', '#f39c12', '#576574'];
+  const cols = Math.min(dayCount, 4) || 1;
+
+  // "1:10" → "1시간 10분", "0:40" → "40분"
+  const durText = (d) => {
+    const m = String(d||'').match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return '';
+    const h = parseInt(m[1]), mi = parseInt(m[2]);
+    const parts = [];
+    if (h) parts.push(h + '시간');
+    if (mi) parts.push(mi + '분');
+    return parts.join(' ');
+  };
+
+  let daysHtml = '';
+  parsedData.days.forEach((day, di) => {
+    const c = DAY_COLORS[di % DAY_COLORS.length];
+    const dateStr = day.date ? formatDateKo(day.date) : '';
+    let items = '';
+    day.items.forEach(item => {
+      const icon = { flight:'✈️', hotel:'🏨', meal:'🍽️', move:'🚌', tour:'📍' }[item.type] || '•';
+      const t = (item.arrive && item.depart && item.arrive !== item.depart)
+        ? `${item.arrive}~${item.depart}`
+        : (item.depart || item.arrive || item.time || '');
+      const raw = (item.desc || item.place || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '');
+      const txt = raw.split(' / ')[0].trim();
+      if (!txt) return;
+      const mv = durText(item.moveDur);
+      if (mv) items += `<div class="mv">🚌 ${mv} 이동</div>`;
+      const typeCls = item.type === 'hotel' ? ' it-hotel' : item.type === 'flight' ? ' it-flight' : item.type === 'meal' ? ' it-meal' : '';
+      items += `<div class="it${typeCls}">
+        <div class="it-time" style="color:${c}">${t}</div>
+        <div class="it-txt">${icon} ${txt}</div>
+      </div>`;
+    });
+    daysHtml += `<div class="day" style="border-color:${c}">
+      <div class="day-h" style="background:${c}">${day.dayNo}일차${dateStr ? ' · ' + dateStr : ''}</div>
+      <div class="items">${items}</div>
+    </div>`;
+  });
+
+  const subParts = [
+    groupName,
+    startDate ? '출발 ' + startDate + (formatDateKo(startDate) ? ' (' + formatDateKo(startDate) + ')' : '') : '',
+    (flight1 || flight2) ? '항공 ' + [flight1, flight2].filter(Boolean).join(' → ') : '',
+    pax ? '인원 ' + pax : ''
+  ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<style>
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing:border-box; }
+  body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; margin:14px; color:#222; }
+  h1 { text-align:center; font-size:22px; margin:0 0 3px; color:#2e86de; letter-spacing:1px; }
+  .sub { text-align:center; font-size:11px; color:#666; margin-bottom:12px; }
+  .days { display:grid; grid-template-columns:repeat(${cols},1fr); gap:10px; align-items:start; }
+  .day { border:2px solid #ccc; border-radius:12px; overflow:hidden; page-break-inside:avoid; background:#fff; }
+  .day-h { color:#fff; text-align:center; font-weight:800; padding:6px 4px; font-size:14px; }
+  .items { padding:8px 8px 5px; }
+  .it { display:flex; gap:6px; align-items:flex-start; padding:4px; border-radius:6px; margin-bottom:2px; }
+  .it-time { flex:0 0 72px; font-weight:700; font-size:11px; text-align:right; white-space:nowrap; }
+  .it-txt { flex:1; font-size:11.5px; line-height:1.45; }
+  .it-hotel { background:#fff8e1; }
+  .it-flight { background:#e8f0fe; }
+  .it-meal { background:#eafaf1; }
+  .mv { text-align:center; color:#999; font-size:10px; margin:2px 0; }
+  .notice { margin-top:12px; border:1.5px solid #f5c26b; background:#fff8ec; border-radius:10px; padding:8px 12px; font-size:10.5px; color:#7a5b1e; }
+  .notice b { font-size:11px; }
+  .foot { text-align:center; font-size:9px; color:#aaa; margin-top:8px; }
+  @media print { body { margin:5px; } @page { margin:8mm; size:A4 ${dayCount > 3 ? 'landscape' : 'portrait'}; } }
+</style></head><body>
+<h1>✈️ ${mainTitle}</h1>
+<div class="sub">${subParts}</div>
+<div class="days">${daysHtml}</div>
+<div class="notice"><b>📌 유의사항</b> &nbsp; 일정은 현지 사정에 따라 변경될 수 있습니다 · 여권을 반드시 지참해주세요 · 미팅 시간과 장소를 꼭 확인해주세요</div>
+<div class="foot">Created by Choi KwangHyun · © 2026</div>
 </body></html>`;
 
   const win = window.open('', '_blank');
