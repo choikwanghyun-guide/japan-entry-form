@@ -355,7 +355,7 @@
   .sched-input.dur-input  { text-align: center; color: var(--text2); width: 60px; }
   .sched-input.trans-input { color: var(--text); width: 70px; }
   .sched-input.place-input { color: var(--text); }
-  .sched-input.note-input  { color: var(--text); font-size: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; line-height: 1.5; }
+  .sched-input.note-input, .sched-input.note2-input  { color: var(--text); font-size: 14px; background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; line-height: 1.5; }
   .sched-input.desc-input  { background: rgba(255,255,255,0.05); border-radius: 4px; padding: 4px 8px; }
 
   /* 내용·비고 textarea: 데스크톱·모바일 공통으로 내용에 맞춰 높이 자동 확장.
@@ -370,7 +370,7 @@
     line-height: 1.5;
     box-sizing: border-box;
   }
-  .sched-table td textarea.note-input { min-height: 34px; }
+  .sched-table td textarea.note-input, .sched-table td textarea.note2-input { min-height: 34px; }
 
   /* 행 조작 버튼 */
   .row-btns { display: flex; flex-direction: column; gap: 2px; align-items: center; }
@@ -1059,7 +1059,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0934</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0938</span></div>
 
 <script>
 // ── 전역 상태 ──
