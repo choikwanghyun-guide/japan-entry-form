@@ -1091,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1046</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1050</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -2049,7 +2049,7 @@ function parseEtravel(rows) {
       if (!s) continue;
       let next = '';
       for (let k = c+1; k < r.length; k++) { if (String(r[k]||'').trim()) { next = r[k]; break; } }
-      if (/^단체명$/.test(s)) data.title = String(next).replace(/\s+/g,' ').trim();
+      if (/^단체명$/.test(s)) { data.title = String(next).replace(/\s+/g,' ').trim(); data.groupName = data.title; }
       else if (/^인\s*원$/.test(s)) data.pax = String(next).trim();
       else if (/^출발일$/.test(s)) data.startDate = toYMD(next);
     }
