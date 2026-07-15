@@ -1091,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1132</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1142</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4492,6 +4492,8 @@ function printItinerary() {
   let html = `<!DOCTYPE html><html lang="ko"><head>
 <meta charset="UTF-8">
 <style>
+  /* 인쇄 시 배경색이 빠지지 않게 (브라우저 잉크절약 기본값 무시) */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; font-size:11px; margin:10px; color:#000; }
   h1 { font-size:16px; text-align:center; margin-bottom:4px; }
   .info-box { border:1px solid #ccc; border-radius:4px; padding:6px 10px; margin-bottom:10px; font-size:10px; }
