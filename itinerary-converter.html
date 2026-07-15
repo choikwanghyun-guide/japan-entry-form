@@ -4,7 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>확정서 → 가이드 일정표 변환기</title>
-<link rel="icon" type="image/svg+xml" href="favicons/itinerary.svg">  
+<link rel="icon" type="image/svg+xml" href="favicons/itinerary.svg">
+<!-- ===== Google Analytics (GA4) ===== -->
+<!-- 측정 ID: G-T8Q2L4FXSM (hotel.html과 동일 속성, 페이지별로 구분 집계됨) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-T8Q2L4FXSM"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  // === 내 방문 제외 스위치 ===
+  // 제외할 기기에서 주소 끝에 ?mytraffic=off 를 붙여 한 번만 접속 → 이후 영구 제외
+  // 다시 포함하려면 ?mytraffic=on 으로 접속
+  (function () {
+    var GA_ID = 'G-T8Q2L4FXSM';
+    try {
+      var params = new URLSearchParams(location.search);
+      if (params.get('mytraffic') === 'off') {
+        localStorage.setItem('ga_optout', '1');
+        alert('이 기기는 이제 방문 통계에서 제외됩니다.');
+      }
+      if (params.get('mytraffic') === 'on') {
+        localStorage.removeItem('ga_optout');
+        alert('방문 통계 제외가 해제되었습니다.');
+      }
+      if (localStorage.getItem('ga_optout') === '1') {
+        window['ga-disable-' + GA_ID] = true; // gtag 공식 비활성화 플래그
+      }
+    } catch (e) { /* localStorage 불가 환경 무시 */ }
+  })();
+
+  gtag('config', 'G-T8Q2L4FXSM');
+</script>
+<!-- ===== /Google Analytics ===== -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -1059,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0938</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0941</span></div>
 
 <script>
 // ── 전역 상태 ──
