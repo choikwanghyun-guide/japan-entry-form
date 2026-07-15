@@ -296,7 +296,8 @@
       flex: 0 0 100px;
     }
 
-    /* 내용·비고는 큼직하게, 높이는 JS가 내용에 맞춰 자동 확장 (height:auto !important 쓰면 JS 계산값이 무시되므로 쓰지 않음) */
+    /* 장소·내용·비고는 큼직하게, 높이는 JS가 내용에 맞춰 자동 확장 (height:auto !important 쓰면 JS 계산값이 무시되므로 쓰지 않음) */
+    .sched-table td[data-label="장소"] textarea,
     .sched-table td[data-label="내용"] textarea,
     .sched-table td[data-label="비고"] textarea {
       font-size: 15px;
@@ -305,6 +306,7 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .sched-table td[data-label="내용"]::before,
     .sched-table td[data-label="비고"]::before { color: var(--accent3); }
     /* td가 내용에 따라 높이가 늘어나도록 (고정 높이 방지). textarea 높이는 건드리지 않음 */
     .sched-table tr { height: auto !important; }
@@ -1057,7 +1059,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0014</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_0934</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3309,8 +3311,9 @@ function renderPreview() {
             <th style="width:64px">출발<span class="col-resizer"></span></th>
             <th style="width:74px">이동<span class="col-resizer"></span></th>
             <th style="width:64px">체류<span class="col-resizer"></span></th>
-            <th>내용<span class="col-resizer"></span></th>
-            <th style="width:500px; text-align:center !important;">비고<span class="col-resizer"></span></th>
+            <th>장소<span class="col-resizer"></span></th>
+            <th style="width:500px; text-align:center !important;">내용<span class="col-resizer"></span></th>
+            <th style="width:200px; text-align:center !important;">비고<span class="col-resizer"></span></th>
           </tr>
         </thead>
         <tbody id="tbody-${di}">`;
@@ -3417,13 +3420,16 @@ function renderRow(di, ii, item) {
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'stay')"></td>
     <input type="hidden" class="sched-input trans-input" value="${item.transport||''}">
     <input type="hidden" class="sched-input place-input" id="place-${di}-${ii}" value="${item.place||''}">
-    <td data-label="내용"><textarea class="sched-input desc-input" id="desc-${di}-${ii}" placeholder="내용" rows="1"
+    <td data-label="장소"><textarea class="sched-input desc-input" id="desc-${di}-${ii}" placeholder="장소" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'desc',this.value);"
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'desc')"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
-    <td data-label="비고" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
+    <td data-label="내용" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note||item.meal||''}</textarea></td>
+    <td data-label="비고" style="min-width:200px"><textarea class="sched-input note2-input" placeholder="" rows="1"
+      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note2',this.value);"
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note2||''}</textarea></td>
   </tr>`;
 }
 
@@ -4216,7 +4222,7 @@ function downloadExcel() {
 
     // 일자 헤더
     wsData.push([null, `${day.dayNo}일차 ${dateStr} ${guideInfo}`]);
-    wsData.push([null, '도착', '출발', '이동시간', '체류시간', '장소', '비고', '비고']);
+    wsData.push([null, '도착', '출발', '이동시간', '체류시간', '장소', '내용', '비고']);
 
     const startRow = wsData.length + 1; // 1-based
 
@@ -4243,7 +4249,7 @@ function downloadExcel() {
         durCell(stayNum),
         (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
         item.transport || item.note || item.meal || '',
-        item.note || item.meal || ''
+        item.note2 || ''
       ]);
     });
 
@@ -4336,7 +4342,7 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
     html += `<div class="day-block">
 <div class="day-title">[ ${day.dayNo}일차 ${dateStr} ]</div>
 <table>
-<tr><th>도착</th><th>출발</th><th>이동</th><th>체류</th><th>내용</th><th>비고</th></tr>`;
+<tr><th>도착</th><th>출발</th><th>이동</th><th>체류</th><th>장소</th><th>내용</th><th>비고</th></tr>`;
 
     day.items.forEach(item => {
       const cls = item.type === 'hotel' ? ' class="hotel-row"' : item.type === 'flight' ? ' class="flight-row"' : item.type === 'meal' ? ' class="meal-row"' : '';
@@ -4349,6 +4355,7 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
 <td class="dur-col">${item.stayDur||''}</td>
 <td class="desc-col">${descText}</td>
 <td class="note-col">${noteText}</td>
+<td class="note-col">${item.note2||''}</td>
 </tr>`;
     });
 
