@@ -1091,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1050</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1132</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4501,17 +4501,22 @@ function printItinerary() {
   .info-box td.value { color:#000; }
   .day-block { margin-bottom:12px; page-break-inside:avoid; }
   .day-title { background:#1a1a2e; color:white; padding:4px 8px; font-size:12px; font-weight:700; border-radius:4px; margin-bottom:4px; }
-  table { width:100%; border-collapse:collapse; font-size:10px; }
+  table { width:100%; border-collapse:collapse; font-size:10px; table-layout:fixed; }
   th { background:#f0f0f0; padding:3px 5px; border:1px solid #ccc; font-weight:700; text-align:center; }
-  td { padding:3px 5px; border:1px solid #ddd; vertical-align:top; }
-  .time-col { width:42px; text-align:center; color:#333; white-space:nowrap; font-weight:600; }
-  .dur-col  { width:42px; text-align:center; color:#666; white-space:nowrap; font-size:9px; }
+  td { padding:3px 5px; border:1px solid #ddd; vertical-align:top; word-break:break-word; }
+  /* 열 비율: 화면 편집 화면과 동일하게 — 장소 좁게(고정), 내용이 남는 폭 전부, 비고 중간 */
+  th:nth-child(1), th:nth-child(2) { width:42px; }
+  th:nth-child(3), th:nth-child(4) { width:42px; }
+  th:nth-child(5) { width:22%; }  /* 장소 */
+  th:nth-child(7) { width:15%; }  /* 비고 */
+  .time-col { text-align:center; color:#333; white-space:nowrap; font-weight:600; }
+  .dur-col  { text-align:center; color:#666; white-space:nowrap; font-size:9px; }
   .desc-col { color:#000; }
-  .note-col { width:200px; color:#555; font-size:9px; }
+  .note-col { color:#555; font-size:9px; }
   .hotel-row td { background:#fffbe6; }
   .flight-row td { background:#e8f0fe; }
   .meal-row td  { background:#eafaf1; }
-  @media print { body { margin:5px; } @page { margin:8mm; size:A4; } }
+  @media print { body { margin:5px; } @page { margin:8mm; size:A4 landscape; } }
 </style>
 </head><body>
 ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weight:600;margin-bottom:2px;">${groupName}</div>` : ''}
