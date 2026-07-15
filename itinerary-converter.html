@@ -1091,7 +1091,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1033</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1040</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1881,7 +1881,7 @@ function parseTourPhone(rows) {
   const data = {
     title: '', startDate: '', endDate: '', nights: 0,
     departureFlight: '', returnFlight: '', transport: '전용차량',
-    pax: '', days: []
+    pax: '', region: '', days: []
   };
 
   // 헤더 정보 추출
@@ -1891,12 +1891,21 @@ function parseTourPhone(rows) {
     const c = String(r[2]||r[1]||'').trim();
 
     if (/기\s*간/.test(a)) {
-      // 날짜 추출
-      const dateStr = String(r[2]||'').trim();
-      const m = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
-      if (m) data.startDate = m[1];
-      const m2 = String(r[7]||'').trim().match(/(\d{4}-\d{2}-\d{2})/);
-      if (m2) data.endDate = m2[1];
+      // 날짜 추출 — 행 전체를 훑어 문자열(YYYY-MM-DD)과 엑셀 날짜 시리얼(숫자) 모두 인식
+      // (셀 서식에 따라 "2026-07-16"이 46219 같은 숫자로 들어오는 경우가 있음)
+      const found = [];
+      for (const v of r) {
+        const s = String(v||'').trim();
+        const m = s.match(/(\d{4}-\d{2}-\d{2})/);
+        if (m) { found.push(m[1]); continue; }
+        const n = typeof v === 'number' ? v : (/^\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN);
+        if (!isNaN(n) && n > 30000 && n < 60000) {
+          const d = new Date(Math.round((n - 25569) * 86400000));
+          found.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`);
+        }
+      }
+      if (found[0]) data.startDate = found[0];
+      if (found[1]) data.endDate = found[1];
     }
     if (/인\s*원/.test(a)) data.pax = c;
     if (/수\s*신/.test(a)) data.title = c;
@@ -1907,6 +1916,12 @@ function parseTourPhone(rows) {
     const r = rows[i];
     const val = r.find(v => v && String(v).trim().length > 4 && !/수\s*신|인\s*원|기\s*간|포함|불포함|가이드/.test(String(v)));
     if (val) { data.title = String(val).trim(); break; }
+  }
+
+  // 지역명: 제목 "큐슈 3일" → "큐슈" (뒤의 N박/N일 표기 제거)
+  if (data.title) {
+    const rgn = data.title.replace(/\d+\s*박\s*\d+\s*일|\d+\s*일|\d+\s*박/g, '').trim();
+    if (rgn) data.region = rgn;
   }
 
   // 박수 계산
@@ -1938,6 +1953,13 @@ function parseTourPhone(rows) {
     const col6 = String(r[6]||'').trim(); // 시간
     const col7 = String(r[7]||'').trim(); // 일정
     const col9 = String(r[9]||'').trim(); // 호텔명
+
+    // 항공편명 추출 (교통편 칸의 BX142 등) — 처음 나온 것=출발편, 마지막 것=귀국편
+    const fm = col3.match(/\b([A-Z]{2}\d{2,4})\b/);
+    if (fm) {
+      if (!data.departureFlight) data.departureFlight = fm[1];
+      else data.returnFlight = fm[1];
+    }
 
     // 새 일자 감지
     const dayMatch = col0.match(/(\d+)일차/);
