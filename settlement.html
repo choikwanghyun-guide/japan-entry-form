@@ -8,7 +8,7 @@
 <!-- JSZip (하나사쿠 양식 직접 셀 패치용, styles 무손상 보장) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <!-- 랜드사 양식 base64 데이터 -->
-<script src="landsa_templates.js?v=2026_0709_2320"></script>
+<script src="landsa_templates.js?v=2026_0719_0910"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -1164,7 +1164,7 @@
 </div>
 
 <div class="no-print" style="text-align:center; padding:18px; margin:18px auto 8px; max-width:760px; color:#888; font-size:12px; font-family:sans-serif;">
-  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0709_2320</span>
+  가이드 정산서 · <span id="revStamp" style="color:#4f8ef7; font-family:monospace;">rev_2026_0719_0910</span>
 </div>
 
 <script>
@@ -2966,11 +2966,14 @@ async function mapJapanTravel(wb, data) {
     else if ((e.amount || 0) > 0) etcYenUnmapped.push(e);              // 칸 없음 → 하단 기재
   });
 
+  // 원화 기타경비 — 제팬트레블은 엔화 양식이라 자리 없음 → 하단 넘침에 기재(누락 방지)
+  const etcWonUnmapped = (data.ground.etc || []).filter(e => e.item && (e.amount||0) > 0);
   const diff = grandTotal - mappedSum;
   const allUnmapped = [
     ...busUnmapped.map(b => `${b.item}: ¥${(b.amount||0).toLocaleString()}`),
     ...guideUnmapped.map(g => `${g.item}: ¥${(g.amount||0).toLocaleString()}`),
-    ...etcYenUnmapped.map(e => `${e.item}: ¥${(e.amount||0).toLocaleString()}`)
+    ...etcYenUnmapped.map(e => `${e.item}: ¥${(e.amount||0).toLocaleString()}`),
+    ...etcWonUnmapped.map(e => `${e.item}: ₩${(e.amount||0).toLocaleString()}`)
   ];
 
   if (Math.abs(diff) > 0.5 || allUnmapped.length > 0) {
@@ -3150,25 +3153,30 @@ async function mapItsumo(wb, data) {
 
   // ===== 기타경비 (원화, rows 41-44) =====
   // D41~P41 라벨: 국제선/TAX·유류/여행자보험/택시비/기타2/기타3/기타4
-  const ETC_COL = {
-    "국제선":"D", "TAX/유류":"F", "여행자보험":"H",
-    "택시비":"J", "기타 2":"L", "기타 3":"N", "기타 4":"P"
-  };
+  const ETC_SPECIFIC = { "국제선":"D", "TAX/유류":"F", "여행자보험":"H", "택시비":"J" };
+  const ETC_FREE = ["L","N","P"];   // 기타 2 / 기타 3 / 기타 4 (자유 슬롯 — 어떤 이름이든 여기 채움)
   const etcItems = ((data.ground.etc) || []).filter(e => e.item && (e.amount||0) > 0);
   const etcByItem = {};
   etcItems.forEach(e => {
     if (!etcByItem[e.item]) etcByItem[e.item] = { name: e.item, amount: 0, unitPrice: e.unitPrice };
     etcByItem[e.item].amount += (e.amount || 0);
   });
+  let etcPlacedWon = 0, etcFreeIdx = 0;
   Object.values(etcByItem).forEach(e => {
-    if (ETC_COL[e.name]) {
-      setCell(ws, ETC_COL[e.name] + "42", e.name);
-      if (e.unitPrice) setCell(ws, ETC_COL[e.name] + "43", e.unitPrice);
-      setCell(ws, ETC_COL[e.name] + "44", v(e.amount, false));
+    let col = ETC_SPECIFIC[e.name];
+    if (!col && etcFreeIdx < ETC_FREE.length) col = ETC_FREE[etcFreeIdx++];   // 고정 라벨 아니면 빈 기타 슬롯에 실제 이름으로
+    if (col) {
+      setCell(ws, col + "42", e.name);
+      if (e.unitPrice) setCell(ws, col + "43", e.unitPrice);
+      setCell(ws, col + "44", v(e.amount, false));
+      etcPlacedWon += (e.amount || 0);
     } else {
-      overflow.push(`기타경비(원) / ${e.name}: ₩${(e.amount||0).toLocaleString()} (양식에 없음)`);
+      overflow.push(`기타경비(원) / ${e.name}: ₩${(e.amount||0).toLocaleString()} (원화 칸 4개 초과)`);
     }
   });
+  // 원화 지출금(R4)·노코리(R5) 캐시값을 실제 배치액으로 갱신 (R45=SUM(D44:S44) → 자동재계산도 되지만 안전하게 값도 채움)
+  ws.getCell("R4").value = { formula: "R45", result: etcPlacedWon };
+  ws.getCell("R5").value = { formula: "R3-R4", result: (Number(data.memo.wonAdvance)||0) - etcPlacedWon };
 
   // 파일 열때 자동 재계산
   if (wb.calcProperties) wb.calcProperties.fullCalcOnLoad = true;
@@ -3197,11 +3205,9 @@ async function mapItsumo(wb, data) {
   });
 
   // 원화
-  let totalWon = 0, mappedWon = 0;
-  ((data.ground.etc)||[]).forEach(e => {
-    totalWon += e.amount||0;
-    if (ETC_COL[e.item]) mappedWon += e.amount||0;
-  });
+  let totalWon = 0;
+  ((data.ground.etc)||[]).forEach(e => { totalWon += e.amount||0; });
+  const mappedWon = etcPlacedWon;
 
   const diffYen = totalYen - mappedYen;
   const diffWon = totalWon - mappedWon;
