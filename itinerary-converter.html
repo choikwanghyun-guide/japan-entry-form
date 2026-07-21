@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0715_1155</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0721_1010</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1834,6 +1834,13 @@ function parseExcelConfirm(file) {
       if (f !== 'unknown') { rows = r; format = f; break; }
     }
     if (!rows) rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+
+    // 이트레블: 한 파일에 여러 차수 확정서 시트가 있는 경우가 있어
+    // 파일명의 출발일(YYMMDD)과 일치하는 시트, 없으면 출발일이 가장 최신인 시트를 선택
+    if (format === 'etravel' && wb.SheetNames.length > 1) {
+      const picked = pickEtravelSheet(wb, file.name);
+      if (picked) rows = picked;
+    }
     showFormatBadge(format);
 
     let data = null;
@@ -2027,6 +2034,48 @@ function parseTourPhone(rows) {
 
 // ── 이트레블(e-Travel Japan)형 파싱 ──
 // 상단: 단체명/인원/출발일 라벨 · 일정 헤더: 월 일 | 지 역 | 교 통 편 | 시 간 | 세 부 일 정 | 식 사
+// 이트레블 전용: 여러 확정서 시트 중 사용할 시트 선택
+// 우선순위 ① 파일명에 든 YYMMDD와 출발일이 일치하는 시트 ② 출발일이 가장 최신인 시트
+function pickEtravelSheet(wb, fileName) {
+  const fnDates = String(fileName || '').match(/\d{6}/g) || [];
+  let best = null;
+  for (const name of wb.SheetNames) {
+    const r = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+    if (detectExcelFormat(r) !== 'etravel') continue;
+    let dep = 0, ymd = '';
+    outer:
+    for (let i = 0; i < 15; i++) {
+      const row = r[i] || [];
+      for (let c = 0; c < row.length; c++) {
+        if (String(row[c] || '').trim() !== '출발일') continue;
+        for (let k = c + 1; k < row.length; k++) {
+          const v = row[k];
+          const s = String(v || '').trim();
+          if (!s) continue;
+          const m = s.match(/(\d{4})[\s.\-\/년]+(\d{1,2})[\s.\-\/월]+(\d{1,2})/);
+          if (m) {
+            dep = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+            ymd = `${m[1].slice(2)}${String(m[2]).padStart(2,'0')}${String(m[3]).padStart(2,'0')}`;
+          } else {
+            const n = typeof v === 'number' ? v : parseFloat(s);
+            if (!isNaN(n) && n > 30000 && n < 60000) {
+              const d = new Date(Math.round((n - 25569) * 86400000));
+              dep = d.getTime();
+              ymd = `${String(d.getUTCFullYear()).slice(2)}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`;
+            }
+          }
+          break outer;
+        }
+      }
+    }
+    const fnMatch = !!(ymd && fnDates.includes(ymd));
+    if (!best || (fnMatch && !best.fnMatch) || (fnMatch === best.fnMatch && dep > best.dep)) {
+      best = { rows: r, dep, fnMatch };
+    }
+  }
+  return best && best.rows;
+}
+
 function parseEtravel(rows) {
   const data = {
     title: '', startDate: '', endDate: '', nights: 0,
@@ -2054,7 +2103,11 @@ function parseEtravel(rows) {
       const s = String(r[c]||'').trim();
       if (!s) continue;
       let next = '';
-      for (let k = c+1; k < r.length; k++) { if (String(r[k]||'').trim()) { next = r[k]; break; } }
+      // 숫자 0(예: 인원 0명)도 유효한 값으로 인식해야 함 — falsy 체크 금지
+      for (let k = c+1; k < r.length; k++) {
+        const vv = r[k];
+        if (vv !== '' && vv !== null && vv !== undefined && String(vv).trim() !== '') { next = vv; break; }
+      }
       if (/^단체명$/.test(s)) { data.title = String(next).replace(/\s+/g,' ').trim(); data.groupName = data.title; }
       else if (/^인\s*원$/.test(s)) data.pax = String(next).trim();
       else if (/^출발일$/.test(s)) data.startDate = toYMD(next);
@@ -2090,49 +2143,80 @@ function parseEtravel(rows) {
   if (headerRow === -1) return data;
 
   let currentDay = null;
+  let dayCount = 0;
+  const startDay = (n) => {
+    dayCount = n;
+    currentDay = { dayNo: n, date: calcDate(data.startDate, n-1), items: [] };
+    data.days.push(currentDay);
+  };
+
   for (let i = headerRow + 1; i < rows.length; i++) {
     const r = rows[i] || [];
+
+    // REMARK(하단 비고) 이후는 일정이 아님
+    if (/REMARK/i.test(r.map(v=>String(v||'')).join(' '))) break;
+
     const colDay = String(r[ci.day]||'').trim();
     const place = String(r[ci.place]||'').replace(/\s+/g,' ').trim();
     const trans = String(r[ci.trans]||'').trim();
     const time  = formatTime(String(r[ci.time]||'').trim());
     const desc  = String(r[ci.desc]||'').trim();
     const meal  = String(r[ci.meal]||'').trim();
+    const hasData = !!(desc || place || time || trans);
 
-    // 새 일자: "제1일" / "1일차"
+    // 일자 시작 감지 — "제N일" 마커가 병합셀이라 블록 중간에 있는 시트도 있어 3중으로 판단:
+    //  ① "제N일" 마커 (N이 지금까지보다 커질 때만 새 일자로 인정)
+    //  ② "호텔 조식 후" 줄 = 새로운 날 아침
+    //  ③ 헤더 뒤 첫 데이터 줄 = 1일차 (마커가 아래쪽에 병합된 시트 대비)
     const dm = colDay.match(/^제?\s*(\d+)\s*일/);
-    if (dm) {
-      const dayNo = parseInt(dm[1]);
-      currentDay = { dayNo, date: calcDate(data.startDate, dayNo-1), items: [] };
-      data.days.push(currentDay);
-    } else if (currentDay && !data.startDate) {
-      // 상단에서 출발일을 못 찾았으면 일자 열의 날짜(시리얼)로 보완
+    const markerN = dm ? parseInt(dm[1]) : 0;
+    const isBreakfast = /^호텔\s*조식/.test(desc);
+    if (markerN > dayCount) startDay(markerN);
+    else if (isBreakfast && dayCount > 0) startDay(dayCount + 1);
+    else if (!currentDay && hasData) startDay(1);
+
+    if (!currentDay) continue;
+
+    // 상단에서 출발일을 못 찾았으면 일자 열의 날짜(시리얼)로 보완
+    if (!data.startDate && !dm) {
       const ymd = toYMD(r[ci.day]);
       if (ymd && currentDay.dayNo === 1) { data.startDate = ymd; currentDay.date = ymd; }
     }
-    if (!currentDay) continue;
 
     // 항공편: 교통편 칸 (7C1405, BX142 등 — 영문 포함 코드만)
     const fm = trans.match(/\b([A-Z0-9]{2}\d{2,4})\b/);
     if (fm && /[A-Z]/.test(fm[1])) {
       if (!data.departureFlight) data.departureFlight = fm[1];
-      else data.returnFlight = fm[1];
+      else if (fm[1] !== data.departureFlight) data.returnFlight = fm[1];
     }
 
     if (!desc && !place && !time) continue;
 
-    // 숙박(호텔) 줄: "숙박: 코코노에 유유테이 (2인1실) T. 09..." → 호텔명만
-    if (/^숙박\s*[:：]/.test(desc)) {
-      const hotelName = desc.replace(/^숙박\s*[:：]\s*/,'').split(/\sT\.|TEL|☎/)[0].trim();
+    // 호텔 홈페이지 URL 줄은 스킵 (같은 줄의 식사 메뉴는 직전 항목에 합침)
+    if (/^https?:\/\//i.test(desc)) {
+      if (meal && currentDay.items.length) {
+        const last = currentDay.items[currentDay.items.length - 1];
+        last.meal = (last.meal ? last.meal + ' ' : '') + meal;
+      }
+      continue;
+    }
+
+    // 숙박(호텔) 줄: "숙박: ..." / "HOTEL : 도야 썬팔레스 T. 0142-..." → 호텔명만
+    if (/^(숙박|HOTEL|호텔)\s*[:：]/i.test(desc)) {
+      const hotelName = desc.replace(/^(숙박|HOTEL|호텔)\s*[:：]\s*/i,'').split(/\sT\.|TEL|☎/)[0].trim();
       currentDay.items.push({ time, transport: trans, place, desc: '🏨 ' + hotelName, meal, type: 'hotel' });
       continue;
     }
+
+    // 유람선·크루즈 탑승은 항공이 아니라 관광
+    let itemType = guessItemType(desc, trans);
+    if (itemType === 'flight' && /유람선|크루즈|페리/.test(desc)) itemType = 'tour';
 
     currentDay.items.push({
       time, transport: trans, place,
       desc: desc || place,
       meal,
-      type: guessItemType(desc, trans)
+      type: itemType
     });
   }
 
