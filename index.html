@@ -798,6 +798,32 @@ function parseTxtRoster(text) {
 function detectColumns(rowCells) {
   const row = (rowCells || []).map(c => String(c == null ? '' : c).trim());
   const rowStr = row.join(' ');
+  // ── 일본어 헤더(부관훼리 등 일본 랜드사 명부) 대응 ──
+  // 헤더 예: NO. | 名前(병합: 한글+로마자) | 性別 | 生年月日 | パスポート情報(병합: 여권번호+만료일) | 電話番号 | 備考
+  // 名前·パスポート情報가 병합셀이라 로마자 이름/여권만료일 칸은 헤더가 비어 있어,
+  // 바로 오른쪽 칸(헤더가 빈 칸)을 해당 항목으로 매핑한다.
+  // ※ 이 분기는 일본어 헤더에서만 동작하므로 한글/영문 명부에는 전혀 영향이 없다.
+  if (/名前|氏名/.test(rowStr) && (/生年月日|生年/.test(rowStr) || /パスポート|旅券/.test(rowStr))) {
+    const jpMap = {};
+    row.forEach((cell, idx) => {
+      const c = String(cell || '').trim();
+      const nextBlank = idx + 1 < row.length && !String(row[idx + 1] || '').trim();
+      if (jpMap.no === undefined && (/^no\.?$/i.test(c) || /番号/.test(c))) jpMap.no = idx;
+      if (jpMap.korName === undefined && /名前|氏名/.test(c)) {
+        jpMap.korName = idx;                                         // 한글 이름
+        if (jpMap.fullName === undefined && nextBlank) jpMap.fullName = idx + 1; // 병합 우측 = 로마자 이름
+      }
+      if (jpMap.gender === undefined && /性別/.test(c)) jpMap.gender = idx;
+      if (jpMap.birth === undefined && /生年月日|生年/.test(c)) jpMap.birth = idx;
+      if (jpMap.passport === undefined && /パスポート|旅券/.test(c)) {
+        jpMap.passport = idx;
+        if (jpMap.expiry === undefined && nextBlank) jpMap.expiry = idx + 1; // 병합 우측 = 여권 만료일
+      }
+    });
+    if (jpMap.korName !== undefined || jpMap.passport !== undefined) {
+      return { isHeader: true, colMap: jpMap, jp: true };
+    }
+  }
   const isHeader = (
         /여권번호/.test(rowStr) ||
         /passport/i.test(rowStr) ||
@@ -934,10 +960,11 @@ function parsePassengers(wb) {
 
     let headerRow = -1;
     let colMap = {};
+    let sheetJp = false;
 
     for (let i = 0; i < Math.min(rows.length, 30); i++) {
       const det = detectColumns(rows[i]);
-      if (det.isHeader) { headerRow = i; colMap = det.colMap; break; }
+      if (det.isHeader) { headerRow = i; colMap = det.colMap; sheetJp = !!det.jp; break; }
     }
 
     if (headerRow === -1) continue;
@@ -1068,7 +1095,9 @@ function parsePassengers(wb) {
       }
     }
 
-    if (found) break;
+    // 일본어 명부는 1호차·2호차가 별도 시트로 나뉘어 있어 모든 시트를 이어서 읽는다.
+    // 한글/영문 명부는 기존과 동일하게 첫 시트에서 멈춘다(동작 변화 없음).
+    if (found && !sheetJp) break;
   }
 
   renderPreview();
