@@ -421,7 +421,7 @@
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
           <span style="font-size:12px; color:var(--text2); width:75px;">상 ▲ 하 ▼</span>
           <span style="font-size:12px; color:var(--text3);">상</span>
-          <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value">
+          <input type="range" id="customsOffsetY" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetYVal&#39;).textContent = this.value; saveCustomsOffset();">
           <span style="font-size:12px; color:var(--text3);">하</span>
           <span id="offsetYVal" style="font-size:13px; color:var(--warning); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
@@ -429,13 +429,13 @@
         <div style="display:flex; align-items:center; gap:12px;">
           <span style="font-size:12px; color:var(--text2); width:75px;">좌 ◀ 우 ▶</span>
           <span style="font-size:12px; color:var(--text3);">좌</span>
-          <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value">
+          <input type="range" id="customsOffsetX" min="-10" max="10" step="0.5" value="0" style="flex:1; accent-color:var(--warning);" oninput="document.getElementById(&#39;offsetXVal&#39;).textContent = this.value; saveCustomsOffset();">
           <span style="font-size:12px; color:var(--text3);">우</span>
           <span id="offsetXVal" style="font-size:13px; color:var(--warning); font-weight:700; width:36px; text-align:right;">0</span>
           <span style="font-size:11px; color:var(--text3);">mm</span>
         </div>
         <div style="margin-top:10px; text-align:right;">
-          <button onclick="document.getElementById(&#39;customsOffsetY&#39;).value=0; document.getElementById(&#39;customsOffsetX&#39;).value=0; document.getElementById(&#39;offsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;offsetXVal&#39;).textContent=&#39;0&#39;;" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
+          <button onclick="document.getElementById(&#39;customsOffsetY&#39;).value=0; document.getElementById(&#39;customsOffsetX&#39;).value=0; document.getElementById(&#39;offsetYVal&#39;).textContent=&#39;0&#39;; document.getElementById(&#39;offsetXVal&#39;).textContent=&#39;0&#39;; saveCustomsOffset();" style="font-size:12px; color:var(--text3); background:none; border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer;">
             초기화
           </button>
         </div>
@@ -2066,6 +2066,7 @@ function updateOrientUI() {
   });
   // 방향이 바뀌면 해당 방향의 저장된 offset 복원
   loadImmOffset();
+  loadCustomsOffset();
 }
 
 // ── 입국신고서 미세조정 offset 저장/복원 (가로/세로 따로) ──
@@ -2128,6 +2129,47 @@ function loadImmOffset() {
     console.error('[loadImmOffset] 오류:', e);
   }
 }
+// ── 세관신고서 미세조정 offset 저장/복원 (가로/세로 따로) ──
+function getCustomsOrientKey() {
+  const orient = document.querySelector('input[name="customsOrient"]:checked');
+  return (orient && orient.value === 'landscape') ? 'landscape' : 'portrait';
+}
+function saveCustomsOffset() {
+  try {
+    const key = getCustomsOrientKey();
+    const x = document.getElementById('customsOffsetX').value;
+    const y = document.getElementById('customsOffsetY').value;
+    localStorage.setItem('customsOffset_' + key, JSON.stringify({ x, y }));
+  } catch (e) { /* localStorage 사용 불가 환경 무시 */ }
+}
+function loadCustomsOffset() {
+  try {
+    const xEl = document.getElementById('customsOffsetX');
+    const yEl = document.getElementById('customsOffsetY');
+    const xValEl = document.getElementById('offsetXVal');
+    const yValEl = document.getElementById('offsetYVal');
+    if (!xEl || !yEl) return;
+    xEl.value = 0;
+    yEl.value = 0;
+    if (xValEl) xValEl.textContent = '0';
+    if (yValEl) yValEl.textContent = '0';
+    const key = getCustomsOrientKey();
+    const saved = localStorage.getItem('customsOffset_' + key);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const x = parseFloat(parsed.x);
+      const y = parseFloat(parsed.y);
+      if (!isNaN(x) && x >= -10 && x <= 10) {
+        xEl.value = x;
+        if (xValEl) xValEl.textContent = String(x);
+      }
+      if (!isNaN(y) && y >= -10 && y <= 10) {
+        yEl.value = y;
+        if (yValEl) yValEl.textContent = String(y);
+      }
+    }
+  } catch (e) { /* 무시 */ }
+}
 // 이전 버전에서 저장됐을 수 있는 잘못된 offset 값 정리
 function cleanInvalidOffsets() {
   try {
@@ -2162,8 +2204,8 @@ function cleanInvalidOffsets() {
 }
 
 // 초기 UI 적용
-if (document.readyState !== 'loading') { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); }
-else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); });
+if (document.readyState !== 'loading') { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); loadCustomsOffset(); }
+else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets(); updateOrientUI(); loadImmOffset(); loadCustomsOffset(); });
 </script>
 
 
@@ -2382,7 +2424,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0712_1833</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0723_1627</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
