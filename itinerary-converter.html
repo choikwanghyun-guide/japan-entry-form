@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2137</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2154</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3665,7 +3665,7 @@ function renderPreview() {
             <th style="width:64px">체류<span class="col-resizer"></span></th>
             <th style="width:260px;">장소<span class="col-resizer"></span></th>
             <th style="text-align:center !important;">내용<span class="col-resizer"></span></th>
-            <th style="width:276px; text-align:center !important;">비고<span class="col-resizer"></span></th>
+            <th style="width:427px; text-align:center !important;">비고<span class="col-resizer"></span></th>
           </tr>
         </thead>
         <tbody id="tbody-${di}">`;
@@ -3779,7 +3779,7 @@ function renderRow(di, ii, item) {
     <td data-label="내용" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note != null ? item.note : (item.meal || '')}</textarea></td>
-    <td data-label="비고" style="min-width:276px"><textarea class="sched-input note2-input" placeholder="" rows="1"
+    <td data-label="비고" style="min-width:427px"><textarea class="sched-input note2-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note2',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note2||''}</textarea></td>
   </tr>`;
