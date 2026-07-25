@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2104</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2114</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1508,12 +1508,19 @@ function saveItineraryToArchive(silent) {
   // 임시 키(_로 시작) 제외하고 복사
   const saveData = JSON.parse(JSON.stringify(parsedData, (k, v) => k.startsWith('_') ? undefined : v));
 
-  const displayTitle = makeItineraryTitle(saveData);
   const archive = archiveData;
+
+  // 이름 정하기: 기존 항목 재저장이면 그 이름, 아니면 자동 이름(지역+날짜)을 기본값으로 제안
+  const autoTitle = makeItineraryTitle(saveData);
+  const existingEntry = editingItineraryId ? archive.find(it => it.id === editingItineraryId) : null;
+  const suggested = (existingEntry && existingEntry.title) || autoTitle;
+  const input = prompt('저장할 일정표 이름을 정해주세요:', suggested);
+  if (input === null) return; // 취소 → 저장 안 함
+  const displayTitle = input.trim() || suggested;
 
   let id = editingItineraryId;
   if (!id) {
-    const sameName = archive.find(it => makeItineraryTitle(it.data) === displayTitle);
+    const sameName = archive.find(it => it.title === displayTitle);
     if (sameName) {
       const choice = confirm(`"${displayTitle}" 일정표가 이미 있어요.\n\n[확인] = 기존 일정표 덮어쓰기\n[취소] = 새 일정표로 저장`);
       id = choice ? sameName.id : ('itin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8));
