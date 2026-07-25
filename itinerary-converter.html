@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2054</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2104</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1113,6 +1113,7 @@ let gisInited = false;
 let tokenClient = null;
 let googleUser = null;       // { name, email, token, fileId }
 let archiveData = [];        // 보관된 일정표 목록
+let deletedIds = {};         // 삭제 기록: { id: 삭제시각 } — 합치기 동기화 때 지운 일정표가 되살아나지 않게
 let lastSyncTime = null;
 let hasUnsavedChanges = false;
 let editingItineraryId = null;
@@ -1121,7 +1122,47 @@ let editingItineraryId = null;
 let archiveCollapsed = true;
 let searchQuery = '';
 
+// ── 보관함 로컬 자동백업 ──
+// 저장할 때마다 브라우저(localStorage)에도 기록 → 동기화 전에 새로고침해도 저장분이 사라지지 않음
+const LOCAL_ARCHIVE_KEY = 'itineraryArchiveLocal_v1';
+function saveArchiveLocal() {
+  try {
+    localStorage.setItem(LOCAL_ARCHIVE_KEY, JSON.stringify({
+      itineraries: archiveData, deleted: deletedIds, savedAt: Date.now()
+    }));
+  } catch (e) { console.warn('로컬 백업 실패:', e); }
+}
+function loadArchiveLocal() {
+  try {
+    const raw = localStorage.getItem(LOCAL_ARCHIVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (Array.isArray(d.itineraries)) archiveData = d.itineraries;
+    if (d.deleted && typeof d.deleted === 'object') deletedIds = d.deleted;
+  } catch (e) { console.warn('로컬 백업 불러오기 실패:', e); }
+}
+
+// ── 보관함 합치기 ──
+// 같은 일정표(id)는 더 최근에 저장한 쪽을 쓰고, 삭제 기록이 저장보다 최신이면 목록에서 제외
+function mergeArchives(listA, listB, delA, delB) {
+  const deleted = {};
+  for (const src of [delA || {}, delB || {}]) {
+    for (const id in src) deleted[id] = Math.max(deleted[id] || 0, src[id] || 0);
+  }
+  const byId = new Map();
+  for (const e of [].concat(listA || [], listB || [])) {
+    if (!e || !e.id) continue;
+    const cur = byId.get(e.id);
+    if (!cur || (e.savedAt || 0) > (cur.savedAt || 0)) byId.set(e.id, e);
+  }
+  const list = [];
+  byId.forEach(e => { if (!deleted[e.id] || deleted[e.id] < (e.savedAt || 0)) list.push(e); });
+  list.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  return { list, deleted };
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  loadArchiveLocal();
   renderArchive();
   initGoogleApis();
 });
@@ -1301,22 +1342,36 @@ async function syncToCloud() {
   const btn = document.getElementById('btnSyncUpload');
   btn.disabled = true; btn.textContent = '동기화 중...';
   try {
-    const backup = {
-      type: 'itinerary_archive_backup', version: 1,
-      lastModified: new Date().toISOString(),
-      itineraryCount: archiveData.length,
-      itineraries: archiveData
-    };
-    const content = JSON.stringify(backup, null, 2);
     let fileId = googleUser.fileId;
     if (!fileId) {
       const existing = await findArchiveFile();
       if (existing) { fileId = existing.id; googleUser.fileId = fileId; }
     }
+
+    // 업로드 전에 드라이브에 있는 내용과 합치기 — 다른 기기에서 저장한 일정표를 덮어쓰지 않게
+    if (fileId) {
+      try {
+        const remote = await downloadArchiveFile(fileId);
+        const merged = mergeArchives(archiveData, remote && remote.itineraries, deletedIds, remote && remote.deleted);
+        archiveData = merged.list;
+        deletedIds = merged.deleted;
+        renderArchive();
+      } catch (e) { console.warn('드라이브 내용 합치기 실패(내 목록 기준으로 업로드):', e); }
+    }
+
+    const backup = {
+      type: 'itinerary_archive_backup', version: 1,
+      lastModified: new Date().toISOString(),
+      itineraryCount: archiveData.length,
+      itineraries: archiveData,
+      deleted: deletedIds
+    };
+    const content = JSON.stringify(backup, null, 2);
     if (fileId) await updateArchiveFile(fileId, content);
     else { fileId = await createArchiveFile(content); googleUser.fileId = fileId; }
     lastSyncTime = new Date();
     hasUnsavedChanges = false;
+    saveArchiveLocal();
     updateLastSyncDisplay();
     setSyncStatus('connected');
     showSyncStatus(`✓ 동기화 완료! ${archiveData.length}개 일정표가 구글 드라이브에 저장됐어요.`, 'success');
@@ -1337,14 +1392,12 @@ async function syncToCloud() {
 // ── 동기화 (다운로드) ──
 async function syncFromCloud(silent) {
   if (!googleUser) { alert('먼저 구글 로그인 해주세요.'); return; }
-  if (!silent && hasUnsavedChanges && !confirm('저장하지 않은 변경 사항이 있어요. 불러오면 사라집니다. 계속할까요?')) return;
   setSyncStatus('syncing');
   const btn = document.getElementById('btnSyncDownload');
   btn.disabled = true; btn.textContent = '불러오는 중...';
   try {
     const file = await findArchiveFile();
     if (!file) {
-      archiveData = [];
       googleUser.fileId = null;
       renderArchive();
       setSyncStatus('connected');
@@ -1354,14 +1407,22 @@ async function syncFromCloud(silent) {
     googleUser.fileId = file.id;
     const data = await downloadArchiveFile(file.id);
     if (data && Array.isArray(data.itineraries)) {
-      archiveData = data.itineraries;
+      // 드라이브 내용과 내 목록을 합치기 — 아직 동기화 안 한 저장분도 안 사라짐
+      const merged = mergeArchives(archiveData, data.itineraries, deletedIds, data.deleted);
+      archiveData = merged.list;
+      deletedIds = merged.deleted;
+      // 합친 결과가 드라이브와 다르면(내 쪽에만 있는 저장/삭제가 있으면) 업로드가 필요함
+      const driveKeys = new Set((data.itineraries || []).map(e => e.id + ':' + (e.savedAt || 0)));
+      hasUnsavedChanges = archiveData.some(e => !driveKeys.has(e.id + ':' + (e.savedAt || 0)))
+        || (data.itineraries || []).length !== archiveData.length;
       lastSyncTime = new Date();
-      hasUnsavedChanges = false;
+      saveArchiveLocal();
       renderArchive();
       updateLastSyncDisplay();
       setSyncStatus('connected');
-      if (!silent) showSyncStatus(`✓ 구글 드라이브에서 ${archiveData.length}개 일정표를 불러왔어요!`, 'success');
-      else showSyncStatus(`✓ ${googleUser.name}님 환영합니다! ${archiveData.length}개 일정표를 불러왔어요.`, 'success');
+      const extra = hasUnsavedChanges ? ' (이 기기에만 있는 변경분이 있어요 — "☁ 동기화"를 눌러 올려주세요)' : '';
+      if (!silent) showSyncStatus(`✓ 구글 드라이브에서 ${archiveData.length}개 일정표를 불러왔어요!${extra}`, 'success');
+      else showSyncStatus(`✓ ${googleUser.name}님 환영합니다! ${archiveData.length}개 일정표를 불러왔어요.${extra}`, 'success');
     } else {
       throw new Error('파일 형식이 올바르지 않아요.');
     }
@@ -1468,6 +1529,7 @@ function saveItineraryToArchive(silent) {
 
   editingItineraryId = id;
   hasUnsavedChanges = true;
+  saveArchiveLocal();
   updateLastSyncDisplay();
   renderArchive();
   if (!silent) {
@@ -1538,8 +1600,10 @@ function deleteFromArchive(id) {
   if (!item) return;
   if (!confirm(`"${item.title}" 일정표를 보관함에서 삭제할까요?\n삭제 후 "☁ 구글 드라이브 동기화"를 눌러야 드라이브에서도 사라져요.`)) return;
   archiveData = archiveData.filter(it => it.id !== id);
+  deletedIds[id] = Date.now();
   if (editingItineraryId === id) editingItineraryId = null;
   hasUnsavedChanges = true;
+  saveArchiveLocal();
   updateLastSyncDisplay();
   renderArchive();
 }
