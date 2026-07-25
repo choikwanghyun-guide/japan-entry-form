@@ -1097,7 +1097,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2124</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2137</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3750,7 +3750,7 @@ function renderRow(di, ii, item) {
       tabindex="-1"
       onchange="updateItem(${di},${ii},'arrive',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'arrive',this.value);this.blur();}"></td>
-    <td data-label="출발"><input class="sched-input time-input" id="depart-${di}-${ii}" value="${item.depart||item.time||''}" placeholder="HH:MM"
+    <td data-label="출발"><input class="sched-input time-input" id="depart-${di}-${ii}" value="${item.depart != null ? item.depart : (item.time||'')}" placeholder="HH:MM"
       tabindex="-1"
       onchange="updateItem(${di},${ii},'depart',this.value)"
       onkeydown="if(event.key==='Enter'){updateItem(${di},${ii},'depart',this.value);this.blur();}"></td>
@@ -3778,7 +3778,7 @@ function renderRow(di, ii, item) {
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
     <td data-label="내용" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
-      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note||item.meal||''}</textarea></td>
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note != null ? item.note : (item.meal || '')}</textarea></td>
     <td data-label="비고" style="min-width:276px"><textarea class="sched-input note2-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note2',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note2||''}</textarea></td>
@@ -4582,8 +4582,8 @@ function downloadExcel() {
       const rowNo = wsData.length + 1;
 
       // 도착/출발 시간 - 직접 입력값 우선 사용
-      const arriveVal = item.arrive || item.time || '';
-      const departVal = item.depart || item.time || '';
+      const arriveVal = item.arrive != null ? item.arrive : (item.time || '');
+      const departVal = item.depart != null ? item.depart : (item.time || '');
       const arriveNum = timeToExcelFraction(arriveVal);
       const departNum = timeToExcelFraction(departVal);
       const moveNum   = timeToExcelFraction(item.moveDur || '');
@@ -4600,7 +4600,7 @@ function downloadExcel() {
         durCell(moveNum),
         durCell(stayNum),
         (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
-        item.transport || item.note || item.meal || '',
+        item.transport || (item.note != null ? item.note : (item.meal || '')) || '',
         item.note2 || ''
       ]);
     });
@@ -4706,10 +4706,10 @@ ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weig
     day.items.forEach(item => {
       const cls = item.type === 'hotel' ? ' class="hotel-row"' : item.type === 'flight' ? ' class="flight-row"' : item.type === 'meal' ? ' class="meal-row"' : '';
       const descText = (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'');
-      const noteText = item.note || item.meal || '';
+      const noteText = item.note != null ? item.note : (item.meal || '');
       html += `<tr${cls}>
 <td class="time-col">${item.arrive||''}</td>
-<td class="time-col">${item.depart||item.time||''}</td>
+<td class="time-col">${item.depart != null ? item.depart : (item.time||'')}</td>
 <td class="dur-col">${item.moveDur||''}</td>
 <td class="dur-col">${item.stayDur||''}</td>
 <td class="desc-col">${descText}</td>
@@ -4768,9 +4768,9 @@ function printCardItinerary() {
       const icon = { flight:'✈️', hotel:'🏨', meal:'🍽️', move:'🚌', tour:'📍' }[item.type] || '•';
       const t = (item.arrive && item.depart && item.arrive !== item.depart)
         ? `${item.arrive}~${item.depart}`
-        : (item.depart || item.arrive || item.time || '');
+        : (item.depart || item.arrive || ((item.depart == null && item.arrive == null) ? (item.time || '') : ''));
       const txt = (item.desc || item.place || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, '').trim();
-      const noteText = [item.note || item.meal || '', item.note2 || ''].filter(Boolean).join(' · ');
+      const noteText = [item.note != null ? item.note : (item.meal || ''), item.note2 || ''].filter(Boolean).join(' · ');
       if (!txt && !noteText) return;
       const mv = durText(item.moveDur);
       if (mv) items += `<div class="mv">🚌 ${mv} 이동</div>`;
