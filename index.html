@@ -986,9 +986,15 @@ function parsePassengers(wb) {
       const row = rows[i];
       if (!row || row.every(c => !c)) continue;
       const firstCell = String(row[0] || '').trim();
-      if (!firstCell && !row[colMap.passport]) continue;
+      // ★ 승객 판별 보강: RM.NO(방번호)·여권번호가 둘 다 비어도 '이름'이 있으면 승객으로 인정
+      //   (같은 방 2·3번째 사람은 RM.NO가 비어있고, 여권번호까지 없으면 통째로 누락되던 문제 해결)
+      const hasName = (colMap.korName   !== undefined && String(row[colMap.korName]   || '').trim() !== '')
+                   || (colMap.fullName  !== undefined && String(row[colMap.fullName]  || '').trim() !== '')
+                   || (colMap.lastName  !== undefined && String(row[colMap.lastName]  || '').trim() !== '')
+                   || (colMap.firstName !== undefined && String(row[colMap.firstName] || '').trim() !== '');
+      if (!firstCell && !row[colMap.passport] && !hasName) continue;
       if (/^(번호|no\.?|합계|room|경고|passenger)/i.test(firstCell)) continue;
-      if (!firstCell && !row[colMap.passport]) { console.log(`R${i+1} 스킵: firstCell 비어있음`); continue; }
+      if (!firstCell && !row[colMap.passport] && !hasName) { console.log(`R${i+1} 스킵: firstCell·여권·이름 모두 비어있음`); continue; }
       if (/^(번호|no\.?|합계|room|경고|passenger)/i.test(firstCell)) { console.log(`R${i+1} 스킵: 헤더성 행 "${firstCell}"`); continue; }
 
       let lastName = '', firstName = '', fullName = '', korName = '', birthRaw = '', passport = '', gender = '', expiryRaw = '';
