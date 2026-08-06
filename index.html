@@ -981,6 +981,18 @@ function parsePassengers(wb) {
       if (!nextRowHasData) headerRow += 0; // 이미 headerRow+1부터 시작하므로 유지
     }
 
+    // '성명'/'이름' 한 칸만 있고 영문 이름 칸이 따로 없을 때: 데이터 값이 로마자면 그 칸을 영문명으로 승격
+    // (한글이 하나라도 섞이면 한글명으로 그대로 둠 → 한글 성명 명부는 안 깨짐)
+    if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName === undefined && colMap.korName !== undefined) {
+      let _roman = 0, _kor = 0;
+      for (let k = headerRow + 1; k < rows.length && (_roman + _kor) < 10; k++) {
+        const _v = String((rows[k] || [])[colMap.korName] || '').trim();
+        if (!_v) continue;
+        if (/[가-힣]/.test(_v)) _kor++;
+        else if (/[A-Za-z]/.test(_v)) _roman++;
+      }
+      if (_roman > 0 && _kor === 0) { colMap.fullName = colMap.korName; delete colMap.korName; }
+    }
     __hdr = { sheet: sheetName, header: rows[headerRow].map(function(c){ return String(c==null?'':c).trim(); }), colMap: colMap };
     for (let i = headerRow + 1; i < rows.length; i++) {
       const row = rows[i];
@@ -2430,7 +2442,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0723_1627</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0806_2214</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
