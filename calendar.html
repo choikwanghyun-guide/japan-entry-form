@@ -77,7 +77,7 @@
   .cell {
     min-height:74px; border-top:1px solid #eceef0; padding:3px 2px;
     display:flex; flex-direction:column; align-items:center; gap:2px;
-    cursor:pointer; border-radius:6px; overflow:hidden;
+    cursor:pointer; position:relative; /* 스케줄 띠를 칸 아래쪽에 고정하기 위함 */
   }
   .cell:active { background:#f0f4ff; }
   .cell.other { opacity:.35; }
@@ -100,12 +100,15 @@
   .mark { display:inline-block; vertical-align:-1px; width:10px; height:10px; margin-right:1px; }
   .list-item .mark, .hol-card .mark { width:15px; height:15px; vertical-align:-2px; }
   .memo-dot { width:5px; height:5px; border-radius:50%; background:#f9ab00; margin-top:1px; flex:none; }
-  /* 스케줄 띠 (투어 기간 표시) */
+  /* 스케줄 띠 (투어 기간 표시) — 칸 경계를 넘어 한 줄로 이어짐 */
   .sched {
-    font-size:9px; line-height:1.4; width:100%; text-align:center;
-    color:#3c4043; font-weight:600; border-radius:3px; padding:0 2px; min-height:13px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    position:absolute; left:0; right:0; height:14px;
+    font-size:9.5px; line-height:14px; color:#3c4043;
+    white-space:nowrap; overflow:visible; text-align:left; z-index:1;
   }
+  .sched .lbl { padding-left:4px; position:relative; z-index:2; }
+  .sched.ss { border-top-left-radius:4px; border-bottom-left-radius:4px; }
+  .sched.se { border-top-right-radius:4px; border-bottom-right-radius:4px; }
 
   /* ===== 이 달의 공휴일 목록 ===== */
   #monthList { padding:8px 14px 20px; }
@@ -162,6 +165,7 @@
   .sched-item button {
     background:none; border:none; color:#d93025; font-size:12.5px; cursor:pointer; padding:4px;
   }
+  .sched-item button.edit { color:#1a73e8; }
   #schedAddBtn {
     width:100%; padding:9px 0; border:1.5px dashed #bdc1c6; background:none;
     border-radius:10px; color:#5f6368; font-size:13.5px; cursor:pointer; margin-bottom:6px;
@@ -232,7 +236,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1420 (KST)</footer>
+  <footer>rev_2026_0809_1424 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -441,6 +445,11 @@ function render() {
   grid.innerHTML = "";
   const totalCells = Math.ceil((first + daysInMonth) / 7) * 7;
 
+  // 이 화면에 보이는 스케줄들에 줄 번호(레인)를 배정 — 겹치는 스케줄은 서로 다른 줄에
+  const d0 = new Date(y, m, 1 - first), d1 = new Date(y, m, totalCells - first);
+  const { lanes: schedLanes, count: laneCount } =
+    assignLanes(keyOf(d0.getFullYear(), d0.getMonth(), d0.getDate()), keyOf(d1.getFullYear(), d1.getMonth(), d1.getDate()));
+
   for (let i = 0; i < totalCells; i++) {
     const dayNum = i - first + 1;
     const cell = document.createElement("div");
@@ -462,13 +471,19 @@ function render() {
     let html = `<div class="num">${cd}</div>`;
     if (kr) html += `<div class="badge kr">${KR_MARK}${holName(KR_INFO, kr)}</div>`;
     if (jp) html += `<div class="badge jp">${JP_MARK}${holName(JP_INFO, jp)}</div>`;
-    // 이 날짜에 걸쳐있는 스케줄 띠 표시 (시작일과 매주 일요일에만 이름 표기)
+    // 이 날짜에 걸쳐있는 스케줄 띠 표시 — 칸 아래쪽에 고정해 옆 칸과 이어지게.
+    // 이름은 시작일(또는 주가 바뀌는 일요일)에 한 번만 쓰고, 띠 위로 흘러넘쳐 전부 보이게 함
     for (const s of schedsOn(k)) {
-      const label = (k === s.start || dow === 0) ? s.title : "&nbsp;";
-      html += `<div class="sched" style="background:${s.color}">${label}</div>`;
+      const lane = schedLanes[s.id] || 0;
+      const isStart = (k === s.start || dow === 0);
+      const isEnd = (k === s.end || dow === 6);
+      const label = isStart ? `<span class="lbl">${s.title}</span>` : "";
+      html += `<div class="sched${isStart ? " ss" : ""}${isEnd ? " se" : ""}" style="background:${s.color}; bottom:${3 + lane * 16}px">${label}</div>`;
     }
     if (localStorage.getItem("hanilmemo_" + k)) html += `<div class="memo-dot"></div>`;
     cell.innerHTML = html;
+    // 띠가 차지할 아래쪽 공간 확보 (줄 수만큼)
+    cell.style.paddingBottom = (3 + laneCount * 16) + "px";
 
     cell.addEventListener("click", () => openSheet(k));
     grid.appendChild(cell);
@@ -532,6 +547,7 @@ document.getElementById("overlay").addEventListener("click", closeSheet);
 // 파스텔톤 8색 (띠 글씨는 어두운 색으로 표시)
 const SCHED_COLORS = ["#FFCDD2", "#FFE0B2", "#FFF59D", "#C8E6C9", "#B2DFDB", "#BBDEFB", "#D1C4E9", "#F8BBD0"];
 let schedColor = SCHED_COLORS[0];
+let editingSchedId = null; // 수정 중인 스케줄 id (null이면 새로 추가)
 
 function loadScheds() {
   try { return JSON.parse(localStorage.getItem("hanil_schedules") || "[]"); }
@@ -543,6 +559,21 @@ function schedsOn(k) {
   return loadScheds().filter(s => s.start <= k && k <= s.end);
 }
 
+// 기간이 겹치는 스케줄끼리 다른 줄(레인)에 배치되도록 줄 번호 배정
+function assignLanes(fromKey, toKey) {
+  const list = loadScheds()
+    .filter(s => s.end >= fromKey && s.start <= toKey)
+    .sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  const laneEnds = [], lanes = {};
+  for (const s of list) {
+    let lane = laneEnds.findIndex(e => e < s.start);
+    if (lane === -1) { lane = laneEnds.length; laneEnds.push(s.end); }
+    else laneEnds[lane] = s.end;
+    lanes[s.id] = lane;
+  }
+  return { lanes, count: laneEnds.length };
+}
+
 /* 시트 안 스케줄 목록 그리기 */
 function renderSchedList() {
   const box = document.getElementById("schedList");
@@ -551,6 +582,7 @@ function renderSchedList() {
     `<div class="sched-item">
        <div class="bar" style="background:${s.color}"></div>
        <div class="t">${s.title}<div class="range">${s.start.replaceAll("-","/")} ~ ${s.end.replaceAll("-","/")}</div></div>
+       <button class="edit" onclick="editSched(${s.id})">수정</button>
        <button onclick="deleteSched(${s.id})">삭제</button>
      </div>`).join("");
 }
@@ -560,12 +592,27 @@ function deleteSched(id) {
   renderSchedList();
 }
 
+/* 수정 버튼: 폼에 기존 내용을 채워서 열고, 저장하면 덮어쓰기 */
+function editSched(id) {
+  const s = loadScheds().find(x => x.id === id);
+  if (!s) return;
+  editingSchedId = id;
+  document.getElementById("schedForm").style.display = "block";
+  document.getElementById("schedAddBtn").style.display = "none";
+  document.getElementById("schedTitle").value = s.title;
+  document.getElementById("schedStart").value = s.start;
+  document.getElementById("schedEnd").value = s.end;
+  schedColor = s.color;
+  document.querySelectorAll(".color-dot").forEach(d => d.classList.toggle("sel", d.dataset.color === s.color));
+}
+
 /* 색상 선택 동그라미 */
 const colorRow = document.getElementById("colorRow");
 SCHED_COLORS.forEach((c, i) => {
   const dot = document.createElement("div");
   dot.className = "color-dot" + (i === 0 ? " sel" : "");
   dot.style.background = c;
+  dot.dataset.color = c;
   dot.addEventListener("click", () => {
     schedColor = c;
     document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("sel"));
@@ -576,6 +623,7 @@ SCHED_COLORS.forEach((c, i) => {
 
 /* 추가 폼 열기/닫기/등록 */
 document.getElementById("schedAddBtn").addEventListener("click", () => {
+  editingSchedId = null; // 새로 추가 모드
   document.getElementById("schedForm").style.display = "block";
   document.getElementById("schedAddBtn").style.display = "none";
   document.getElementById("schedTitle").value = "";
@@ -583,6 +631,7 @@ document.getElementById("schedAddBtn").addEventListener("click", () => {
   document.getElementById("schedEnd").value = selectedKey;
 });
 function closeSchedForm() {
+  editingSchedId = null;
   document.getElementById("schedForm").style.display = "none";
   document.getElementById("schedAddBtn").style.display = "block";
 }
@@ -598,7 +647,13 @@ function saveSchedFromForm() {
   if (!start || !end) { alert("시작일과 종료일을 선택해 주세요."); return false; }
   if (end < start) { alert("종료일이 시작일보다 빠릅니다."); return false; }
   const arr = loadScheds();
-  arr.push({ id: Date.now(), title, start, end, color: schedColor });
+  if (editingSchedId !== null) {
+    // 수정 모드: 기존 스케줄 덮어쓰기
+    const i = arr.findIndex(x => x.id === editingSchedId);
+    if (i >= 0) arr[i] = { ...arr[i], title, start, end, color: schedColor };
+  } else {
+    arr.push({ id: Date.now(), title, start, end, color: schedColor });
+  }
   saveScheds(arr);
   return true;
 }
