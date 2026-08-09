@@ -91,8 +91,8 @@
   .cell.today .num { background:#1a73e8; color:#fff !important; font-weight:700; }
   .badge {
     font-size:9.5px; line-height:1.25; width:100%; text-align:center;
-    border-radius:4px; padding:1px 1px; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis;
+    border-radius:4px; padding:1px 1px;
+    word-break:break-all; /* 긴 이름은 잘리지 않고 다음 줄로 */
   }
   .badge.kr { background:#e8f0fe; color:#1967d2; } /* 한국 = 파란 폰트 */
   .badge.jp { background:#fce8e6; color:#c5221f; } /* 일본 = 빨간 폰트 */
@@ -233,7 +233,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1415 (KST)</footer>
+  <footer>rev_2026_0809_1418 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
