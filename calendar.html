@@ -240,7 +240,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1400 (KST)</footer>
+  <footer>rev_2026_0809_1413 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -618,7 +618,7 @@ document.getElementById("memoSave").addEventListener("click", () => {
   const v = document.getElementById("memoInput").value.trim();
   if (v) localStorage.setItem("hanilmemo_" + selectedKey, v);
   else localStorage.removeItem("hanilmemo_" + selectedKey);
-  document.getElementById("memoMsg").textContent = "✅ 저장되었습니다";
+  closeSheet(); // 저장하면 창 닫기
 });
 document.getElementById("memoDel").addEventListener("click", () => {
   localStorage.removeItem("hanilmemo_" + selectedKey);
