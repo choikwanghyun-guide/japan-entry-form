@@ -27,6 +27,10 @@
     --c-hotel-2: #f43f5e;
     --c-schedule-1: #a855f7;
     --c-schedule-2: #7c3aed;
+    --c-calendar-1: #3b82f6;
+    --c-calendar-2: #ef4444;
+    --c-wifi-1: #fdb52a;
+    --c-wifi-2: #f39b12;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -120,6 +124,8 @@
   .tool-card.c-settlement { --c1: var(--c-settlement-1); --c2: var(--c-settlement-2); }
   .tool-card.c-hotel      { --c1: var(--c-hotel-1);      --c2: var(--c-hotel-2); }
   .tool-card.c-schedule   { --c1: var(--c-schedule-1);   --c2: var(--c-schedule-2); }
+  .tool-card.c-calendar   { --c1: var(--c-calendar-1);   --c2: var(--c-calendar-2); }
+  .tool-card.c-wifi       { --c1: var(--c-wifi-1);       --c2: var(--c-wifi-2); }
 
   .tool-icon {
     width: 56px;
@@ -311,10 +317,40 @@
       <div class="tool-desc">구글 캘린더와 연동해 가능한 날짜를 랜드사에게 공유해요</div>
       <div class="tool-arrow">열기 <span class="arrow">→</span></div>
     </a>
+
+    <a class="tool-card c-calendar" href="calendar.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.8"></rect>
+          <line x1="3.5" y1="9" x2="20.5" y2="9" stroke="currentColor" stroke-width="1.8"></line>
+          <line x1="8" y1="3" x2="8" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line>
+          <line x1="16" y1="3" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></line>
+          <circle cx="8.5" cy="13.5" r="1.6" fill="currentColor"></circle>
+          <circle cx="15.5" cy="16" r="1.6" stroke="currentColor" stroke-width="1.4" fill="none"></circle>
+        </svg>
+      </div>
+      <div class="tool-title">한일 공휴일 달력</div>
+      <div class="tool-desc">한국·일본 공휴일과 유래 설명, 투어 일정·메모까지 한 화면에</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
+
+    <a class="tool-card c-wifi" href="wifi.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2.5 9.2C5.1 6.7 8.4 5.3 12 5.3s6.9 1.4 9.5 3.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"></path>
+          <path d="M5.5 12.6c1.8-1.7 4-2.6 6.5-2.6s4.7 0.9 6.5 2.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"></path>
+          <path d="M8.5 15.9c1-0.9 2.2-1.4 3.5-1.4s2.5 0.5 3.5 1.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"></path>
+          <circle cx="12" cy="18.8" r="1.6" fill="currentColor"></circle>
+        </svg>
+      </div>
+      <div class="tool-title">Wi-Fi QR 카드</div>
+      <div class="tool-desc">와이파이 이름·비밀번호로 QR 카드를 만들어 손님께 보여줘요</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
   </div>
 
   <div class="footer">
-    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0705_1058</span>
+    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0809_1923</span>
   </div>
 </div>
 
