@@ -16,10 +16,21 @@
 <title>한일 공휴일 달력</title>
 <style>
   /* ===== 기본 ===== */
+  /* 빙그레체 (무료 배포 폰트, 눈누 CDN) — 로딩 실패 시 기본 고딕으로 대체됨 */
+  @font-face {
+    font-family: 'Binggrae';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/Binggrae.woff') format('woff');
+    font-weight: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Binggrae';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@2.1/Binggrae-Bold.woff') format('woff');
+    font-weight: bold; font-display: swap;
+  }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; }
   body {
-    font-family:-apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-family:"Binggrae", -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     background:#f1f3f4; color:#202124;
     display:flex; justify-content:center;
   }
@@ -92,7 +103,7 @@
   /* 스케줄 띠 (투어 기간 표시) */
   .sched {
     font-size:9px; line-height:1.4; width:100%; text-align:center;
-    color:#fff; border-radius:3px; padding:0 2px; min-height:13px;
+    color:#3c4043; font-weight:600; border-radius:3px; padding:0 2px; min-height:13px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
 
@@ -226,7 +237,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1355 (KST)</footer>
+  <footer>rev_2026_0809_1359 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -241,7 +252,7 @@
     <div id="schedList"></div>
     <button id="schedAddBtn">＋ 스케줄 추가</button>
     <div id="schedForm" style="display:none">
-      <label>스케줄 이름</label>
+      <label>제목</label>
       <input type="text" id="schedTitle" placeholder="예: ○○팀 오사카 투어">
       <label>시작일</label>
       <input type="date" id="schedStart">
@@ -257,8 +268,8 @@
   </div>
 
   <div class="memo-box">
-    <h3>📝 내 메모 (이 기기에만 저장됩니다)</h3>
-    <textarea id="memoInput" placeholder="예: ○○팀 오사카 3일차 / 항공권 예약 마감일"></textarea>
+    <h3>📝 메모</h3>
+    <textarea id="memoInput"></textarea>
     <div class="memo-btns">
       <button id="memoSave">저장</button>
       <button id="memoDel">삭제</button>
@@ -424,7 +435,7 @@ function holName(info, entry) {
 
 // 태극 문양 / 일장기 빨간 원 (SVG — 어느 기기에서나 동일하게 보임)
 const KR_MARK = `<svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#cd2e3a"/><path d="M0 50 a25 25 0 0 0 50 0 a25 25 0 0 1 50 0 a50 50 0 0 1 -100 0 z" fill="#0047a0"/></svg>`;
-const JP_MARK = `<svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="#fff" stroke="#c9cdd1" stroke-width="5"/><circle cx="50" cy="50" r="29" fill="#bc002d"/></svg>`;
+const JP_MARK = `<svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#bc002d"/></svg>`;
 
 function render() {
   const y = view.getFullYear(), m = view.getMonth();
@@ -527,7 +538,8 @@ function closeSheet() {
 document.getElementById("overlay").addEventListener("click", closeSheet);
 
 /* ================= 스케줄 (localStorage) ================= */
-const SCHED_COLORS = ["#188038", "#f9ab00", "#9334e6", "#0097a7"];
+// 파스텔톤 8색 (띠 글씨는 어두운 색으로 표시)
+const SCHED_COLORS = ["#FFCDD2", "#FFE0B2", "#FFF59D", "#C8E6C9", "#B2DFDB", "#BBDEFB", "#D1C4E9", "#F8BBD0"];
 let schedColor = SCHED_COLORS[0];
 
 function loadScheds() {
