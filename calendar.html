@@ -30,7 +30,6 @@ header:after{content:"";position:absolute;width:180px;height:180px;left:-100px;b
 header>div{position:relative;z-index:1}
 header h1{font-size:30px;line-height:1.05;letter-spacing:-1.8px;color:#263246;font-weight:700!important}
 header h1 .t1{color:#246ed2}
-header .sub{font-size:12px;color:#69758a;margin-top:8px;letter-spacing:-.3px}
 #todayBtn{position:relative;z-index:2;border:0;background:#246ed2;color:#fff;border-radius:24px;padding:10px 17px;font-size:13px;box-shadow:0 7px 18px rgba(36,110,210,.22);cursor:pointer}
 
 /* month navigation */
@@ -58,12 +57,6 @@ header .sub{font-size:12px;color:#69758a;margin-top:8px;letter-spacing:-.3px}
 .memo-dot{width:5px;height:5px;border-radius:50%;background:#f2a51a;margin-top:2px;flex:none}
 .sched{position:absolute;left:0;right:0;height:15px;font-size:8.5px;line-height:15px;color:#29405e;white-space:nowrap;overflow:visible;text-align:left;z-index:1}
 .sched .lbl{padding-left:5px;position:relative;z-index:2;font-weight:700!important}.sched.ss{border-top-left-radius:6px;border-bottom-left-radius:6px}.sched.se{border-top-right-radius:6px;border-bottom-right-radius:6px}
-
-/* legend */
-.calendar-legend{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:10px 16px 3px}
-.legend-pill{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #edf0f4;border-radius:20px;padding:7px 10px;font-size:10.5px;color:#657185;box-shadow:0 3px 10px rgba(38,50,70,.04)}
-.legend-pill .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.legend-pill .bar{width:14px;height:8px;border-radius:3px;flex:none}
 
 /* holiday list */
 #monthList{padding:16px 16px 24px}
@@ -113,8 +106,7 @@ header h1,#monthTitle,#monthList h2,#sheetDate,.hol-card .title,.list-item.kr .n
 <div id="app">
   <header>
     <div>
-      <h1><span class="t1">한일</span> 달력</h1>
-      <div class="sub">한국 · 일본 공휴일과 투어 일정을 한눈에</div>
+      <h1><span class="t1">한일</span> 공휴일 달력</h1>
     </div>
     <button id="todayBtn">오늘</button>
   </header>
@@ -129,12 +121,6 @@ header h1,#monthTitle,#monthList h2,#sheetDate,.hol-card .title,.list-item.kr .n
     <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
   </div>
   <div id="grid"></div>
-<div class="calendar-legend">
-  <span class="legend-pill"><span class="dot" style="background:#246ed2"></span>한국 공휴일</span>
-  <span class="legend-pill"><span class="dot" style="background:#df4b5a"></span>일본 공휴일</span>
-  <span class="legend-pill"><span class="bar" style="background:#FFE0B2"></span>투어 일정</span>
-  <span class="legend-pill"><span class="dot" style="background:#f2a51a"></span>메모</span>
-</div>
 
   <div id="rangeWarn" class="range-warn" style="display:none">
     ⚠️ 이 달은 공휴일 데이터가 아직 없습니다. (현재 2026~2028년 수록)
@@ -142,7 +128,7 @@ header h1,#monthTitle,#monthList h2,#sheetDate,.hol-card .title,.list-item.kr .n
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1714 (KST)</footer>
+  <footer>rev_2026_0809_1717 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
