@@ -179,13 +179,6 @@
     border:3px solid transparent;
   }
   .color-dot.sel { border-color:#202124; }
-  .sched-form-btns { display:flex; gap:8px; margin-top:12px; }
-  .sched-form-btns button {
-    flex:1; padding:10px 0; border:none; border-radius:10px;
-    font-size:14px; font-weight:600; cursor:pointer;
-  }
-  #schedSaveBtn { background:#188038; color:#fff; }
-  #schedCancelBtn { background:#e8eaed; color:#3c4043; }
 
   /* ===== 메모 ===== */
   .memo-box h3 { font-size:13px; color:#70757a; margin:6px 0; }
@@ -240,7 +233,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1413 (KST)</footer>
+  <footer>rev_2026_0809_1415 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -263,10 +256,6 @@
       <input type="date" id="schedEnd">
       <label>색상</label>
       <div class="color-row" id="colorRow"></div>
-      <div class="sched-form-btns">
-        <button id="schedSaveBtn">등록</button>
-        <button id="schedCancelBtn">취소</button>
-      </div>
     </div>
   </div>
 
@@ -598,23 +587,26 @@ function closeSchedForm() {
   document.getElementById("schedForm").style.display = "none";
   document.getElementById("schedAddBtn").style.display = "block";
 }
-document.getElementById("schedCancelBtn").addEventListener("click", closeSchedForm);
-document.getElementById("schedSaveBtn").addEventListener("click", () => {
+/* 스케줄 등록은 하단 '저장' 버튼에서 메모와 함께 처리 (아래 memoSave 참고).
+   저장하지 않고 시트를 닫으면 입력 내용은 버려짐 = 취소 역할 */
+function saveSchedFromForm() {
+  const form = document.getElementById("schedForm");
+  if (form.style.display === "none") return true; // 폼이 닫혀있으면 할 일 없음
   const title = document.getElementById("schedTitle").value.trim();
+  if (!title) return true; // 제목이 비어있으면 스케줄은 등록하지 않음
   const start = document.getElementById("schedStart").value;
   const end = document.getElementById("schedEnd").value;
-  if (!title) { alert("스케줄 이름을 입력해 주세요."); return; }
-  if (!start || !end) { alert("시작일과 종료일을 선택해 주세요."); return; }
-  if (end < start) { alert("종료일이 시작일보다 빠릅니다."); return; }
+  if (!start || !end) { alert("시작일과 종료일을 선택해 주세요."); return false; }
+  if (end < start) { alert("종료일이 시작일보다 빠릅니다."); return false; }
   const arr = loadScheds();
   arr.push({ id: Date.now(), title, start, end, color: schedColor });
   saveScheds(arr);
-  closeSchedForm();
-  renderSchedList();
-});
+  return true;
+}
 
 /* ================= 메모 (localStorage) ================= */
 document.getElementById("memoSave").addEventListener("click", () => {
+  if (!saveSchedFromForm()) return; // 스케줄 입력에 문제가 있으면 닫지 않음
   const v = document.getElementById("memoInput").value.trim();
   if (v) localStorage.setItem("hanilmemo_" + selectedKey, v);
   else localStorage.removeItem("hanilmemo_" + selectedKey);
