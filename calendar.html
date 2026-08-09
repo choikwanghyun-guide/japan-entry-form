@@ -85,6 +85,9 @@
   }
   .badge.kr { background:#e8f0fe; color:#1967d2; } /* 한국 = 파란 폰트 */
   .badge.jp { background:#fce8e6; color:#c5221f; } /* 일본 = 빨간 폰트 */
+  /* 태극·일장기 마크 (이모지는 윈도우에서 KR/JP 글자로 보여서 SVG로 직접 그림) */
+  .mark { display:inline-block; vertical-align:-1px; width:10px; height:10px; margin-right:1px; }
+  .list-item .mark, .hol-card .mark { width:15px; height:15px; vertical-align:-2px; }
   .memo-dot { width:5px; height:5px; border-radius:50%; background:#f9ab00; margin-top:1px; flex:none; }
   /* 스케줄 띠 (투어 기간 표시) */
   .sched {
@@ -223,7 +226,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1349 (KST)</footer>
+  <footer>rev_2026_0809_1351 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -419,6 +422,10 @@ function holName(info, entry) {
   return entry[1] || info[entry[0]].ko;
 }
 
+// 태극 문양 / 일장기 빨간 원 (SVG — 어느 기기에서나 동일하게 보임)
+const KR_MARK = `<svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#cd2e3a"/><path d="M0 50 a25 25 0 0 0 50 0 a25 25 0 0 1 50 0 a50 50 0 0 1 -100 0 z" fill="#0047a0"/></svg>`;
+const JP_MARK = `<svg class="mark" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="#fff" stroke="#c9cdd1" stroke-width="5"/><circle cx="50" cy="50" r="29" fill="#bc002d"/></svg>`;
+
 function render() {
   const y = view.getFullYear(), m = view.getMonth();
   document.getElementById("monthTitle").textContent = `${y}년 ${m + 1}월`;
@@ -451,8 +458,8 @@ function render() {
     if (kr) cell.classList.add("kr-hol");
 
     let html = `<div class="num">${cd}</div>`;
-    if (kr) html += `<div class="badge kr">🇰🇷${holName(KR_INFO, kr)}</div>`;
-    if (jp) html += `<div class="badge jp">🇯🇵${holName(JP_INFO, jp)}</div>`;
+    if (kr) html += `<div class="badge kr">${KR_MARK}${holName(KR_INFO, kr)}</div>`;
+    if (jp) html += `<div class="badge jp">${JP_MARK}${holName(JP_INFO, jp)}</div>`;
     // 이 날짜에 걸쳐있는 스케줄 띠 표시 (시작일과 매주 일요일에만 이름 표기)
     for (const s of schedsOn(k)) {
       const label = (k === s.start || dow === 0) ? s.title : "&nbsp;";
@@ -478,8 +485,8 @@ function renderMonthList(y, m) {
     const k = keyOf(y, m, d);
     const dow = dowName[new Date(y, m, d).getDay()];
     const kr = KR_DAYS[k], jp = JP_DAYS[k];
-    if (kr) items += `<div class="list-item kr" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">🇰🇷</span><span class="name">${holName(KR_INFO, kr)}</span></div>`;
-    if (jp) items += `<div class="list-item jp" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">🇯🇵</span><span class="name">${holName(JP_INFO, jp)} <span style="color:#9aa0a6;font-weight:400;font-size:12px">${JP_INFO[jp[0]].ja.split("（")[0]}</span></span></div>`;
+    if (kr) items += `<div class="list-item kr" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">${KR_MARK}</span><span class="name">${holName(KR_INFO, kr)}</span></div>`;
+    if (jp) items += `<div class="list-item jp" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">${JP_MARK}</span><span class="name">${holName(JP_INFO, jp)} <span style="color:#9aa0a6;font-weight:400;font-size:12px">${JP_INFO[jp[0]].ja.split("（")[0]}</span></span></div>`;
   }
   box.innerHTML = `<h2>이 달의 공휴일</h2>` + (items || `<div class="empty-note">이 달에는 공휴일이 없습니다.</div>`);
 }
@@ -496,11 +503,11 @@ function openSheet(k) {
   let html = "";
   if (kr) {
     const info = KR_INFO[kr[0]];
-    html += `<div class="hol-card kr"><div class="title">🇰🇷 ${kr[1] || info.ko}</div><div class="desc">${info.desc}</div></div>`;
+    html += `<div class="hol-card kr"><div class="title">${KR_MARK} ${kr[1] || info.ko}</div><div class="desc">${info.desc}</div></div>`;
   }
   if (jp) {
     const info = JP_INFO[jp[0]];
-    html += `<div class="hol-card jp"><div class="title">🇯🇵 ${jp[1] || info.ko}</div><div class="jaName">${info.ja}</div><div class="desc">${info.desc}</div></div>`;
+    html += `<div class="hol-card jp"><div class="title">${JP_MARK} ${jp[1] || info.ko}</div><div class="jaName">${info.ja}</div><div class="desc">${info.desc}</div></div>`;
   }
   if (!kr && !jp) html = `<div class="no-hol">이 날은 한국·일본 모두 공휴일이 아닙니다.</div>`;
   document.getElementById("sheetHols").innerHTML = html;
