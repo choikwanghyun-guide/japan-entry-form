@@ -226,7 +226,7 @@
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1351 (KST)</footer>
+  <footer>rev_2026_0809_1353 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
@@ -509,8 +509,7 @@ function openSheet(k) {
     const info = JP_INFO[jp[0]];
     html += `<div class="hol-card jp"><div class="title">${JP_MARK} ${jp[1] || info.ko}</div><div class="jaName">${info.ja}</div><div class="desc">${info.desc}</div></div>`;
   }
-  if (!kr && !jp) html = `<div class="no-hol">이 날은 한국·일본 모두 공휴일이 아닙니다.</div>`;
-  document.getElementById("sheetHols").innerHTML = html;
+  document.getElementById("sheetHols").innerHTML = html; // 공휴일 없는 날은 아무것도 표시하지 않음
 
   document.getElementById("memoInput").value = localStorage.getItem("hanilmemo_" + k) || "";
   document.getElementById("memoMsg").textContent = "";
