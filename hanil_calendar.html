@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<!-- 홈 화면에 추가하면 앱처럼 전체화면으로 열리게 하는 설정 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="한일달력">
+<meta name="theme-color" content="#1a73e8">
+<title>한일 공휴일 달력</title>
+<style>
+  /* ===== 기본 ===== */
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background:#f1f3f4; color:#202124;
+    display:flex; justify-content:center;
+  }
+  #app {
+    width:100%; max-width:520px; background:#fff;
+    min-height:100vh; display:flex; flex-direction:column;
+    box-shadow:0 0 20px rgba(0,0,0,.08);
+  }
+
+  /* ===== 상단바 ===== */
+  header {
+    background:#1a73e8; color:#fff;
+    padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:10;
+  }
+  header h1 { font-size:16px; font-weight:700; }
+  header .sub { font-size:11px; opacity:.85; font-weight:400; }
+  #todayBtn {
+    background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.5);
+    color:#fff; border-radius:16px; padding:5px 14px; font-size:13px; cursor:pointer;
+  }
+
+  /* ===== 월 이동 ===== */
+  .month-nav {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px 8px 6px;
+  }
+  .month-nav button {
+    background:none; border:none; font-size:22px; color:#5f6368;
+    width:44px; height:38px; cursor:pointer; border-radius:8px;
+  }
+  .month-nav button:active { background:#eee; }
+  #monthTitle { font-size:19px; font-weight:700; min-width:150px; text-align:center; }
+
+  /* ===== 요일 행 ===== */
+  .weekdays { display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; }
+  .weekdays div { text-align:center; font-size:12px; color:#70757a; padding:6px 0; font-weight:600; }
+  .weekdays div:first-child { color:#d93025; }
+  .weekdays div:last-child { color:#1a73e8; }
+
+  /* ===== 달력 그리드 ===== */
+  #grid { display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px 6px; }
+  .cell {
+    min-height:74px; border-top:1px solid #eceef0; padding:3px 2px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    cursor:pointer; border-radius:6px; overflow:hidden;
+  }
+  .cell:active { background:#f0f4ff; }
+  .cell.other { opacity:.35; }
+  .cell .num {
+    font-size:14px; width:26px; height:26px; line-height:26px;
+    text-align:center; border-radius:50%; font-weight:500;
+  }
+  .cell.sun .num { color:#d93025; }
+  .cell.sat .num { color:#1a73e8; }
+  .cell.kr-hol .num { color:#1a73e8; } /* 한국 공휴일 = 파란색 */
+  .cell.today .num { background:#1a73e8; color:#fff !important; font-weight:700; }
+  .badge {
+    font-size:9.5px; line-height:1.25; width:100%; text-align:center;
+    border-radius:4px; padding:1px 1px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  .badge.kr { background:#e8f0fe; color:#1967d2; } /* 한국 = 파란 폰트 */
+  .badge.jp { background:#fce8e6; color:#c5221f; } /* 일본 = 빨간 폰트 */
+  .memo-dot { width:5px; height:5px; border-radius:50%; background:#f9ab00; margin-top:1px; flex:none; }
+  /* 스케줄 띠 (투어 기간 표시) */
+  .sched {
+    font-size:9px; line-height:1.4; width:100%; text-align:center;
+    color:#fff; border-radius:3px; padding:0 2px; min-height:13px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* ===== 이 달의 공휴일 목록 ===== */
+  #monthList { padding:8px 14px 20px; }
+  #monthList h2 { font-size:13px; color:#70757a; margin:8px 0 6px; }
+  .list-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:10px; margin-bottom:5px; background:#f8f9fa; cursor:pointer;
+    font-size:13.5px;
+  }
+  .list-item:active { background:#eef1f3; }
+  .list-item .d { color:#5f6368; font-size:12px; min-width:64px; }
+  .list-item .flag { font-size:15px; }
+  .list-item.kr .name { color:#1967d2; font-weight:600; }
+  .list-item.jp .name { color:#c5221f; font-weight:600; }
+  .empty-note { color:#9aa0a6; font-size:13px; padding:6px 2px; }
+  .range-warn {
+    margin:8px 14px; padding:10px 12px; background:#fef7e0; color:#7a5d00;
+    border-radius:10px; font-size:12.5px; line-height:1.5;
+  }
+
+  /* ===== 하단 시트(상세) ===== */
+  #overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  #overlay.show { opacity:1; pointer-events:auto; }
+  #sheet {
+    position:fixed; left:50%; transform:translate(-50%,105%);
+    bottom:0; width:100%; max-width:520px; background:#fff;
+    border-radius:18px 18px 0 0; z-index:21;
+    transition:transform .25s ease; max-height:82vh; overflow-y:auto;
+    padding:14px 18px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  }
+  #sheet.show { transform:translate(-50%,0); }
+  .sheet-handle { width:38px; height:4px; background:#dadce0; border-radius:2px; margin:0 auto 12px; }
+  #sheetDate { font-size:17px; font-weight:700; margin-bottom:10px; }
+  .hol-card { border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+  .hol-card.kr { background:#eef4fe; border-left:4px solid #1a73e8; }
+  .hol-card.jp { background:#fdf0ef; border-left:4px solid #d93025; }
+  .hol-card .title { font-size:15px; font-weight:700; margin-bottom:2px; }
+  .hol-card .jaName { font-size:12.5px; color:#5f6368; margin-bottom:6px; }
+  .hol-card .desc { font-size:13.5px; line-height:1.65; color:#3c4043; white-space:pre-line; }
+  .no-hol { color:#9aa0a6; font-size:13.5px; margin-bottom:10px; }
+
+  /* ===== 스케줄 입력 ===== */
+  .sched-box h3 { font-size:13px; color:#70757a; margin:10px 0 6px; }
+  .sched-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:10px; background:#f8f9fa; margin-bottom:5px; font-size:13.5px;
+  }
+  .sched-item .bar { width:5px; height:22px; border-radius:3px; flex:none; }
+  .sched-item .t { flex:1; }
+  .sched-item .range { color:#70757a; font-size:11.5px; }
+  .sched-item button {
+    background:none; border:none; color:#d93025; font-size:12.5px; cursor:pointer; padding:4px;
+  }
+  #schedAddBtn {
+    width:100%; padding:9px 0; border:1.5px dashed #bdc1c6; background:none;
+    border-radius:10px; color:#5f6368; font-size:13.5px; cursor:pointer; margin-bottom:6px;
+  }
+  #schedForm { background:#f8f9fa; border-radius:12px; padding:12px; margin-bottom:8px; }
+  #schedForm label { font-size:12px; color:#70757a; display:block; margin:8px 0 3px; }
+  #schedForm input[type=text], #schedForm input[type=date] {
+    width:100%; border:1.5px solid #dadce0; border-radius:8px; padding:8px;
+    font-size:14px; font-family:inherit; outline:none; background:#fff;
+  }
+  #schedForm input:focus { border-color:#1a73e8; }
+  .color-row { display:flex; gap:10px; margin-top:4px; }
+  .color-dot {
+    width:26px; height:26px; border-radius:50%; cursor:pointer;
+    border:3px solid transparent;
+  }
+  .color-dot.sel { border-color:#202124; }
+  .sched-form-btns { display:flex; gap:8px; margin-top:12px; }
+  .sched-form-btns button {
+    flex:1; padding:10px 0; border:none; border-radius:10px;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  #schedSaveBtn { background:#188038; color:#fff; }
+  #schedCancelBtn { background:#e8eaed; color:#3c4043; }
+
+  /* ===== 메모 ===== */
+  .memo-box h3 { font-size:13px; color:#70757a; margin:6px 0; }
+  #memoInput {
+    width:100%; min-height:76px; border:1.5px solid #dadce0; border-radius:10px;
+    padding:10px; font-size:14px; font-family:inherit; resize:vertical; outline:none;
+  }
+  #memoInput:focus { border-color:#1a73e8; }
+  .memo-btns { display:flex; gap:8px; margin-top:8px; }
+  .memo-btns button {
+    flex:1; padding:11px 0; border:none; border-radius:10px;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  #memoSave { background:#1a73e8; color:#fff; }
+  #memoDel { background:#f1f3f4; color:#d93025; }
+  #memoMsg { font-size:12px; color:#188038; margin-top:6px; height:14px; }
+
+  footer {
+    text-align:center; color:#b0b4b8; font-size:10.5px;
+    padding:8px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+    margin-top:auto;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>한일 공휴일 달력</h1>
+      <div class="sub">가이드용 · 날짜를 누르면 설명과 메모</div>
+    </div>
+    <button id="todayBtn">오늘</button>
+  </header>
+
+  <div class="month-nav">
+    <button id="prevBtn" aria-label="이전 달">‹</button>
+    <div id="monthTitle"></div>
+    <button id="nextBtn" aria-label="다음 달">›</button>
+  </div>
+
+  <div class="weekdays">
+    <div>일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
+  </div>
+  <div id="grid"></div>
+
+  <div id="rangeWarn" class="range-warn" style="display:none">
+    ⚠️ 이 달은 공휴일 데이터가 아직 없습니다. (현재 2026~2028년 수록)
+  </div>
+
+  <div id="monthList"></div>
+
+  <footer>rev_2026_0809_1335 (KST)</footer>
+</div>
+
+<!-- 날짜 상세 하단 시트 -->
+<div id="overlay"></div>
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div id="sheetDate"></div>
+  <div id="sheetHols"></div>
+
+  <div class="sched-box">
+    <h3>🗓 스케줄 (투어 기간 등록)</h3>
+    <div id="schedList"></div>
+    <button id="schedAddBtn">＋ 스케줄 추가</button>
+    <div id="schedForm" style="display:none">
+      <label>스케줄 이름</label>
+      <input type="text" id="schedTitle" placeholder="예: ○○팀 오사카 투어">
+      <label>시작일</label>
+      <input type="date" id="schedStart">
+      <label>종료일</label>
+      <input type="date" id="schedEnd">
+      <label>색상</label>
+      <div class="color-row" id="colorRow"></div>
+      <div class="sched-form-btns">
+        <button id="schedSaveBtn">등록</button>
+        <button id="schedCancelBtn">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="memo-box">
+    <h3>📝 내 메모 (이 기기에만 저장됩니다)</h3>
+    <textarea id="memoInput" placeholder="예: ○○팀 오사카 3일차 / 항공권 예약 마감일"></textarea>
+    <div class="memo-btns">
+      <button id="memoSave">저장</button>
+      <button id="memoDel">삭제</button>
+    </div>
+    <div id="memoMsg"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   한일 공휴일 달력 — 2026~2028년 데이터 내장
+   · 한국: 대체공휴일 포함 / 일본: 振替休日·国民の休日 포함
+   · 메모는 이 폰(브라우저)의 localStorage에 저장 (개인용)
+   ========================================================= */
+
+/* ---------- 일본 공휴일 설명 (유래 · 가이드 토크용) ---------- */
+const JP_INFO = {
+  ganjitsu: { ko:"설날 (간지츠)", ja:"元日（がんじつ）",
+    desc:"새해 첫날을 축하하는 날. 일본은 메이지유신(1873년) 때 음력을 폐지해서 설을 양력 1월 1일에 쇱니다. 그래서 한국·중국과 달리 '구정'이 없습니다.\n집집마다 오세치 요리를 먹고, 신사·절에 첫 참배(하츠모데)를 갑니다. 1월 1~3일은 '산가니치(三が日)'라 해서 대부분 상점이 쉬거나 단축 영업하니 투어 일정 시 주의!" },
+  seijin: { ko:"성인의 날", ja:"成人の日（せいじんのひ）",
+    desc:"1월 둘째 월요일. 만 18세(예전엔 20세)가 된 젊은이들의 어른 됨을 축하하는 날. 원래 1월 15일이었는데 2000년 '해피먼데이 제도'(연휴를 만들기 위해 공휴일을 월요일로 옮긴 제도)로 이동했습니다.\n이날 시내에서 화려한 후리소데(긴소매 기모노)를 입은 여성들을 많이 볼 수 있어 손님들에게 좋은 볼거리·사진거리가 됩니다." },
+  kenkoku: { ko:"건국기념의 날", ja:"建国記念の日（けんこくきねんのひ）",
+    desc:"2월 11일. 일본서기에 기록된 초대 진무(神武)천황 즉위일(기원전 660년)을 양력으로 환산한 날. 전쟁 전에는 '기원절(紀元節)'이라 불렀고, 전후 폐지됐다가 1966년 부활했습니다.\n포인트: 이름이 '건국기념일'이 아니라 '건국기념\"의\" 날'인 이유 — 건국 날짜가 신화에 근거해 역사적 사실로 확정할 수 없다는 논쟁 때문에 '건국을 기념하는 날'이라는 애매한 이름이 됐습니다." },
+  tennou: { ko:"천황탄생일", ja:"天皇誕生日（てんのうたんじょうび）",
+    desc:"2월 23일. 현재 나루히토(徳仁) 천황의 생일입니다. 천황이 바뀌면 날짜도 바뀝니다 — 쇼와 천황 때는 4/29, 헤이세이(아키히토) 때는 12/23이었습니다.\n이날 도쿄 고쿄(황거)에서는 일반 참하(참배 행사)가 열려 천황 일가가 유리창 너머로 손을 흔드는 모습을 볼 수 있습니다." },
+  shunbun: { ko:"춘분의 날", ja:"春分の日（しゅんぶんのひ）",
+    desc:"낮과 밤의 길이가 같아지는 날. '자연을 기리고 생물을 사랑하는 날'로 법에 정의돼 있습니다. 날짜는 천문 계산으로 정해져 매년 전년도 2월에 관보로 공식 발표됩니다(3/20 또는 3/21).\n일본에서는 춘분·추분 전후 7일간을 '오히간(お彼岸)'이라 해서 성묘를 가는 풍습이 있습니다. 한국의 벌초·성묘 문화와 비교해 설명하면 좋습니다." },
+  showa: { ko:"쇼와의 날", ja:"昭和の日（しょうわのひ）",
+    desc:"4월 29일. 쇼와(昭和) 천황의 생일입니다. 사후 '미도리의 날'로 바뀌었다가 2007년부터 '격동의 쇼와 시대를 돌아보는 날'로 개칭됐습니다.\n이날부터 5/5 어린이날까지가 그 유명한 골든위크(GW)! 일본 최대 여행 성수기라 신칸센·호텔·관광지가 매우 붐비니 투어 동선에 꼭 반영해야 합니다." },
+  kenpou: { ko:"헌법기념일", ja:"憲法記念日（けんぽうきねんび）",
+    desc:"5월 3일. 1947년 일본국 헌법이 시행된 날. 전쟁 포기를 명시한 '평화헌법 9조'로 유명한 그 헌법입니다. 공포일은 반년 전인 11월 3일(문화의 날)이라는 것도 세트로 알아두면 좋은 포인트." },
+  midori: { ko:"미도리의 날 (녹색의 날)", ja:"みどりの日",
+    desc:"5월 4일. '자연에 친숙해지고 그 은혜에 감사하며 풍요로운 마음을 기르는 날'. 식물학에 조예가 깊었던 쇼와 천황을 기려 만들어졌습니다. 원래 4/29였다가 2007년 5/4로 이동해 골든위크 연휴를 이어주는 다리 역할을 합니다." },
+  kodomo: { ko:"어린이날 (고도모노히)", ja:"こどもの日",
+    desc:"5월 5일. 원래 남자아이의 성장을 비는 단오절구(端午の節句)에서 유래. 지금은 '어린이의 인격을 존중하고 행복을 도모하며, 어머니에게 감사하는 날' — 법 조문에 '어머니 감사'까지 들어있는 게 특징입니다.\n이 시기 집집마다 잉어 깃발 '고이노보리(こいのぼり)'를 다는데, 폭포를 거슬러 오르는 잉어처럼 씩씩하게 자라라는 뜻. 한국 어린이날(5/5)과 같은 날짜라 비교 토크에 좋습니다." },
+  umi: { ko:"바다의 날", ja:"海の日（うみのひ）",
+    desc:"7월 셋째 월요일. 1876년 메이지 천황이 도호쿠 순행을 마치고 기선 '메이지마루'로 요코하마에 무사히 돌아온 날(7/20)에서 유래. '바다의 은혜에 감사하고 해양국 일본의 번영을 기원하는 날'입니다.\n'바다의 날'을 국가 공휴일로 지정한 나라는 세계에서 일본이 유일하다고 알려져 있습니다 — 섬나라다운 공휴일이라고 소개하면 좋습니다." },
+  yama: { ko:"산의 날", ja:"山の日（やまのひ）",
+    desc:"8월 11일. 2016년에 생긴 가장 새로운 공휴일. '산에 친숙해질 기회를 얻어 산의 은혜에 감사하는 날'입니다. 국토의 약 7할이 산인 일본다운 공휴일.\n오봉(お盆, 8/13~16 조상맞이 명절) 직전에 붙여서 여름 연휴가 길어지도록 8/11로 정했습니다. 오봉 기간은 공휴일은 아니지만 일본 전체가 귀성·여행으로 대이동하니 성수기 주의!" },
+  keirou: { ko:"경로의 날", ja:"敬老の日（けいろうのひ）",
+    desc:"9월 셋째 월요일. '오랜 세월 사회에 힘써온 노인을 공경하고 장수를 축하하는 날'. 효고현의 한 마을에서 시작한 '노인의 날' 행사가 전국으로 퍼져 공휴일이 된, 풀뿌리 유래의 공휴일입니다.\n해에 따라 추분과 이어져 9월에도 '실버위크'라는 연휴가 생기기도 합니다." },
+  shuubun: { ko:"추분의 날", ja:"秋分の日（しゅうぶんのひ）",
+    desc:"낮과 밤의 길이가 같아지는 날. '조상을 공경하고 돌아가신 분들을 추모하는 날'로 정의돼 있어 봄의 춘분보다 성묘 색이 짙습니다(가을 오히간).\n유래는 궁중에서 역대 천황·황족의 영을 제사 지내던 추계황령제(秋季皇霊祭)입니다." },
+  sports: { ko:"스포츠의 날", ja:"スポーツの日",
+    desc:"10월 둘째 월요일. 1964년 도쿄올림픽 개회식 날(10/10)을 기념해 만든 '체육의 날'이 원조. 2020년 도쿄올림픽을 계기로 '스포츠의 날'로 이름이 바뀌었습니다.\n10월 10일이 통계적으로 맑은 날이 많은 '특이일'이라 개회식 날짜로 골랐다는 이야기가 유명한 토크 소재입니다." },
+  bunka: { ko:"문화의 날", ja:"文化の日（ぶんかのひ）",
+    desc:"11월 3일. 원래 메이지 천황의 생일(메이지절). 1946년 이날 일본국 헌법이 '공포'되어, '자유와 평화를 사랑하고 문화를 권장하는 날'이 됐습니다.\n이날 황거에서 문화훈장 수여식이 열리고, 전국의 많은 미술관·박물관이 무료 개방을 하니 투어에 활용 가능합니다." },
+  kinrou: { ko:"근로감사의 날", ja:"勤労感謝の日（きんろうかんしゃのひ）",
+    desc:"11월 23일. 궁중에서 천황이 그해 첫 수확한 햅쌀을 신에게 바치고 맛보는 제사 '니이나메사이(新嘗祭)'가 유래 — 사실상 일본판 추수감사절입니다. 전후에 '근로를 존중하고 생산을 축하하며 국민이 서로 감사하는 날'로 이름이 바뀌었습니다.\n1년의 마지막 공휴일이라 이날이 지나면 다음 공휴일은 설날(1/1)입니다." },
+  furikae: { ko:"진레키 (대체휴일)", ja:"振替休日（ふりかえきゅうじつ）",
+    desc:"공휴일이 일요일과 겹치면 그다음 평일이 쉬는 날이 됩니다. 한국의 대체공휴일과 같은 개념으로, 일본이 1973년에 먼저 도입했습니다." },
+  kokumin: { ko:"국민의 휴일", ja:"国民の休日（こくみんのきゅうじつ）",
+    desc:"앞뒤가 모두 공휴일인 평일은 자동으로 휴일이 되는 제도. 공휴일 사이에 '낀 날'도 쉬게 해주는 일본 특유의 규칙으로, 이 덕분에 9월에 실버위크 연휴가 만들어지기도 합니다." }
+};
+
+/* ---------- 한국 공휴일 설명 (간단) ---------- */
+const KR_INFO = {
+  sinjeong: { ko:"신정", desc:"양력 새해 첫날. 한국은 양력 1/1과 음력 설을 모두 쇠는데, 공휴일은 1/1 하루 + 설 연휴 3일입니다." },
+  seollal: { ko:"설날", desc:"음력 1월 1일. 우리 최대 명절 중 하나로 전날~다음날까지 3일 연휴. 일본은 음력 설이 없다는 점을 손님들에게 비교 설명하기 좋습니다." },
+  samiljeol: { ko:"삼일절", desc:"1919년 3·1 독립운동을 기념하는 날. 5대 국경일 중 하나." },
+  eorini: { ko:"어린이날", desc:"방정환 선생 주도로 1923년 시작된 어린이 존중의 날. 일본 어린이날(こどもの日)과 같은 5월 5일입니다." },
+  seokga: { ko:"부처님오신날", desc:"음력 4월 8일, 석가모니 탄생일. 전국 사찰에서 연등 행사가 열립니다." },
+  hyeonchung: { ko:"현충일", desc:"6월 6일. 나라를 위해 희생하신 분들을 추모하는 날. 조기(반기)를 게양합니다." },
+  gwangbok: { ko:"광복절", desc:"1945년 8월 15일 광복을 기념하는 국경일." },
+  chuseok: { ko:"추석", desc:"음력 8월 15일 한가위. 전날~다음날까지 3일 연휴. 일본의 오봉(8월 중순)과 비교해 설명하기 좋습니다." },
+  gaecheon: { ko:"개천절", desc:"단군왕검의 고조선 건국을 기리는 국경일 (10월 3일)." },
+  hangeul: { ko:"한글날", desc:"세종대왕의 훈민정음 반포를 기념하는 날 (10월 9일)." },
+  seongtan: { ko:"성탄절", desc:"크리스마스. 한국은 공휴일이지만 일본은 공휴일이 아니라는 점이 의외로 좋은 토크 소재!" },
+  daeche: { ko:"대체공휴일", desc:"공휴일이 주말 등과 겹칠 때 다음 평일에 쉬는 날." },
+  seongeo: { ko:"선거일", desc:"법정 공휴일인 전국 선거일입니다." }
+};
+
+/* ---------- 한국 공휴일 날짜 (2026~2028, 대체공휴일 포함) ---------- */
+const KR_DAYS = {
+  "2026-01-01":["sinjeong"],
+  "2026-02-16":["seollal","설 연휴"], "2026-02-17":["seollal"], "2026-02-18":["seollal","설 연휴"],
+  "2026-03-01":["samiljeol"], "2026-03-02":["daeche","대체공휴일(삼일절)"],
+  "2026-05-05":["eorini"],
+  "2026-05-24":["seokga"], "2026-05-25":["daeche","대체공휴일(부처님오신날)"],
+  "2026-06-03":["seongeo","지방선거일"],
+  "2026-06-06":["hyeonchung"],
+  "2026-08-15":["gwangbok"], "2026-08-17":["daeche","대체공휴일(광복절)"],
+  "2026-09-24":["chuseok","추석 연휴"], "2026-09-25":["chuseok"], "2026-09-26":["chuseok","추석 연휴"],
+  "2026-10-03":["gaecheon"], "2026-10-05":["daeche","대체공휴일(개천절)"],
+  "2026-10-09":["hangeul"],
+  "2026-12-25":["seongtan"],
+
+  "2027-01-01":["sinjeong"],
+  "2027-02-05":["seollal","설 연휴"], "2027-02-06":["seollal"], "2027-02-07":["seollal","설 연휴"],
+  "2027-02-08":["daeche","대체공휴일(설연휴)"],
+  "2027-03-01":["samiljeol"],
+  "2027-05-05":["eorini"],
+  "2027-05-13":["seokga"],
+  "2027-06-06":["hyeonchung"],
+  "2027-08-15":["gwangbok"], "2027-08-16":["daeche","대체공휴일(광복절)"],
+  "2027-09-14":["chuseok","추석 연휴"], "2027-09-15":["chuseok"], "2027-09-16":["chuseok","추석 연휴"],
+  "2027-10-03":["gaecheon"], "2027-10-04":["daeche","대체공휴일(개천절)"],
+  "2027-10-09":["hangeul"], "2027-10-11":["daeche","대체공휴일(한글날)"],
+  "2027-12-25":["seongtan"], "2027-12-27":["daeche","대체공휴일(성탄절)"],
+
+  "2028-01-01":["sinjeong"],
+  "2028-01-25":["seollal","설 연휴"], "2028-01-26":["seollal"], "2028-01-27":["seollal","설 연휴"],
+  "2028-03-01":["samiljeol"],
+  "2028-04-12":["seongeo","국회의원 선거일"],
+  "2028-05-02":["seokga"],
+  "2028-05-05":["eorini"],
+  "2028-06-06":["hyeonchung"],
+  "2028-08-15":["gwangbok"],
+  "2028-10-02":["chuseok","추석 연휴"], "2028-10-03":["chuseok"], "2028-10-04":["chuseok","추석 연휴"],
+  "2028-10-05":["daeche","대체공휴일(추석·개천절 겹침)"],
+  "2028-10-09":["hangeul"],
+  "2028-12-25":["seongtan"]
+};
+// 2028-10-03은 추석 당일 + 개천절이 겹치는 날
+KR_DAYS["2028-10-03"] = ["chuseok","추석 · 개천절"];
+
+/* ---------- 일본 공휴일 날짜 (2026~2028, 振替休日 포함) ---------- */
+const JP_DAYS = {
+  "2026-01-01":["ganjitsu"], "2026-01-12":["seijin"],
+  "2026-02-11":["kenkoku"], "2026-02-23":["tennou"],
+  "2026-03-20":["shunbun"],
+  "2026-04-29":["showa"],
+  "2026-05-03":["kenpou"], "2026-05-04":["midori"], "2026-05-05":["kodomo"],
+  "2026-05-06":["furikae","진레키(헌법기념일이 일요일)"],
+  "2026-07-20":["umi"], "2026-08-11":["yama"],
+  "2026-09-21":["keirou"], "2026-09-22":["kokumin"], "2026-09-23":["shuubun"],
+  "2026-10-12":["sports"], "2026-11-03":["bunka"], "2026-11-23":["kinrou"],
+
+  "2027-01-01":["ganjitsu"], "2027-01-11":["seijin"],
+  "2027-02-11":["kenkoku"], "2027-02-23":["tennou"],
+  "2027-03-21":["shunbun"], "2027-03-22":["furikae","진레키(춘분이 일요일)"],
+  "2027-04-29":["showa"],
+  "2027-05-03":["kenpou"], "2027-05-04":["midori"], "2027-05-05":["kodomo"],
+  "2027-07-19":["umi"], "2027-08-11":["yama"],
+  "2027-09-20":["keirou"], "2027-09-23":["shuubun"],
+  "2027-10-11":["sports"], "2027-11-03":["bunka"], "2027-11-23":["kinrou"],
+
+  "2028-01-01":["ganjitsu"], "2028-01-10":["seijin"],
+  "2028-02-11":["kenkoku"], "2028-02-23":["tennou"],
+  "2028-03-20":["shunbun"],
+  "2028-04-29":["showa"],
+  "2028-05-03":["kenpou"], "2028-05-04":["midori"], "2028-05-05":["kodomo"],
+  "2028-07-17":["umi"], "2028-08-11":["yama"],
+  "2028-09-18":["keirou"], "2028-09-22":["shuubun"],
+  "2028-10-09":["sports"], "2028-11-03":["bunka"], "2028-11-23":["kinrou"]
+};
+
+const DATA_YEARS = [2026, 2027, 2028]; // 데이터가 들어있는 연도
+
+/* ================= 달력 로직 ================= */
+let view = new Date();            // 지금 보고 있는 달
+view.setDate(1);
+let selectedKey = null;           // 하단 시트에 열려있는 날짜
+
+const pad = n => String(n).padStart(2, "0");
+const keyOf = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+const todayKey = (() => { const t = new Date(); return keyOf(t.getFullYear(), t.getMonth(), t.getDate()); })();
+
+// 공휴일 이름 얻기 (배지 표기용): [key, 표시이름덮어쓰기?]
+function holName(info, entry) {
+  return entry[1] || info[entry[0]].ko;
+}
+
+function render() {
+  const y = view.getFullYear(), m = view.getMonth();
+  document.getElementById("monthTitle").textContent = `${y}년 ${m + 1}월`;
+  document.getElementById("rangeWarn").style.display = DATA_YEARS.includes(y) ? "none" : "block";
+
+  const first = new Date(y, m, 1).getDay();          // 1일의 요일
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysPrev = new Date(y, m, 0).getDate();
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  const totalCells = Math.ceil((first + daysInMonth) / 7) * 7;
+
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - first + 1;
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    let cy = y, cm = m, cd = dayNum;
+
+    if (dayNum < 1) { cell.classList.add("other"); cd = daysPrev + dayNum; cm = m - 1; if (cm < 0) { cm = 11; cy--; } }
+    else if (dayNum > daysInMonth) { cell.classList.add("other"); cd = dayNum - daysInMonth; cm = m + 1; if (cm > 11) { cm = 0; cy++; } }
+
+    const k = keyOf(cy, cm, cd);
+    const dow = i % 7;
+    if (dow === 0) cell.classList.add("sun");
+    if (dow === 6) cell.classList.add("sat");
+    if (k === todayKey) cell.classList.add("today");
+
+    const kr = KR_DAYS[k], jp = JP_DAYS[k];
+    if (kr) cell.classList.add("kr-hol");
+
+    let html = `<div class="num">${cd}</div>`;
+    if (kr) html += `<div class="badge kr">🇰🇷${holName(KR_INFO, kr)}</div>`;
+    if (jp) html += `<div class="badge jp">🇯🇵${holName(JP_INFO, jp)}</div>`;
+    // 이 날짜에 걸쳐있는 스케줄 띠 표시 (시작일과 매주 일요일에만 이름 표기)
+    for (const s of schedsOn(k)) {
+      const label = (k === s.start || dow === 0) ? s.title : "&nbsp;";
+      html += `<div class="sched" style="background:${s.color}">${label}</div>`;
+    }
+    if (localStorage.getItem("hanilmemo_" + k)) html += `<div class="memo-dot"></div>`;
+    cell.innerHTML = html;
+
+    cell.addEventListener("click", () => openSheet(k));
+    grid.appendChild(cell);
+  }
+
+  renderMonthList(y, m);
+}
+
+/* 이 달의 공휴일 목록 */
+function renderMonthList(y, m) {
+  const box = document.getElementById("monthList");
+  const days = new Date(y, m + 1, 0).getDate();
+  const dowName = ["일","월","화","수","목","금","토"];
+  let items = "";
+  for (let d = 1; d <= days; d++) {
+    const k = keyOf(y, m, d);
+    const dow = dowName[new Date(y, m, d).getDay()];
+    const kr = KR_DAYS[k], jp = JP_DAYS[k];
+    if (kr) items += `<div class="list-item kr" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">🇰🇷</span><span class="name">${holName(KR_INFO, kr)}</span></div>`;
+    if (jp) items += `<div class="list-item jp" onclick="openSheet('${k}')"><span class="d">${m+1}/${d} (${dow})</span><span class="flag">🇯🇵</span><span class="name">${holName(JP_INFO, jp)} <span style="color:#9aa0a6;font-weight:400;font-size:12px">${JP_INFO[jp[0]].ja.split("（")[0]}</span></span></div>`;
+  }
+  box.innerHTML = `<h2>이 달의 공휴일</h2>` + (items || `<div class="empty-note">이 달에는 공휴일이 없습니다.</div>`);
+}
+
+/* ================= 하단 시트 ================= */
+function openSheet(k) {
+  selectedKey = k;
+  const [y, m, d] = k.split("-").map(Number);
+  const dowName = ["일요일","월요일","화요일","수요일","목요일","금요일","토요일"];
+  document.getElementById("sheetDate").textContent =
+    `${y}년 ${m}월 ${d}일 (${dowName[new Date(y, m - 1, d).getDay()]})`;
+
+  const kr = KR_DAYS[k], jp = JP_DAYS[k];
+  let html = "";
+  if (kr) {
+    const info = KR_INFO[kr[0]];
+    html += `<div class="hol-card kr"><div class="title">🇰🇷 ${kr[1] || info.ko}</div><div class="desc">${info.desc}</div></div>`;
+  }
+  if (jp) {
+    const info = JP_INFO[jp[0]];
+    html += `<div class="hol-card jp"><div class="title">🇯🇵 ${jp[1] || info.ko}</div><div class="jaName">${info.ja}</div><div class="desc">${info.desc}</div></div>`;
+  }
+  if (!kr && !jp) html = `<div class="no-hol">이 날은 한국·일본 모두 공휴일이 아닙니다.</div>`;
+  document.getElementById("sheetHols").innerHTML = html;
+
+  document.getElementById("memoInput").value = localStorage.getItem("hanilmemo_" + k) || "";
+  document.getElementById("memoMsg").textContent = "";
+  renderSchedList();
+  closeSchedForm();
+
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("sheet").classList.add("show");
+}
+function closeSheet() {
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("sheet").classList.remove("show");
+  render(); // 메모 점 갱신
+}
+document.getElementById("overlay").addEventListener("click", closeSheet);
+
+/* ================= 스케줄 (localStorage) ================= */
+const SCHED_COLORS = ["#188038", "#f9ab00", "#9334e6", "#0097a7"];
+let schedColor = SCHED_COLORS[0];
+
+function loadScheds() {
+  try { return JSON.parse(localStorage.getItem("hanil_schedules") || "[]"); }
+  catch (e) { return []; }
+}
+function saveScheds(arr) { localStorage.setItem("hanil_schedules", JSON.stringify(arr)); }
+// 해당 날짜에 걸쳐있는 스케줄들 (날짜 문자열 비교로 기간 판정)
+function schedsOn(k) {
+  return loadScheds().filter(s => s.start <= k && k <= s.end);
+}
+
+/* 시트 안 스케줄 목록 그리기 */
+function renderSchedList() {
+  const box = document.getElementById("schedList");
+  const list = schedsOn(selectedKey);
+  box.innerHTML = list.map(s =>
+    `<div class="sched-item">
+       <div class="bar" style="background:${s.color}"></div>
+       <div class="t">${s.title}<div class="range">${s.start.replaceAll("-","/")} ~ ${s.end.replaceAll("-","/")}</div></div>
+       <button onclick="deleteSched(${s.id})">삭제</button>
+     </div>`).join("");
+}
+function deleteSched(id) {
+  if (!confirm("이 스케줄을 삭제할까요?")) return;
+  saveScheds(loadScheds().filter(s => s.id !== id));
+  renderSchedList();
+}
+
+/* 색상 선택 동그라미 */
+const colorRow = document.getElementById("colorRow");
+SCHED_COLORS.forEach((c, i) => {
+  const dot = document.createElement("div");
+  dot.className = "color-dot" + (i === 0 ? " sel" : "");
+  dot.style.background = c;
+  dot.addEventListener("click", () => {
+    schedColor = c;
+    document.querySelectorAll(".color-dot").forEach(d => d.classList.remove("sel"));
+    dot.classList.add("sel");
+  });
+  colorRow.appendChild(dot);
+});
+
+/* 추가 폼 열기/닫기/등록 */
+document.getElementById("schedAddBtn").addEventListener("click", () => {
+  document.getElementById("schedForm").style.display = "block";
+  document.getElementById("schedAddBtn").style.display = "none";
+  document.getElementById("schedTitle").value = "";
+  document.getElementById("schedStart").value = selectedKey;
+  document.getElementById("schedEnd").value = selectedKey;
+});
+function closeSchedForm() {
+  document.getElementById("schedForm").style.display = "none";
+  document.getElementById("schedAddBtn").style.display = "block";
+}
+document.getElementById("schedCancelBtn").addEventListener("click", closeSchedForm);
+document.getElementById("schedSaveBtn").addEventListener("click", () => {
+  const title = document.getElementById("schedTitle").value.trim();
+  const start = document.getElementById("schedStart").value;
+  const end = document.getElementById("schedEnd").value;
+  if (!title) { alert("스케줄 이름을 입력해 주세요."); return; }
+  if (!start || !end) { alert("시작일과 종료일을 선택해 주세요."); return; }
+  if (end < start) { alert("종료일이 시작일보다 빠릅니다."); return; }
+  const arr = loadScheds();
+  arr.push({ id: Date.now(), title, start, end, color: schedColor });
+  saveScheds(arr);
+  closeSchedForm();
+  renderSchedList();
+});
+
+/* ================= 메모 (localStorage) ================= */
+document.getElementById("memoSave").addEventListener("click", () => {
+  const v = document.getElementById("memoInput").value.trim();
+  if (v) localStorage.setItem("hanilmemo_" + selectedKey, v);
+  else localStorage.removeItem("hanilmemo_" + selectedKey);
+  document.getElementById("memoMsg").textContent = "✅ 저장되었습니다";
+});
+document.getElementById("memoDel").addEventListener("click", () => {
+  localStorage.removeItem("hanilmemo_" + selectedKey);
+  document.getElementById("memoInput").value = "";
+  document.getElementById("memoMsg").textContent = "🗑 삭제되었습니다";
+});
+
+/* ================= 이동 버튼 · 스와이프 ================= */
+function moveMonth(diff) { view.setMonth(view.getMonth() + diff); render(); }
+document.getElementById("prevBtn").addEventListener("click", () => moveMonth(-1));
+document.getElementById("nextBtn").addEventListener("click", () => moveMonth(1));
+document.getElementById("todayBtn").addEventListener("click", () => { view = new Date(); view.setDate(1); render(); });
+
+// 좌우로 쓸어넘겨서 달 이동
+let touchX = null, touchY = null;
+document.getElementById("grid").addEventListener("touchstart", e => {
+  touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+}, { passive: true });
+document.getElementById("grid").addEventListener("touchend", e => {
+  if (touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  const dy = e.changedTouches[0].clientY - touchY;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) moveMonth(dx < 0 ? 1 : -1);
+  touchX = null;
+}, { passive: true });
+
+render();
+</script>
+</body>
+</html>
