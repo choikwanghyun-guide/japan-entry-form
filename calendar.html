@@ -15,91 +15,203 @@
 <link rel="manifest" href="calendar_manifest.json">
 <title>한일 공휴일 달력</title>
 <style>
-/* 빙그레체 — 같은 폴더에 함께 배포한 폰트 파일 사용 (CDN 주소 변경에 영향 없음) */
-@font-face{font-family:Binggrae;src:url('Binggrae.woff') format('woff');font-weight:400;font-display:swap}
-@font-face{font-family:Binggrae;src:url('Binggrae-Bold.woff') format('woff');font-weight:700;font-display:swap}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
-body{font-family:Binggrae,-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:#eef3f8;color:#182235;display:flex;justify-content:center}
-#app{width:100%;max-width:560px;min-height:100vh;background:#f8fafc;display:flex;flex-direction:column;box-shadow:0 0 40px rgba(31,48,72,.12);overflow:hidden}
+  /* ===== 기본 ===== */
+  /* 빙그레체 — 같은 폴더에 함께 배포한 폰트 파일 사용 (기존 CDN 주소가 404라서 교체) */
+  @font-face {
+    font-family: 'Binggrae';
+    src: url('Binggrae.woff') format('woff');
+    font-weight: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Binggrae';
+    src: url('Binggrae-Bold.woff') format('woff');
+    font-weight: bold; font-display: swap;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:"Binggrae", -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background:#f1f3f4; color:#202124;
+    display:flex; justify-content:center;
+  }
+  #app {
+    width:100%; max-width:520px; background:#fff;
+    min-height:100vh; display:flex; flex-direction:column;
+    box-shadow:0 0 20px rgba(0,0,0,.08);
+  }
 
-/* premium header */
-header{position:relative;overflow:hidden;color:#17243a;padding:calc(env(safe-area-inset-top,0px) + 22px) 22px 28px;display:flex;align-items:flex-start;justify-content:space-between;background:linear-gradient(135deg,#eaf5ff 0%,#fff 48%,#fff1f3 100%)}
-header:before{content:"";position:absolute;width:220px;height:220px;right:-80px;top:-110px;border-radius:50%;background:rgba(238,104,119,.10)}
-header:after{content:"";position:absolute;width:180px;height:180px;left:-100px;bottom:-125px;border-radius:50%;background:rgba(42,111,214,.10)}
-header>div{position:relative;z-index:1}
-header h1{font-size:30px;line-height:1.05;letter-spacing:-1.8px;color:#263246;font-weight:700!important}
-header h1 .t1{color:#246ed2}
-#todayBtn{position:relative;z-index:2;border:0;background:#246ed2;color:#fff;border-radius:24px;padding:10px 17px;font-size:13px;box-shadow:0 7px 18px rgba(36,110,210,.22);cursor:pointer}
+  /* ===== 상단바 (그라데이션 헤더) ===== */
+  header {
+    position:relative; overflow:hidden; color:#17243a;
+    padding:calc(env(safe-area-inset-top, 0px) + 20px) 20px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(135deg,#eaf5ff 0%,#fff 48%,#fff1f3 100%);
+  }
+  header:before { content:""; position:absolute; width:220px; height:220px; right:-80px; top:-110px; border-radius:50%; background:rgba(238,104,119,.10); }
+  header:after { content:""; position:absolute; width:180px; height:180px; left:-100px; bottom:-125px; border-radius:50%; background:rgba(42,111,214,.10); }
+  header h1 { position:relative; z-index:1; font-size:25px; letter-spacing:-1.2px; color:#263246; font-weight:700; }
+  header h1 .t1 { color:#246ed2; } /* "한일"만 파란색 */
+  #todayBtn {
+    position:relative; z-index:2; border:0; background:#246ed2; color:#fff;
+    border-radius:24px; padding:10px 17px; font-size:13px;
+    box-shadow:0 7px 18px rgba(36,110,210,.22); cursor:pointer;
+  }
 
-/* month navigation */
-.month-nav{margin:-2px 16px 0;padding:12px 10px 8px;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;border-radius:22px 22px 0 0;box-shadow:0 -5px 22px rgba(38,50,70,.04);position:relative;z-index:3}
-.month-nav button{border:0;background:#f3f6fa;color:#526074;width:38px;height:38px;border-radius:50%;font-size:23px;line-height:1;cursor:pointer}
-.month-nav button:active{transform:scale(.94);background:#e9eef5}
-#monthTitle{font-size:20px;font-weight:700!important;letter-spacing:-.6px;min-width:150px;text-align:center}
+  /* ===== 월 이동 ===== */
+  .month-nav {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:10px 8px 6px;
+  }
+  .month-nav button {
+    background:none; border:none; font-size:22px; color:#5f6368;
+    width:44px; height:38px; cursor:pointer; border-radius:8px;
+  }
+  .month-nav button:active { background:#eee; }
+  #monthTitle { font-size:19px; font-weight:700; min-width:150px; text-align:center; }
 
-/* weekdays */
-.weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin:0 16px;background:#fff;padding:7px 6px 5px;border-radius:0 0 12px 12px}
-.weekdays div{text-align:center;font-size:11px;color:#7c8798;padding:5px 0;font-weight:700!important}
-.weekdays div:first-child{color:#e34b5f}.weekdays div:last-child{color:#246ed2}
+  /* ===== 요일 행 ===== */
+  .weekdays { display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; }
+  .weekdays div { text-align:center; font-size:12px; color:#70757a; padding:6px 0; font-weight:600; }
+  .weekdays div:first-child { color:#d93025; }
+  .weekdays div:last-child { color:#1a73e8; }
 
-/* calendar */
-#grid{display:grid;grid-template-columns:repeat(7,1fr);margin:8px 16px 0;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(39,57,82,.08)}
-.cell{min-height:78px;border-right:1px solid #edf0f4;border-top:1px solid #edf0f4;padding:6px 3px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;position:relative;background:#fff}
-.cell:nth-child(7n){border-right:0}.cell:active{background:#f4f8fd}.cell.other{opacity:.28}
-.cell .num{font-size:14px;width:29px;height:29px;line-height:29px;text-align:center;border-radius:50%;font-weight:500}
-.cell.sun .num{color:#df4b5a}.cell.sat .num{color:#246ed2}
-.cell.kr-hol .num{color:#246ed2}
-.cell.today .num{background:#246ed2;color:#fff!important;font-weight:700!important;box-shadow:0 5px 12px rgba(36,110,210,.22)}
-.badge{font-size:8.5px;line-height:1.25;max-width:96%;text-align:center;border-radius:7px;padding:3px 4px;word-break:break-all;overflow:hidden}
-.badge.kr{background:#edf5ff;color:#246ed2}.badge.jp{background:#fff0f2;color:#d8485b}
-.mark{display:inline-block;vertical-align:-2px;width:9px;height:9px;margin-right:1px}.list-item .mark,.hol-card .mark{width:16px;height:16px;vertical-align:-3px}
-.memo-dot{width:5px;height:5px;border-radius:50%;background:#f2a51a;margin-top:2px;flex:none}
-.sched{position:absolute;left:0;right:0;height:15px;font-size:8.5px;line-height:15px;color:#29405e;white-space:nowrap;overflow:visible;text-align:left;z-index:1}
-.sched .lbl{padding-left:5px;position:relative;z-index:2;font-weight:700!important}.sched.ss{border-top-left-radius:6px;border-bottom-left-radius:6px}.sched.se{border-top-right-radius:6px;border-bottom-right-radius:6px}
+  /* ===== 달력 그리드 ===== */
+  #grid { display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px 6px; }
+  .cell {
+    min-height:74px; border-top:1px solid #eceef0; padding:3px 2px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    cursor:pointer; position:relative; /* 스케줄 띠를 칸 아래쪽에 고정하기 위함 */
+  }
+  .cell:active { background:#f0f4ff; }
+  .cell.other { opacity:.35; }
+  .cell .num {
+    font-size:14px; width:26px; height:26px; line-height:26px;
+    text-align:center; border-radius:50%; font-weight:500;
+  }
+  .cell.sun .num { color:#d93025; }
+  .cell.sat .num { color:#1a73e8; }
+  .cell.kr-hol .num { color:#1a73e8; } /* 한국 공휴일 = 파란색 */
+  .cell.today .num { background:#1a73e8; color:#fff !important; font-weight:700; }
+  .badge {
+    font-size:9.5px; line-height:1.25; width:100%; text-align:center;
+    border-radius:4px; padding:1px 1px;
+    word-break:break-all; /* 긴 이름은 잘리지 않고 다음 줄로 */
+  }
+  .badge.kr { background:#e8f0fe; color:#1967d2; } /* 한국 = 파란 폰트 */
+  .badge.jp { background:#fce8e6; color:#c5221f; } /* 일본 = 빨간 폰트 */
+  /* 태극·일장기 마크 (이모지는 윈도우에서 KR/JP 글자로 보여서 SVG로 직접 그림) */
+  .mark { display:inline-block; vertical-align:-1px; width:10px; height:10px; margin-right:1px; }
+  .list-item .mark, .hol-card .mark { width:15px; height:15px; vertical-align:-2px; }
+  .memo-dot { width:5px; height:5px; border-radius:50%; background:#f9ab00; margin-top:1px; flex:none; }
+  /* 스케줄 띠 (투어 기간 표시) — 칸 경계를 넘어 한 줄로 이어짐 */
+  .sched {
+    position:absolute; left:0; right:0; height:14px;
+    font-size:9.5px; line-height:14px; color:#3c4043;
+    white-space:nowrap; overflow:visible; text-align:left; z-index:1;
+  }
+  .sched .lbl { padding-left:4px; position:relative; z-index:2; }
+  .sched.ss { border-top-left-radius:4px; border-bottom-left-radius:4px; }
+  .sched.se { border-top-right-radius:4px; border-bottom-right-radius:4px; }
 
-/* holiday list */
-#monthList{padding:16px 16px 24px}
-#monthList h2{font-size:17px;color:#17243a;margin:8px 2px 12px;font-weight:700!important}
-.list-item{display:flex;align-items:center;gap:9px;padding:12px 13px;border-radius:15px;margin-bottom:8px;background:#fff;cursor:pointer;font-size:13.5px;box-shadow:0 5px 18px rgba(38,50,70,.055);border:1px solid #f0f2f5}
-.list-item:active{transform:scale(.99);background:#f7f9fc}.list-item .d{color:#69768a;font-size:11.5px;min-width:62px}.list-item .flag{font-size:15px}
-.list-item.kr .name{color:#246ed2;font-weight:700!important}.list-item.jp .name{color:#d8485b;font-weight:700!important}
-.empty-note{color:#9aa4b2;font-size:13px;padding:6px 2px}
-.range-warn{margin:10px 16px;padding:11px 13px;background:#fff8e8;color:#876719;border-radius:13px;font-size:12px;line-height:1.5}
+  /* ===== 이 달의 공휴일 목록 ===== */
+  #monthList { padding:8px 14px 20px; }
+  #monthList h2 { font-size:13px; color:#70757a; margin:8px 0 6px; }
+  .list-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:10px; margin-bottom:5px; background:#f8f9fa; cursor:pointer;
+    font-size:13.5px;
+  }
+  .list-item:active { background:#eef1f3; }
+  .list-item .d { color:#5f6368; font-size:12px; min-width:64px; }
+  .list-item .flag { font-size:15px; }
+  .list-item.kr .name { color:#1967d2; font-weight:600; }
+  .list-item.jp .name { color:#c5221f; font-weight:600; }
+  .empty-note { color:#9aa0a6; font-size:13px; padding:6px 2px; }
+  .range-warn {
+    margin:8px 14px; padding:10px 12px; background:#fef7e0; color:#7a5d00;
+    border-radius:10px; font-size:12.5px; line-height:1.5;
+  }
 
-/* bottom sheet */
-#overlay{position:fixed;inset:0;background:rgba(14,25,43,.42);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(3px)}
-#overlay.show{opacity:1;pointer-events:auto}
-#sheet{position:fixed;left:50%;transform:translate(-50%,105%);bottom:0;width:100%;max-width:560px;background:#fbfcfe;border-radius:24px 24px 0 0;z-index:21;transition:transform .25s ease;max-height:84vh;overflow-y:auto;padding:12px 18px calc(env(safe-area-inset-bottom,0px) + 24px)}
-#sheet.show{transform:translate(-50%,0)}.sheet-handle{width:42px;height:4px;background:#d7dde6;border-radius:4px;margin:0 auto 14px}
-#sheetDate{font-size:19px;font-weight:700!important;margin-bottom:12px;color:#17243a}
-.hol-card{border-radius:16px;padding:13px 14px;margin-bottom:10px}.hol-card.kr{background:#edf5ff;border-left:4px solid #246ed2}.hol-card.jp{background:#fff0f2;border-left:4px solid #df4b5a}
-.hol-card .title{font-size:15px;font-weight:700!important;margin-bottom:3px}.hol-card .jaName{font-size:12px;color:#68758a;margin-bottom:6px}.hol-card .desc{font-size:13px;line-height:1.65;color:#3e4a5d;white-space:pre-line}
-.no-hol{color:#9aa0a6;font-size:13.5px;margin-bottom:10px}
+  /* ===== 하단 시트(상세) ===== */
+  #overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20;
+    opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  #overlay.show { opacity:1; pointer-events:auto; }
+  #sheet {
+    position:fixed; left:50%; transform:translate(-50%,105%);
+    bottom:0; width:100%; max-width:520px; background:#fff;
+    border-radius:18px 18px 0 0; z-index:21;
+    transition:transform .25s ease; max-height:82vh; overflow-y:auto;
+    padding:14px 18px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  }
+  #sheet.show { transform:translate(-50%,0); }
+  .sheet-handle { width:38px; height:4px; background:#dadce0; border-radius:2px; margin:0 auto 12px; }
+  #sheetDate { font-size:17px; font-weight:700; margin-bottom:10px; }
+  .hol-card { border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+  .hol-card.kr { background:#eef4fe; border-left:4px solid #1a73e8; }
+  .hol-card.jp { background:#fdf0ef; border-left:4px solid #d93025; }
+  .hol-card .title { font-size:15px; font-weight:700; margin-bottom:2px; }
+  .hol-card .jaName { font-size:12.5px; color:#5f6368; margin-bottom:6px; }
+  .hol-card .desc { font-size:13.5px; line-height:1.65; color:#3c4043; white-space:pre-line; }
+  .no-hol { color:#9aa0a6; font-size:13.5px; margin-bottom:10px; }
 
-/* schedules */
-.sched-box h3,.memo-box h3{font-size:13px;color:#647186;margin:13px 0 7px;font-weight:700!important}
-.sched-item{display:flex;align-items:center;gap:8px;padding:10px 11px;border-radius:13px;background:#fff;margin-bottom:6px;font-size:13px;box-shadow:0 3px 12px rgba(38,50,70,.04)}
-.sched-item .bar{width:5px;height:25px;border-radius:4px;flex:none}.sched-item .t{flex:1}.sched-item .range{color:#7b8798;font-size:10.5px;margin-top:2px}
-.sched-item button{background:#f8e9eb;border:0;color:#d8485b;font-size:11px;border-radius:8px;padding:6px 8px;cursor:pointer}.sched-item button.edit{background:#eaf2ff;color:#246ed2}
-#schedAddBtn{width:100%;padding:11px 0;border:1.5px dashed #cbd3df;background:#fff;border-radius:13px;color:#607087;font-size:13px;cursor:pointer;margin-bottom:6px}
-#schedForm{background:#fff;border-radius:15px;padding:13px;margin-bottom:8px;border:1px solid #edf0f4}
-#schedForm label{font-size:11px;color:#7b8798;display:block;margin:8px 0 4px}
-#schedForm input[type=text],#schedForm input[type=date]{width:100%;border:1px solid #dce2ea;border-radius:9px;padding:9px;font-size:13px;font-family:inherit;outline:none;background:#fff}
-#schedForm input:focus{border-color:#246ed2}.color-row{display:flex;gap:10px;margin-top:5px}.color-dot{width:25px;height:25px;border-radius:50%;cursor:pointer;border:3px solid transparent}.color-dot.sel{border-color:#25334a}
-#memoInput{width:100%;min-height:78px;border:1px solid #dce2ea;border-radius:12px;padding:10px;font-size:13px;font-family:inherit;resize:vertical;outline:none;background:#fff}
-#memoInput:focus{border-color:#246ed2}.memo-btns{display:flex;gap:8px;margin-top:8px}.memo-btns button{flex:1;padding:11px 0;border:0;border-radius:11px;font-size:13px;font-weight:700!important;cursor:pointer}
-#memoSave{background:#246ed2;color:#fff}#memoDel{background:#edf0f4;color:#d8485b}#memoMsg{font-size:11px;color:#188038;margin-top:6px;height:14px}
+  /* ===== 스케줄 입력 ===== */
+  .sched-box h3 { font-size:13px; color:#70757a; margin:10px 0 6px; }
+  .sched-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:10px; background:#f8f9fa; margin-bottom:5px; font-size:13.5px;
+  }
+  .sched-item .bar { width:5px; height:22px; border-radius:3px; flex:none; }
+  .sched-item .t { flex:1; }
+  .sched-item .range { color:#70757a; font-size:11.5px; }
+  .sched-item button {
+    background:none; border:none; color:#d93025; font-size:12.5px; cursor:pointer; padding:4px;
+  }
+  .sched-item button.edit { color:#1a73e8; }
+  #schedAddBtn {
+    width:100%; padding:9px 0; border:1.5px dashed #bdc1c6; background:none;
+    border-radius:10px; color:#5f6368; font-size:13.5px; cursor:pointer; margin-bottom:6px;
+  }
+  #schedForm { background:#f8f9fa; border-radius:12px; padding:12px; margin-bottom:8px; }
+  #schedForm label { font-size:12px; color:#70757a; display:block; margin:8px 0 3px; }
+  #schedForm input[type=text], #schedForm input[type=date] {
+    width:100%; border:1.5px solid #dadce0; border-radius:8px; padding:8px;
+    font-size:14px; font-family:inherit; outline:none; background:#fff;
+  }
+  #schedForm input:focus { border-color:#1a73e8; }
+  .color-row { display:flex; gap:10px; margin-top:4px; }
+  .color-dot {
+    width:26px; height:26px; border-radius:50%; cursor:pointer;
+    border:3px solid transparent;
+  }
+  .color-dot.sel { border-color:#202124; }
 
-/* footer */
-footer{text-align:center;color:#aab3c0;font-size:9.5px;padding:6px 0 calc(env(safe-area-inset-bottom,0px) + 15px);margin-top:auto}
+  /* ===== 메모 ===== */
+  .memo-box h3 { font-size:13px; color:#70757a; margin:6px 0; }
+  #memoInput {
+    width:100%; min-height:76px; border:1.5px solid #dadce0; border-radius:10px;
+    padding:10px; font-size:14px; font-family:inherit; resize:vertical; outline:none;
+  }
+  #memoInput:focus { border-color:#1a73e8; }
+  .memo-btns { display:flex; gap:8px; margin-top:8px; }
+  .memo-btns button {
+    flex:1; padding:11px 0; border:none; border-radius:10px;
+    font-size:14px; font-weight:600; cursor:pointer;
+  }
+  #memoSave { background:#1a73e8; color:#fff; }
+  #memoDel { background:#f1f3f4; color:#d93025; }
+  #memoMsg { font-size:12px; color:#188038; margin-top:6px; height:14px; }
 
-/* keep original app preference: regular text except selected emphasis */
-#app *,#sheet *{font-weight:400}
-header h1,#monthTitle,#monthList h2,#sheetDate,.hol-card .title,.list-item.kr .name,.list-item.jp .name,.memo-btns button{font-weight:700!important}
+  /* 볼드체 사용 안 함 (사용자 요청) — 단, 상단 제목만 새 헤더 디자인에 맞춰 굵게 */
+  #app *, #sheet * { font-weight:400 !important; }
+  #app header h1, #app header h1 .t1 { font-weight:700 !important; }
 
-/* desktop refinement */
-@media(min-width:700px){body{padding:18px 0}#app{min-height:calc(100vh - 36px);border-radius:28px;overflow:hidden}header{border-radius:28px 28px 0 0}}
+  footer {
+    text-align:center; color:#b0b4b8; font-size:10.5px;
+    padding:8px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+    margin-top:auto;
+  }
 </style>
 </head>
 <body>
@@ -128,7 +240,7 @@ header h1,#monthTitle,#monthList h2,#sheetDate,.hol-card .title,.list-item.kr .n
 
   <div id="monthList"></div>
 
-  <footer>rev_2026_0809_1717 (KST)</footer>
+  <footer>rev_2026_0809_1812 (KST)</footer>
 </div>
 
 <!-- 날짜 상세 하단 시트 -->
