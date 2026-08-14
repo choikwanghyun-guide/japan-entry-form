@@ -414,6 +414,31 @@
   .row-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
   .row-btn.del-btn:hover { color: var(--red); }
 
+  /* 드래그 손잡이 — 잡고 끌어서 행 순서 바꾸기 */
+  .drag-handle {
+    background: none; border: none; color: var(--text3); font-size: 14px;
+    cursor: grab; padding: 1px 4px; border-radius: 3px; line-height: 1;
+    letter-spacing: -1px; transition: all 0.15s;
+  }
+  .drag-handle:hover { background: rgba(255,255,255,0.08); color: var(--accent); }
+  .drag-handle:active { cursor: grabbing; }
+  tr.row-dragging > td { opacity: 0.4; }
+  /* 놓을 위치 표시선 */
+  tr.drop-above > td { box-shadow: inset 0 3px 0 0 var(--accent); }
+  tr.drop-below > td { box-shadow: inset 0 -3px 0 0 var(--accent); }
+
+  /* 내용 칸의 인터넷 주소 → 클릭하면 새 창으로 열리는 링크 칩 */
+  .link-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .link-chip {
+    display: inline-flex; align-items: center; gap: 3px; max-width: 100%;
+    background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.4);
+    color: var(--accent); border-radius: 4px; padding: 2px 7px;
+    font-size: 11px; font-weight: 600; text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: all 0.15s;
+  }
+  .link-chip:hover { background: rgba(79,142,247,0.3); border-color: var(--accent); }
+
   /* 행 색상 강조 */
   tr.row-hl > td { background: #f7e96b !important; }
   /* 노란 배경일 때 B(볼드)·가(글자색) 버튼이 흰색이면 안 보이므로 검정으로 */
@@ -1097,7 +1122,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0725_2154</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0839</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3728,10 +3753,15 @@ function renderRow(di, ii, item) {
     `<button class="tc-swatch${item.textColor===name ? ' active' : ''}" style="background:${hex};"
        onclick="setTextColor(${di},${ii},'${name}')" title="${name}" tabindex="-1"></button>`
   ).join('');
-  return `<tr class="${rowCls}${hlCls}${tcCls}${boldCls}" id="row-${di}-${ii}">
+  return `<tr class="${rowCls}${hlCls}${tcCls}${boldCls}" id="row-${di}-${ii}"
+    ondragstart="rowDragStart(event,${di},${ii})" ondragover="rowDragOver(event,${ii})"
+    ondragleave="rowDragLeave(event)" ondrop="rowDrop(event,${di},${ii})" ondragend="rowDragEnd(event)">
     <td data-label="위치조정">
       <div class="rowtool-wrap">
         <div class="row-btns">
+          <button class="drag-handle" title="잡고 끌어서 순서 바꾸기" tabindex="-1"
+            onmousedown="document.getElementById('row-${di}-${ii}').draggable=true"
+            onmouseup="document.getElementById('row-${di}-${ii}').draggable=false">⠿</button>
           <button class="row-btn" onclick="moveRow(${di},${ii},-1)" title="위로">▲</button>
           <button class="row-btn del-btn" onclick="deleteRow(${di},${ii})" title="삭제">✕</button>
           <button class="row-btn" onclick="moveRow(${di},${ii},1)" title="아래로">▼</button>
@@ -3777,8 +3807,8 @@ function renderRow(di, ii, item) {
       onkeydown="handleDurTab(event, ${di}, ${ii}, 'desc')"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${(item.desc||'').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/,'')}</textarea></td>
     <td data-label="내용" style="min-width:500px"><textarea class="sched-input note-input" placeholder="" rows="1"
-      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value);"
-      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note != null ? item.note : (item.meal || '')}</textarea></td>
+      oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note',this.value); refreshLinkChips(this);"
+      style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note != null ? item.note : (item.meal || '')}</textarea>${linkChipsHtml(item.note != null ? item.note : (item.meal || ''))}</td>
     <td data-label="비고" style="min-width:427px"><textarea class="sched-input note2-input" placeholder="" rows="1"
       oninput="this.style.height='auto'; this.style.height=this.scrollHeight+'px'; updateItem(${di},${ii},'note2',this.value);"
       style="resize:none; overflow:hidden; width:100%; line-height:1.5; height:auto;">${item.note2||''}</textarea></td>
@@ -4077,6 +4107,88 @@ function moveRow(di, ii, dir) {
   if (ni < 0 || ni >= items.length) return;
   [items[ii], items[ni]] = [items[ni], items[ii]];
   reRenderDay(di);
+}
+
+// ── 행 드래그 이동 (좌측 ⠿ 손잡이를 잡고 끌어서 순서 변경) ──
+// 손잡이를 누를 때만 tr의 draggable이 켜짐 → 평소 표 안 글자 선택은 그대로 가능
+let _dragSrc = null;
+
+function rowDragStart(e, di, ii) {
+  _dragSrc = { di, ii };
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(ii)); } catch (_) {}
+  const tr = e.currentTarget;
+  setTimeout(() => tr.classList.add('row-dragging'), 0);
+}
+
+// 마우스가 행 위쪽 절반이면 그 행 앞, 아래쪽 절반이면 뒤에 놓임 (표시선으로 안내)
+function rowDragOver(e) {
+  if (!_dragSrc) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const tr = e.currentTarget;
+  const rect = tr.getBoundingClientRect();
+  const below = (e.clientY - rect.top) > rect.height / 2;
+  tr.classList.toggle('drop-above', !below);
+  tr.classList.toggle('drop-below', below);
+}
+
+function rowDragLeave(e) {
+  e.currentTarget.classList.remove('drop-above', 'drop-below');
+}
+
+function rowDrop(e, di, ii) {
+  e.preventDefault();
+  const tr = e.currentTarget;
+  const rect = tr.getBoundingClientRect();
+  const below = (e.clientY - rect.top) > rect.height / 2;
+  tr.classList.remove('drop-above', 'drop-below');
+  const src = _dragSrc;
+  _dragSrc = null;
+  if (!src || src.di !== di) return;   // 다른 일자로는 옮기지 않음
+  const from = src.ii;
+  let to = below ? ii + 1 : ii;
+  if (from < to) to--;                 // 앞쪽 항목이 빠지면 위치가 하나 당겨짐
+  if (from === to) { reRenderDay(di); return; }
+  const items = parsedData.days[di].items;
+  const [moved] = items.splice(from, 1);
+  items.splice(to, 0, moved);
+  reRenderDay(di);
+}
+
+function rowDragEnd() {
+  _dragSrc = null;
+  document.querySelectorAll('tr.row-dragging').forEach(t => t.classList.remove('row-dragging'));
+  document.querySelectorAll('tr.drop-above, tr.drop-below').forEach(t => t.classList.remove('drop-above', 'drop-below'));
+  document.querySelectorAll('.sched-table tr[draggable="true"]').forEach(t => { t.draggable = false; });
+}
+
+// ── 내용 칸의 인터넷 주소 → 클릭하면 새 창으로 열리는 링크 칩 ──
+function linkChipsHtml(text) {
+  const urls = String(text == null ? '' : text).match(/https?:\/\/[^\s<>"']+/g);
+  if (!urls) return '';
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const seen = new Set();
+  const chips = [];
+  urls.forEach(u => {
+    const url = u.replace(/[.,)\]}]+$/, '');   // 문장 끝 문장부호는 주소에서 제외
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    let label = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+    if (label.length > 34) label = label.slice(0, 34) + '…';
+    chips.push(`<a class="link-chip" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(url)}">🔗 ${esc(label)}</a>`);
+  });
+  return chips.length ? `<div class="link-chips">${chips.join('')}</div>` : '';
+}
+
+// 타자 치는 도중에도 칩이 바로 갱신되게
+function refreshLinkChips(ta) {
+  const td = ta.closest('td');
+  if (!td) return;
+  const old = td.querySelector('.link-chips');
+  if (old) old.remove();
+  const html = linkChipsHtml(ta.value);
+  if (html) ta.insertAdjacentHTML('afterend', html);
 }
 
 // ── 행 추가 ──
