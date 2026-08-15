@@ -785,6 +785,13 @@
   }
   .archive-row-delete:hover { background: rgba(248,113,113,0.15); color: #f87171; }
 
+  /* 일정표 복사(복제) 버튼 */
+  .archive-row-copy {
+    background: transparent; border: none; color: var(--text3);
+    cursor: pointer; font-size: 13px; padding: 3px 8px; border-radius: 4px;
+  }
+  .archive-row-copy:hover { background: rgba(79,142,247,0.15); color: var(--accent); }
+
   .search-no-result {
     text-align: center; padding: 24px; color: var(--text3);
     font-size: 13px; font-style: italic;
@@ -1122,7 +1129,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0839</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0912</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1626,6 +1633,29 @@ function loadFromArchive(id) {
   document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ── 보관함 일정표 복사(복제) ──
+// 같은 코스를 다른 날짜에 또 갈 때, 원본은 그대로 두고 복사본을 만들어 날짜·인원만 고쳐 쓰기 위함
+function duplicateItinerary(id) {
+  const item = archiveData.find(it => it.id === id);
+  if (!item) return;
+  const suggested = (item.title || '일정표') + ' (복사)';
+  const input = prompt('복사본 이름을 정해주세요:', suggested);
+  if (input === null) return;                       // 취소
+  const title = input.trim() || suggested;
+  const newId = 'itin_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  archiveData.push({
+    id: newId,
+    title: title,
+    data: JSON.parse(JSON.stringify(item.data)),    // 원본과 완전히 분리된 사본
+    savedAt: Date.now()
+  });
+  hasUnsavedChanges = true;
+  saveArchiveLocal();
+  updateLastSyncDisplay();
+  renderArchive();
+  showSyncStatus(`✓ "${title}" 복사본을 만들었어요. "☁ 구글 드라이브 동기화"를 누르면 다른 기기에서도 볼 수 있어요!`, 'success');
+}
+
 // ── 보관함에서 삭제 ──
 function deleteFromArchive(id) {
   const item = archiveData.find(it => it.id === id);
@@ -1705,6 +1735,7 @@ function renderArchive() {
         <div class="archive-row-name">${escapeHtmlItin(item.title)}</div>
         ${metaStr ? `<div class="archive-row-meta">${metaStr}</div>` : ''}
         <div class="archive-row-date">💾 ${dateStr}</div>
+        <button class="archive-row-copy" onclick="event.stopPropagation(); duplicateItinerary('${item.id}')" title="복사본 만들기">📋</button>
         <button class="archive-row-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">✕</button>
       </div>`;
   }).join('') + '</div>';
