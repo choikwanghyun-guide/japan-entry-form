@@ -779,18 +779,15 @@
     color: var(--text3); font-size: 11px; font-family: monospace;
     white-space: nowrap;
   }
-  .archive-row-delete {
-    background: transparent; border: none; color: var(--text3);
-    cursor: pointer; font-size: 14px; padding: 3px 8px; border-radius: 4px;
+  /* 목록 행의 글자 버튼 (수정 · 복사 · 삭제) */
+  .archive-row-delete, .archive-row-copy, .archive-row-rename {
+    background: transparent; border: 1px solid var(--border); color: var(--text3);
+    cursor: pointer; font-size: 12px; font-family: inherit; font-weight: 600;
+    padding: 3px 9px; border-radius: 5px; white-space: nowrap; transition: all 0.15s;
   }
-  .archive-row-delete:hover { background: rgba(248,113,113,0.15); color: #f87171; }
-
-  /* 일정표 복사(복제) 버튼 */
-  .archive-row-copy {
-    background: transparent; border: none; color: var(--text3);
-    cursor: pointer; font-size: 13px; padding: 3px 8px; border-radius: 4px;
-  }
-  .archive-row-copy:hover { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .archive-row-rename:hover { background: rgba(62,207,142,0.15); color: var(--accent2); border-color: var(--accent2); }
+  .archive-row-copy:hover   { background: rgba(79,142,247,0.15); color: var(--accent); border-color: var(--accent); }
+  .archive-row-delete:hover { background: rgba(248,113,113,0.15); color: #f87171; border-color: #f87171; }
 
   .search-no-result {
     text-align: center; padding: 24px; color: var(--text3);
@@ -1129,7 +1126,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0912</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0928</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1633,6 +1630,23 @@ function loadFromArchive(id) {
   document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// ── 보관함 일정표 이름 바꾸기 ──
+function renameItinerary(id) {
+  const item = archiveData.find(it => it.id === id);
+  if (!item) return;
+  const input = prompt('일정표 이름을 수정해주세요:', item.title || '');
+  if (input === null) return;                       // 취소
+  const title = input.trim();
+  if (!title || title === item.title) return;       // 빈칸이거나 그대로면 변경 없음
+  item.title = title;
+  item.savedAt = Date.now();                        // 다른 기기의 옛 이름이 덮어쓰지 않게 최신 표시
+  hasUnsavedChanges = true;
+  saveArchiveLocal();
+  updateLastSyncDisplay();
+  renderArchive();
+  showSyncStatus(`✓ 이름을 "${title}"(으)로 바꿨어요. "☁ 구글 드라이브 동기화"를 누르면 다른 기기에도 반영돼요!`, 'success');
+}
+
 // ── 보관함 일정표 복사(복제) ──
 // 같은 코스를 다른 날짜에 또 갈 때, 원본은 그대로 두고 복사본을 만들어 날짜·인원만 고쳐 쓰기 위함
 function duplicateItinerary(id) {
@@ -1735,8 +1749,9 @@ function renderArchive() {
         <div class="archive-row-name">${escapeHtmlItin(item.title)}</div>
         ${metaStr ? `<div class="archive-row-meta">${metaStr}</div>` : ''}
         <div class="archive-row-date">💾 ${dateStr}</div>
-        <button class="archive-row-copy" onclick="event.stopPropagation(); duplicateItinerary('${item.id}')" title="복사본 만들기">📋</button>
-        <button class="archive-row-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">✕</button>
+        <button class="archive-row-rename" onclick="event.stopPropagation(); renameItinerary('${item.id}')" title="이름 바꾸기">수정</button>
+        <button class="archive-row-copy" onclick="event.stopPropagation(); duplicateItinerary('${item.id}')" title="복사본 만들기">복사</button>
+        <button class="archive-row-delete" onclick="event.stopPropagation(); deleteFromArchive('${item.id}')" title="삭제">삭제</button>
       </div>`;
   }).join('') + '</div>';
 }
