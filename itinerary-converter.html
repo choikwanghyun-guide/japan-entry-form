@@ -1126,7 +1126,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0928</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_0946</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4152,7 +4152,8 @@ function moveRow(di, ii, dir) {
   const ni = ii + dir;
   if (ni < 0 || ni >= items.length) return;
   [items[ii], items[ni]] = [items[ni], items[ii]];
-  reRenderDay(di);
+  // 순서가 바뀌었으니 바뀐 위치부터 도착·출발 시간을 다시 계산 (recalcTimes가 재렌더까지 함)
+  recalcTimes(di, Math.min(ii, ni));
 }
 
 // ── 행 드래그 이동 (좌측 ⠿ 손잡이를 잡고 끌어서 순서 변경) ──
@@ -4199,7 +4200,8 @@ function rowDrop(e, di, ii) {
   const items = parsedData.days[di].items;
   const [moved] = items.splice(from, 1);
   items.splice(to, 0, moved);
-  reRenderDay(di);
+  // 순서가 바뀌었으니 바뀐 위치부터 도착·출발 시간을 다시 계산
+  recalcTimes(di, Math.min(from, to));
 }
 
 function rowDragEnd() {
