@@ -1126,7 +1126,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0815_1002</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0820_0824</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4762,7 +4762,9 @@ function downloadExcel() {
         durCell(moveNum),
         durCell(stayNum),
         (item.desc || '').replace(/^[🏨✈️🚌🗺️🍽️•]\s*/, ''),
-        item.transport || (item.note != null ? item.note : (item.meal || '')) || '',
+        // 내용 칸은 화면 편집표와 100% 동일하게 note만 사용
+        // (예전엔 transport(전용버스/도보/항공편)를 우선 써서, 손으로 적은 내용이 덮어써졌음)
+        (item.note != null ? item.note : (item.meal || '')) || '',
         item.note2 || ''
       ]);
     });
