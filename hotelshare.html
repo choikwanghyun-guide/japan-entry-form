@@ -1952,7 +1952,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0828_0154</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0828_0719</span></p>
   </footer>
 
 </div>
@@ -2515,76 +2515,48 @@
     updateLastSyncDisplay();
   }
 
-  // ===== 공유 보관함 (JSONBin) — 모든 가이드가 함께 모으는 풀 =====
-  // 무료 플랜은 빈 1개당 100KB 한도라, 호텔을 4개 빈에 나눠 담고 gzip 압축해서 저장한다.
-  const SHARED_BIN_IDS = [
-    '6a35454bda38895dfeddaec6',
-    '6a3565cfda38895dfede69b7',
-    '6a356605f5f4af5e290fef61',
-    '6a356634da38895dfede6be0'
-  ];
-  const SHARED_ACCESS_KEY = '$2a$10$IqaK4jy2QBuTrTV1RCE3vuKFbkP/7wC0pZ8KNgbE3ls8WLPdP/I9a';
+  // ===== 저장소 (구글 스프레드시트 + Apps Script) =====
+  // 시트 탭 hotels = hotel.html 개인 백업 / shared = hotelshare.html 가이드 공유
+  const STORE_URL = 'https://script.google.com/macros/s/AKfycbx5KFUdoRAqGwfBXlouTxmfsXqOmXVShZDkOwGXKwmsQMj3qTielJziu6nmANMKwxCDpw/exec';
+  const STORE_NAME = 'shared';
 
-  // 호텔 id로 어느 빈에 들어갈지 결정 (항상 같은 빈 → 저장/삭제는 그 빈 하나만 건드림)
-  function shardIndexFor(id) {
-    let h = 0; const s = String(id || '');
-    for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
-    return h % SHARED_BIN_IDS.length;
-  }
-  // 빈에 저장되는 형태: {"gz":"<base64 gzip JSON>"} (옛 비압축 {"hotels":[...]}도 읽을 수 있게)
-  function encodeHotels(arr) {
-    const json = JSON.stringify(arr || []);
-    const gz = pako.gzip(json);
-    let bin = '';
-    for (let i = 0; i < gz.length; i++) bin += String.fromCharCode(gz[i]);
-    return { gz: btoa(bin) };
-  }
-  function decodeRecord(record) {
-    if (!record) return [];
-    if (Array.isArray(record.hotels)) return record.hotels;   // 옛 비압축 형식 호환
-    if (record.gz) {
-      try {
-        const binStr = atob(record.gz);
-        const bytes = new Uint8Array(binStr.length);
-        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
-        const json = pako.ungzip(bytes, { to: 'string' });
-        const obj = JSON.parse(json);
-        return Array.isArray(obj) ? obj : (obj.hotels || []);
-      } catch (e) { console.warn('decodeRecord', e); return []; }
-    }
-    return [];
-  }
   function sharedSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-  // JSONBin 무료 플랜은 짧은 시간에 요청이 몰리면 막을 때가 있어, 재시도(backoff)로 감싼다.
-  async function sharedFetch(url, opts, tries) {
-    tries = tries || 4;
-    let lastErr;
-    for (let t = 0; t < tries; t++) {
+
+  async function storeGet(store) {
+    const url = STORE_URL + '?store=' + encodeURIComponent(store || STORE_NAME) + '&t=' + Date.now();
+    let last;
+    for (let t = 0; t < 3; t++) {
       try {
-        const res = await fetch(url, opts);
-        if (res.ok) return res;
-        if ((res.status === 429 || res.status >= 500) && t < tries - 1) { await sharedSleep(600 * (t + 1)); continue; }
-        throw new Error('HTTP ' + res.status);
-      } catch (e) { lastErr = e; if (t < tries - 1) await sharedSleep(600 * (t + 1)); }
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || '읽기 실패');
+        return d.hotels || [];
+      } catch (e) { last = e; if (t < 2) await sharedSleep(800 * (t + 1)); }
     }
-    throw lastErr;
+    throw last;
   }
-  async function fetchShard(idx) {
-    const res = await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-    const d = await res.json();
-    return decodeRecord(d.record);
-  }
-  async function putShard(idx, arr) {
-    await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
-      body: JSON.stringify(encodeHotels(arr))
-    });
+  async function storePost(payload) {
+    let last;
+    for (let t = 0; t < 3; t++) {
+      try {
+        const res = await fetch(STORE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || '저장 실패');
+        return d;
+      } catch (e) { last = e; if (t < 2) await sharedSleep(800 * (t + 1)); }
+    }
+    throw last;
   }
 
   // 불러오기 성공 여부 — 실패 상태에서는 저장/삭제를 막아 데이터 훼손을 방지한다
   let poolLoadOk = false;
-  const CACHE_KEY = 'hotel_pool_cache';
+  const CACHE_KEY = 'hotel_pool_cache_shared';
 
   function showLoadWarning(msg, cachedCount) {
     let el = document.getElementById('loadWarn');
@@ -2608,14 +2580,8 @@
   }
 
   async function pullSharedPool(silent) {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return;
     try {
-      const parts = await Promise.all(SHARED_BIN_IDS.map((_, i) => fetchShard(i)));
-      const all = []; const seen = {};
-      parts.forEach(p => p.forEach(h => {
-        if (h && h.id) { if (seen[h.id]) return; seen[h.id] = 1; }
-        all.push(h);
-      }));
+      const all = await storeGet();
       archiveData = all;
       poolLoadOk = true;
       hideLoadWarning();
@@ -2633,30 +2599,19 @@
     }
   }
 
-  async function pushSharedPool() {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
+  // items를 주면 그것만, 없으면 전체를 저장 (있으면 수정 / 없으면 추가)
+  async function pushSharedPool(items) {
     if (!poolLoadOk) {
       showStatus('⚠️ 아직 서버에서 호텔 정보를 불러오지 못했어요. 기존 정보를 덮어쓰지 않도록 저장을 막았습니다. 새로고침(F5) 후 다시 시도해 주세요.', 'error');
       return false;
     }
     try {
-      // 호텔을 빈별로 그룹핑 후, 각 빈마다 원격 최신과 병합(같은 id는 로컬 우선)해서 저장
-      const localByShard = SHARED_BIN_IDS.map(() => []);
-      archiveData.forEach(h => { if (h && h.id) localByShard[shardIndexFor(h.id)].push(h); });
-      const mergedAll = [];
-      for (let i = 0; i < SHARED_BIN_IDS.length; i++) {
-        if (i > 0) await sharedSleep(400);   // 요청 몰림(속도 제한) 방지
-        let remote = [];
-        try { remote = await fetchShard(i); } catch (e) {}
-        const map = {};
-        remote.forEach(h => { if (h && h.id) map[h.id] = h; });
-        localByShard[i].forEach(h => { if (h && h.id) map[h.id] = h; });
-        const merged = Object.values(map);
-        await sharedSleep(250);
-        await putShard(i, merged);
-        merged.forEach(h => mergedAll.push(h));
+      const list = (items && items.length) ? items : archiveData;
+      if (!list.length) return true;
+      for (let i = 0; i < list.length; i += 40) {
+        await storePost({ store: STORE_NAME, action: 'save', hotels: list.slice(i, i + 40) });
+        if (i + 40 < list.length) await sharedSleep(250);
       }
-      archiveData = mergedAll;
       renderArchive();
       return true;
     } catch (e) {
@@ -2666,88 +2621,23 @@
   }
 
   async function deleteFromSharedPool(id) {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
     if (!poolLoadOk) {
       showStatus('⚠️ 서버에서 정보를 불러오지 못한 상태라 삭제를 막았습니다. 새로고침(F5) 후 다시 시도해 주세요.', 'error');
       return false;
     }
     try {
-      const idx = shardIndexFor(id);
-      let remote = [];
-      try { remote = await fetchShard(idx); } catch (e) {}
-      const updated = remote.filter(h => h && h.id !== id);
-      await putShard(idx, updated);
+      await storePost({ store: STORE_NAME, action: 'delete', id: id });
       archiveData = archiveData.filter(h => h && h.id !== id);
       renderArchive();
       return true;
     } catch (e) { console.warn('deleteFromSharedPool', e); return false; }
   }
 
-  // ===== 숨은 기능: 공유 보관함의 새 호텔을 개인 백업(hotel.html 보관함)으로 복사 =====
+  // ===== 숨은 기능: 공유 보관함의 새/변경 호텔을 개인 백업(hotel.html)으로 복사 =====
   // 주소 뒤에 ?backup=1 을 붙여 열면 "⤵ 백업으로 복사" 버튼이 나타난다.
   // 복사만 하므로(공유본 그대로, 백업 기존 데이터 덮어쓰기 없음) 잘못 눌러도 피해 없음.
-  const PRIVATE_BIN_IDS = [
-    '6a499baada38895dfe2f2583',
-    '6a499bc9da38895dfe2f25c2',
-    '6a499bdaf5f4af5e2960b5cd',
-    '6a499beef5f4af5e2960b5fd'
-  ];
-  async function fetchPrivShard(idx) {
-    const res = await sharedFetch(`https://api.jsonbin.io/v3/b/${PRIVATE_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-    const d = await res.json();
-    return decodeRecord(d.record);
-  }
-  async function putPrivShard(idx, arr) {
-    await sharedFetch(`https://api.jsonbin.io/v3/b/${PRIVATE_BIN_IDS[idx]}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
-      body: JSON.stringify(encodeHotels(arr))
-    });
-  }
-  async function backupNewToPrivate() {
-    const btn = document.getElementById('backupBtn');
-    const btnLabel = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ 확인 중...'; }
-    try {
-      showStatus('공유 보관함 확인 중...', 'loading');
-      const shared = [];
-      for (let i = 0; i < SHARED_BIN_IDS.length; i++) {
-        if (i > 0) await sharedSleep(300);
-        (await fetchShard(i)).forEach(h => shared.push(h));
-      }
-      showStatus('백업 보관함 확인 중...', 'loading');
-      const privParts = [];
-      for (let i = 0; i < PRIVATE_BIN_IDS.length; i++) {
-        await sharedSleep(300);
-        privParts.push(await fetchPrivShard(i));
-      }
-      const privMap = {};
-      privParts.forEach(p => p.forEach(h => { if (h && h.id) privMap[h.id] = h; }));
-      // 내용 지문(작성자/저장시각 제외) — 다르면 "변경됨"
-      const fp = h => JSON.stringify({ n: h.hotelName || '', d: h.infoDate || '', f: h.fields || [], i: h.insights || '', l: h.links || [], p: h.posts || '' });
-      const fresh = [], changed = [];
-      shared.forEach(h => {
-        if (!h || !h.id) return;
-        const mine = privMap[h.id];
-        if (!mine) fresh.push(h);
-        else if (fp(mine) !== fp(h)) changed.push(h);
-      });
-      hideStatus();
-      __backupPrivParts = privParts;
-      if (!fresh.length && !changed.length) { backupResultPopup('✅ 백업이 이미 최신이에요!', '새로 올라오거나 변경된 호텔이 없습니다.'); return; }
-      showBackupPicker(fresh, changed);
-    } catch (e) {
-      console.warn('backupNewToPrivate', e);
-      showStatus('백업 복사 실패: ' + e.message + ' — 다시 시도해 주세요.', 'error');
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
-    }
-  }
-  // 선택 복사용 상태
   let __backupItems = [];
-  let __backupPrivParts = null;
 
-  // 결과 팝업 — 백업 결과를 확실하게 보여준다
   function backupResultPopup(title, sub) {
     const old = document.getElementById('backupResult');
     if (old) old.remove();
@@ -2762,7 +2652,6 @@
     document.body.appendChild(ov);
   }
 
-  // 신규/변경 호텔 목록을 체크박스로 보여주는 선택 창
   function showBackupPicker(fresh, changed) {
     const old = document.getElementById('backupPicker');
     if (old) old.remove();
@@ -2791,7 +2680,6 @@
     document.body.appendChild(ov);
   }
 
-  // 체크된 호텔만 개인 백업으로 저장 (신규는 추가, 변경은 교체)
   async function backupCopySelected() {
     const checks = Array.from(document.querySelectorAll('.bk-item:checked'));
     const picked = checks.map(c => __backupItems[parseInt(c.dataset.bkIndex)]).filter(Boolean);
@@ -2800,24 +2688,50 @@
     if (!picked.length) { backupResultPopup('선택된 호텔이 없어요', '체크박스를 선택한 뒤 다시 눌러주세요.'); return; }
     try {
       showStatus(`${picked.length}개를 백업으로 저장 중...`, 'loading');
-      const byShard = PRIVATE_BIN_IDS.map(() => []);
-      picked.forEach(it => byShard[shardIndexFor(it.h.id)].push(it.h));
-      for (let i = 0; i < PRIVATE_BIN_IDS.length; i++) {
-        if (!byShard[i].length) continue;
-        await sharedSleep(400);
-        const ids = new Set(byShard[i].map(h => h.id));
-        const merged = __backupPrivParts[i].filter(h => !(h && ids.has(h.id))).concat(byShard[i]);
-        await putPrivShard(i, merged);
-        __backupPrivParts[i] = merged;
+      const list = picked.map(it => it.h);
+      for (let i = 0; i < list.length; i += 40) {
+        await storePost({ store: 'hotels', action: 'save', hotels: list.slice(i, i + 40) });
+        if (i + 40 < list.length) await sharedSleep(250);
       }
       hideStatus();
       const nNew = picked.filter(it => it.kind === 'new').length;
-      const nChg = picked.length - nNew;
-      backupResultPopup('✅ 백업 완료!', `신규 ${nNew}개 · 변경 ${nChg}개를 백업 보관함(hotel.html)에 저장했어요.<br>공유 보관함은 그대로입니다.`);
+      backupResultPopup('✅ 백업 완료!', `신규 ${nNew}개 · 변경 ${picked.length - nNew}개를 백업 보관함(hotel.html)에 저장했어요.<br>공유 보관함은 그대로입니다.`);
     } catch (e) {
       console.warn('backupCopySelected', e);
       hideStatus();
       backupResultPopup('❌ 백업 실패', (e.message || '') + ' — 인터넷 확인 후 다시 시도해 주세요.');
+    }
+  }
+
+  async function backupNewToPrivate() {
+    const btn = document.getElementById('backupBtn');
+    const btnLabel = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 확인 중...'; }
+    try {
+      showStatus('공유 보관함 확인 중...', 'loading');
+      const shared = await storeGet('shared');
+      showStatus('백업 보관함 확인 중...', 'loading');
+      const priv = await storeGet('hotels');
+      const privMap = {};
+      priv.forEach(h => { if (h && h.id) privMap[h.id] = h; });
+      // 내용 지문(작성자/저장시각 제외) — 다르면 "변경됨"
+      const fp = h => JSON.stringify({ n: h.hotelName || '', d: h.infoDate || '', f: h.fields || [], i: h.insights || '', l: h.links || [], p: h.posts || '' });
+      const fresh = [], changed = [];
+      shared.forEach(h => {
+        if (!h || !h.id) return;
+        const mine = privMap[h.id];
+        if (!mine) fresh.push(h);
+        else if (fp(mine) !== fp(h)) changed.push(h);
+      });
+      hideStatus();
+      if (!fresh.length && !changed.length) { backupResultPopup('✅ 백업이 이미 최신이에요!', '새로 올라오거나 변경된 호텔이 없습니다.'); return; }
+      showBackupPicker(fresh, changed);
+    } catch (e) {
+      console.warn('backupNewToPrivate', e);
+      hideStatus();
+      backupResultPopup('❌ 확인 실패', (e.message || '') + ' — 인터넷 확인 후 다시 시도해 주세요.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
     }
   }
 
@@ -3040,7 +2954,7 @@
 
     const displayName = parseHotelName(currentData.hotelName).main;
     showStatus(`💾 "${displayName}" 공유 보관함에 올리는 중...`, 'loading');
-    pushSharedPool().then(ok => {
+    pushSharedPool([entry]).then(ok => {
       showStatus(ok ? `✓ "${displayName}" 공유 보관함에 저장됐어요! 다른 가이드도 볼 수 있어요.` : `"${displayName}"는 화면엔 있지만 공유 업로드 실패. 인터넷 확인 후 다시 저장해 주세요.`, ok ? 'success' : 'error');
     });
   }

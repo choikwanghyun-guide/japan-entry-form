@@ -1934,7 +1934,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0828_0154</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0828_0719</span></p>
   </footer>
 
 </div>
@@ -2529,76 +2529,48 @@
     updateLastSyncDisplay();
   }
 
-  // ===== 내 보관함 (JSONBin) — hotel.html 전용 개인 백업 저장소 (hotelshare의 공유 풀과 분리) =====
-  // 무료 플랜은 빈 1개당 100KB 한도라, 호텔을 4개 빈에 나눠 담고 gzip 압축해서 저장한다.
-  const SHARED_BIN_IDS = [
-    '6a499baada38895dfe2f2583',
-    '6a499bc9da38895dfe2f25c2',
-    '6a499bdaf5f4af5e2960b5cd',
-    '6a499beef5f4af5e2960b5fd'
-  ];
-  const SHARED_ACCESS_KEY = '$2a$10$IqaK4jy2QBuTrTV1RCE3vuKFbkP/7wC0pZ8KNgbE3ls8WLPdP/I9a';
+  // ===== 저장소 (구글 스프레드시트 + Apps Script) =====
+  // 시트 탭 hotels = hotel.html 개인 백업 / shared = hotelshare.html 가이드 공유
+  const STORE_URL = 'https://script.google.com/macros/s/AKfycbx5KFUdoRAqGwfBXlouTxmfsXqOmXVShZDkOwGXKwmsQMj3qTielJziu6nmANMKwxCDpw/exec';
+  const STORE_NAME = 'hotels';
 
-  // 호텔 id로 어느 빈에 들어갈지 결정 (항상 같은 빈 → 저장/삭제는 그 빈 하나만 건드림)
-  function shardIndexFor(id) {
-    let h = 0; const s = String(id || '');
-    for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
-    return h % SHARED_BIN_IDS.length;
-  }
-  // 빈에 저장되는 형태: {"gz":"<base64 gzip JSON>"} (옛 비압축 {"hotels":[...]}도 읽을 수 있게)
-  function encodeHotels(arr) {
-    const json = JSON.stringify(arr || []);
-    const gz = pako.gzip(json);
-    let bin = '';
-    for (let i = 0; i < gz.length; i++) bin += String.fromCharCode(gz[i]);
-    return { gz: btoa(bin) };
-  }
-  function decodeRecord(record) {
-    if (!record) return [];
-    if (Array.isArray(record.hotels)) return record.hotels;   // 옛 비압축 형식 호환
-    if (record.gz) {
-      try {
-        const binStr = atob(record.gz);
-        const bytes = new Uint8Array(binStr.length);
-        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
-        const json = pako.ungzip(bytes, { to: 'string' });
-        const obj = JSON.parse(json);
-        return Array.isArray(obj) ? obj : (obj.hotels || []);
-      } catch (e) { console.warn('decodeRecord', e); return []; }
-    }
-    return [];
-  }
   function sharedSleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-  // JSONBin 무료 플랜은 짧은 시간에 요청이 몰리면 막을 때가 있어, 재시도(backoff)로 감싼다.
-  async function sharedFetch(url, opts, tries) {
-    tries = tries || 4;
-    let lastErr;
-    for (let t = 0; t < tries; t++) {
+
+  async function storeGet(store) {
+    const url = STORE_URL + '?store=' + encodeURIComponent(store || STORE_NAME) + '&t=' + Date.now();
+    let last;
+    for (let t = 0; t < 3; t++) {
       try {
-        const res = await fetch(url, opts);
-        if (res.ok) return res;
-        if ((res.status === 429 || res.status >= 500) && t < tries - 1) { await sharedSleep(600 * (t + 1)); continue; }
-        throw new Error('HTTP ' + res.status);
-      } catch (e) { lastErr = e; if (t < tries - 1) await sharedSleep(600 * (t + 1)); }
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || '읽기 실패');
+        return d.hotels || [];
+      } catch (e) { last = e; if (t < 2) await sharedSleep(800 * (t + 1)); }
     }
-    throw lastErr;
+    throw last;
   }
-  async function fetchShard(idx) {
-    const res = await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}/latest`, { headers: { 'X-Access-Key': SHARED_ACCESS_KEY } });
-    const d = await res.json();
-    return decodeRecord(d.record);
-  }
-  async function putShard(idx, arr) {
-    await sharedFetch(`https://api.jsonbin.io/v3/b/${SHARED_BIN_IDS[idx]}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Access-Key': SHARED_ACCESS_KEY },
-      body: JSON.stringify(encodeHotels(arr))
-    });
+  async function storePost(payload) {
+    let last;
+    for (let t = 0; t < 3; t++) {
+      try {
+        const res = await fetch(STORE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || '저장 실패');
+        return d;
+      } catch (e) { last = e; if (t < 2) await sharedSleep(800 * (t + 1)); }
+    }
+    throw last;
   }
 
   // 불러오기 성공 여부 — 실패 상태에서는 저장/삭제를 막아 데이터 훼손을 방지한다
   let poolLoadOk = false;
-  const CACHE_KEY = 'hotel_pool_cache';
+  const CACHE_KEY = 'hotel_pool_cache_hotels';
 
   function showLoadWarning(msg, cachedCount) {
     let el = document.getElementById('loadWarn');
@@ -2622,14 +2594,8 @@
   }
 
   async function pullSharedPool(silent) {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return;
     try {
-      const parts = await Promise.all(SHARED_BIN_IDS.map((_, i) => fetchShard(i)));
-      const all = []; const seen = {};
-      parts.forEach(p => p.forEach(h => {
-        if (h && h.id) { if (seen[h.id]) return; seen[h.id] = 1; }
-        all.push(h);
-      }));
+      const all = await storeGet();
       archiveData = all;
       poolLoadOk = true;
       hideLoadWarning();
@@ -2647,30 +2613,19 @@
     }
   }
 
-  async function pushSharedPool() {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
+  // items를 주면 그것만, 없으면 전체를 저장 (있으면 수정 / 없으면 추가)
+  async function pushSharedPool(items) {
     if (!poolLoadOk) {
       showStatus('⚠️ 아직 서버에서 호텔 정보를 불러오지 못했어요. 기존 정보를 덮어쓰지 않도록 저장을 막았습니다. 새로고침(F5) 후 다시 시도해 주세요.', 'error');
       return false;
     }
     try {
-      // 호텔을 빈별로 그룹핑 후, 각 빈마다 원격 최신과 병합(같은 id는 로컬 우선)해서 저장
-      const localByShard = SHARED_BIN_IDS.map(() => []);
-      archiveData.forEach(h => { if (h && h.id) localByShard[shardIndexFor(h.id)].push(h); });
-      const mergedAll = [];
-      for (let i = 0; i < SHARED_BIN_IDS.length; i++) {
-        if (i > 0) await sharedSleep(400);   // 요청 몰림(속도 제한) 방지
-        let remote = [];
-        try { remote = await fetchShard(i); } catch (e) {}
-        const map = {};
-        remote.forEach(h => { if (h && h.id) map[h.id] = h; });
-        localByShard[i].forEach(h => { if (h && h.id) map[h.id] = h; });
-        const merged = Object.values(map);
-        await sharedSleep(250);
-        await putShard(i, merged);
-        merged.forEach(h => mergedAll.push(h));
+      const list = (items && items.length) ? items : archiveData;
+      if (!list.length) return true;
+      for (let i = 0; i < list.length; i += 40) {
+        await storePost({ store: STORE_NAME, action: 'save', hotels: list.slice(i, i + 40) });
+        if (i + 40 < list.length) await sharedSleep(250);
       }
-      archiveData = mergedAll;
       renderArchive();
       return true;
     } catch (e) {
@@ -2680,17 +2635,12 @@
   }
 
   async function deleteFromSharedPool(id) {
-    if (!SHARED_BIN_IDS.length || !SHARED_ACCESS_KEY) return false;
     if (!poolLoadOk) {
       showStatus('⚠️ 서버에서 정보를 불러오지 못한 상태라 삭제를 막았습니다. 새로고침(F5) 후 다시 시도해 주세요.', 'error');
       return false;
     }
     try {
-      const idx = shardIndexFor(id);
-      let remote = [];
-      try { remote = await fetchShard(idx); } catch (e) {}
-      const updated = remote.filter(h => h && h.id !== id);
-      await putShard(idx, updated);
+      await storePost({ store: STORE_NAME, action: 'delete', id: id });
       archiveData = archiveData.filter(h => h && h.id !== id);
       renderArchive();
       return true;
@@ -2904,7 +2854,7 @@
 
     const displayName = parseHotelName(currentData.hotelName).main;
     showStatus(`💾 "${displayName}" 내 보관함에 올리는 중...`, 'loading');
-    pushSharedPool().then(ok => {
+    pushSharedPool([entry]).then(ok => {
       showStatus(ok ? `✓ "${displayName}" 내 보관함(백업)에 저장됐어요.` : `"${displayName}"는 화면엔 있지만 보관함 업로드 실패. 인터넷 확인 후 다시 저장해 주세요.`, ok ? 'success' : 'error');
     });
   }
