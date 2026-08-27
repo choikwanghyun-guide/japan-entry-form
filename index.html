@@ -478,6 +478,7 @@ let edCardData = null;
 let passengers = [];
 // 명부에서 데이터 문제로 제외된 행 목록 (가이드 알림용)
 let skippedPassengers = [];
+let headerHelpMsg = '';  // 헤더 인식 실패 시 사용자 안내
 let currentMode = 'summary';
 
 function checkXlsx() { return true; }
@@ -634,6 +635,7 @@ function safeCell(sheet, rowIdx, colIdx) {
 function handleFile(input) {
   const file = input.files[0];
   if (!file) return;
+  headerHelpMsg = '';
   document.getElementById('fileName').textContent = file.name;
   document.getElementById('fileSize').textContent = formatSize(file.size);
   document.getElementById('fileInfo').style.display = 'block';
@@ -1128,6 +1130,17 @@ function parsePassengers(wb) {
     if (found && !sheetJp) break;
   }
 
+  headerHelpMsg = '';
+  if (__hdr && __hdr.colMap && passengers.length > 0) {
+    var _cm = __hdr.colMap, _miss = [];
+    if (_cm.fullName === undefined && _cm.lastName === undefined)
+      _miss.push("\u2022 \uc601\ubb38 \uc774\ub984\uc744 \ubabb \ucc3e\uc558\uc5b4\uc694 \u2192 \ud5e4\ub354\ub97c '\uc601\ubb38\uba85'(\uc608: HONG/GILDONG), \ub610\ub294 '\uc601\ubb38\uc131'+'\uc601\ubb38\uc774\ub984' \ub450 \uce78\uc73c\ub85c \ub9cc\ub4e4\uc5b4 \uc8fc\uc138\uc694.");
+    if (_cm.birth === undefined && _cm.ssn === undefined)
+      _miss.push("\u2022 \uc0dd\ub144\uc6d4\uc77c\uc744 \ubabb \ucc3e\uc558\uc5b4\uc694 \u2192 \ud5e4\ub354\ub97c '\uc0dd\ub144\uc6d4\uc77c'(\ub610\ub294 '\uc8fc\ubbfc\ubc88\ud638')\ub85c, \uac12\uc740 1975-07-02 \ud615\uc2dd\uc73c\ub85c \ud574\uc8fc\uc138\uc694.");
+    if (_cm.passport === undefined)
+      _miss.push("\u2022 \uc5ec\uad8c\ubc88\ud638\ub97c \ubabb \ucc3e\uc558\uc5b4\uc694 \u2192 \ud5e4\ub354\ub97c '\uc5ec\uad8c\ubc88\ud638'\ub85c \ub9cc\ub4e4\uc5b4 \uc8fc\uc138\uc694.");
+    if (_miss.length) headerHelpMsg = _miss.join(String.fromCharCode(10));
+  }
   renderPreview();
   try { if (typeof window !== 'undefined' && typeof window.__autoReport === 'function') window.__autoReport({ info: __hdr, count: passengers.length }); } catch(e) {}
   
@@ -1708,7 +1721,12 @@ function renderPreview() {
       _msg += `\n  • ${s.korName || '(이름 없음)'}${s.no ? ` (${s.no}번)` : ''}: ${s.reason}`;
     });
   }
-  showAlert('uploadAlert', 'success', _msg);
+  if (headerHelpMsg) {
+    var _nl = String.fromCharCode(10);
+    showAlert('uploadAlert', 'warning', '\u26a0\ufe0f ' + passengers.length + '\uba85\uc744 \uc77d\uc5c8\uc9c0\ub9cc, \uc544\ub798 \ud56d\ubaa9\uc744 \ubabb \ucc3e\uc558\uc5b4\uc694. \uace0\uccd0\uc11c \ub2e4\uc2dc \uc62c\ub824\uc8fc\uc138\uc694:' + _nl + _nl + headerHelpMsg + _nl + _nl + '\ud83d\udccb \uad8c\uc7a5 \ud45c\uc900 \ud5e4\ub354:  \ud55c\uae00\uba85 | \uc601\ubb38\uba85 | \uc131\ubcc4 | \uc0dd\ub144\uc6d4\uc77c | \uc5ec\uad8c\ubc88\ud638 | \uc5ec\uad8c\ub9cc\ub8cc\uc77c');
+  } else {
+    showAlert('uploadAlert', 'success', _msg);
+  }
   // 통계 계산
   var statToday = new Date();
   let male = 0, female = 0, senior = 0, senior65 = 0, child = 0;
@@ -2465,7 +2483,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0828_0152</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0828_0725</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
