@@ -1348,6 +1348,19 @@ function parseBirth(raw) {
     }
   }
 
+  // 영어 월 이름: "July 2, 1975", "2 July 1975", "Jul 2 1975" 등 (월 이름이라 MM/DD 혼동 없음 → 안전)
+  const _monNm = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+  const _mnMatch = raw.match(/[A-Za-z]{3,}/);
+  if (_mnMatch) {
+    const _mi = _monNm[_mnMatch[0].slice(0,3).toLowerCase()];
+    if (_mi) {
+      const _ns = raw.match(/\d+/g) || [];
+      const _yr = _ns.find(function(n){ return n.length === 4; });
+      const _dy = _ns.find(function(n){ return n.length >= 1 && n.length <= 2; });
+      if (_yr && _dy) return { year: _yr, month: String(_mi).padStart(2, '0'), day: _dy.padStart(2, '0') };
+    }
+  }
+
   const digits = raw.replace(/[^0-9]/g, '');
 
   // ★ 핵심 수정: YYYYMMDD-숫자 형태 (예: "19670213-1") → 8자리 생년월일
@@ -2452,7 +2465,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0828_0128</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0828_0152</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
