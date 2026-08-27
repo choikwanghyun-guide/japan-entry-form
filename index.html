@@ -835,7 +835,7 @@ function detectColumns(rowCells) {
   if (!isHeader) return { isHeader: false, colMap: {} };
   const colMap = {};
   row.forEach((cell, idx) => {
-          const c = cell.trim();
+          const c = String(cell).replace(/[*※]/g, '').trim();  // 필수표시 별표 등은 무시
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
           if (/^영문이름$/.test(c) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
           // '영문성'(성)이 이미 잡힌 명부의 '영문명'/'영문 명'은 통합명이 아니라 이름(given)
@@ -992,6 +992,16 @@ function parsePassengers(wb) {
         else if (/[A-Za-z]/.test(_v)) _roman++;
       }
       if (_roman > 0 && _kor === 0) { colMap.fullName = colMap.korName; delete colMap.korName; }
+    }
+    // '영문이름' 한 칸만 있고 성(영문성)·통합명 칸이 없을 때: 값이 성+이름(공백·/포함)이면 통합명으로 승격
+    if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName !== undefined) {
+      let _mult = 0, _sing = 0;
+      for (let k = headerRow + 1; k < rows.length && (_mult + _sing) < 10; k++) {
+        const _v = String((rows[k] || [])[colMap.firstName] || '').trim();
+        if (!_v) continue;
+        if (/[\/\s]/.test(_v)) _mult++; else _sing++;
+      }
+      if (_mult > 0 && _sing === 0) { colMap.fullName = colMap.firstName; delete colMap.firstName; }
     }
     __hdr = { sheet: sheetName, header: rows[headerRow].map(function(c){ return String(c==null?'':c).trim(); }), colMap: colMap };
     for (let i = headerRow + 1; i < rows.length; i++) {
@@ -2442,7 +2452,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0806_2356</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0828_0128</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
