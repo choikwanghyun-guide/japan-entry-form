@@ -848,7 +848,7 @@ function detectColumns(rowCells) {
           if (/^영문$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문\s*이름$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           // 한글이름
-          if (/한글이름|한글성명|한글명|성명/.test(c) && !/영문/.test(c)) colMap.korName = idx;
+          if (/한글이름|한글성명|한글명|성 *명/.test(c) && !/영문/.test(c)) colMap.korName = idx;
           if ((/^이름$/.test(c) || /^한글$/.test(c)) && colMap.korName === undefined) colMap.korName = idx;
           // 영문명 (이름 헤더가 영문인 경우)
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
@@ -2510,7 +2510,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0904_1039</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0904_2211</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
