@@ -798,7 +798,7 @@ function parseTxtRoster(text) {
 
 // 공용: 헤더 한 줄 → 열 매핑 (parsePassengers와 자가검사가 같은 로직을 사용)
 function detectColumns(rowCells) {
-  const row = (rowCells || []).map(c => String(c == null ? '' : c).replace(/([가-힣]) +(?=[가-힣])/g, '$1').trim());  // 한글 글자 사이 공백 제거(생 년 월 일 → 생년월일)
+  const row = (rowCells || []).map(c => String(c == null ? '' : c).replace(/([가-힣]) +(?=[가-힣])/g, '$1').replace(/영어/g, '영문').trim());  // 한글 글자 사이 공백 제거 + '영어'→'영문' 동의어
   const rowStr = row.join(' ');
   // ── 일본어 헤더(부관훼리 등 일본 랜드사 명부) 대응 ──
   // 헤더 예: NO. | 名前(병합: 한글+로마자) | 性別 | 生年月日 | パスポート情報(병합: 여권번호+만료일) | 電話番号 | 備考
@@ -2510,7 +2510,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0905_0456</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0905_0610</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
