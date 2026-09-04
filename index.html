@@ -984,6 +984,32 @@ function parsePassengers(wb) {
       if (!nextRowHasData) headerRow += 0; // 이미 headerRow+1부터 시작하므로 유지
     }
 
+    // '한글명'과 별도로 '성'/'이름' 칸이 있고 영문 이름 칸이 없을 때: 값이 로마자면 영문 성/이름으로 인식
+    if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName === undefined) {
+      const _used = Object.keys(colMap).map(function(k){ return colMap[k]; });
+      const _hrow = rows[headerRow] || [];
+      let _lIdx = -1, _fIdx = -1;
+      for (let hi = 0; hi < _hrow.length; hi++) {
+        const _hc = String(_hrow[hi] || '').replace(/[*※]/g, '').trim();
+        if (_used.indexOf(hi) >= 0) continue;
+        if (_lIdx < 0 && /^성$/.test(_hc)) _lIdx = hi;
+        else if (_fIdx < 0 && /^이름$/.test(_hc)) _fIdx = hi;
+      }
+      const _chk = _fIdx >= 0 ? _fIdx : _lIdx;
+      if (_chk >= 0) {
+        let _rm = 0, _ko = 0;
+        for (let k = headerRow + 1; k < rows.length && (_rm + _ko) < 10; k++) {
+          const _v = String((rows[k] || [])[_chk] || '').trim();
+          if (!_v) continue;
+          if (/[가-힣]/.test(_v)) _ko++;
+          else if (/[A-Za-z]/.test(_v)) _rm++;
+        }
+        if (_rm > 0 && _ko === 0) {
+          if (_lIdx >= 0) colMap.lastName = _lIdx;
+          if (_fIdx >= 0) colMap.firstName = _fIdx;
+        }
+      }
+    }
     // '성명'/'이름' 한 칸만 있고 영문 이름 칸이 따로 없을 때: 데이터 값이 로마자면 그 칸을 영문명으로 승격
     // (한글이 하나라도 섞이면 한글명으로 그대로 둠 → 한글 성명 명부는 안 깨짐)
     if (colMap.fullName === undefined && colMap.lastName === undefined && colMap.firstName === undefined && colMap.korName !== undefined) {
@@ -2484,7 +2510,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0829_2249</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0904_1039</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
