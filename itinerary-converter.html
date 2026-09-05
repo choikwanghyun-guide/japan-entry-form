@@ -1126,7 +1126,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0905_2050</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0905_2056</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4860,8 +4860,8 @@ function printItinerary() {
   @media print { body { margin:5px; } @page { margin:8mm; size:A4 landscape; } }
 </style>
 </head><body>
+${groupName ? `<div style="border:2px solid #1a1a2e;border-radius:6px;background:#eef2ff;padding:6px 12px;margin-bottom:6px;text-align:center;font-size:14px;font-weight:700;color:#1a1a2e;">🏢 단체명 / 상품코드 : ${groupName}</div>` : ''}
 ${getSekiwariText() ? `<div style="border:2px solid #1a1a2e;border-radius:6px;background:#fff3cd;padding:6px 12px;margin-bottom:6px;text-align:center;font-size:14px;font-weight:700;color:#1a1a2e;">🪑 세키와리(좌석배치) : ${getSekiwariText()}</div>` : ''}
-${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weight:600;margin-bottom:2px;">${groupName}</div>` : ''}
 <h1>✈️ ${title}</h1>
 <div class="info-box">
 <table>
@@ -4995,6 +4995,7 @@ function printCardItinerary() {
   .foot { text-align:center; font-size:9px; color:#aaa; margin-top:8px; }
   @media print { body { margin:5px; } @page { margin:8mm; size:A4 ${dayCount > 3 ? 'landscape' : 'portrait'}; } }
 </style></head><body>
+${groupName ? `<div style="border:2px solid #2e86de;border-radius:8px;background:#eef2ff;padding:8px 14px;margin-bottom:8px;text-align:center;font-size:15px;font-weight:800;color:#1a1a2e;">🏢 단체명 / 상품코드 : ${groupName}</div>` : ''}
 ${getSekiwariText() ? `<div style="border:2px solid #2e86de;border-radius:8px;background:#fff3cd;padding:8px 14px;margin-bottom:8px;text-align:center;font-size:15px;font-weight:800;color:#1a1a2e;">🪑 세키와리(좌석배치) : ${getSekiwariText()}</div>` : ''}
 <h1>✈️ ${mainTitle}</h1>
 <div class="sub">${subParts}</div>
