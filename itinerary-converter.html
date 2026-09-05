@@ -1126,7 +1126,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0822_0740</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0905_2050</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1540,6 +1540,9 @@ function saveItineraryToArchive(silent) {
   // 화면 입력값 반영
   const titleEl = document.getElementById('infoTitle');
   if (titleEl) parsedData.region = titleEl.value.trim();
+  const groupEl = document.getElementById('infoGroupName');
+  if (groupEl) parsedData.groupName = groupEl.value.trim();
+  parsedData.sekiwari = sekiwariList.slice();   // 세키와리 좌석배치도 함께 저장
 
   // 임시 키(_로 시작) 제외하고 복사
   const saveData = JSON.parse(JSON.stringify(parsedData, (k, v) => k.startsWith('_') ? undefined : v));
@@ -3679,6 +3682,9 @@ function applyParsedData() {
   document.getElementById('infoTitle').value = parsedData.region || '';
   const groupNameEl = document.getElementById('infoGroupName');
   if (groupNameEl) groupNameEl.value = parsedData.groupName || '';
+  // 세키와리(좌석배치) 복원
+  sekiwariList = Array.isArray(parsedData.sekiwari) ? parsedData.sekiwari.slice() : [];
+  renderSekiwariTags();
 
   // 미리보기 렌더링
   renderPreview();
@@ -4854,6 +4860,7 @@ function printItinerary() {
   @media print { body { margin:5px; } @page { margin:8mm; size:A4 landscape; } }
 </style>
 </head><body>
+${getSekiwariText() ? `<div style="border:2px solid #1a1a2e;border-radius:6px;background:#fff3cd;padding:6px 12px;margin-bottom:6px;text-align:center;font-size:14px;font-weight:700;color:#1a1a2e;">🪑 세키와리(좌석배치) : ${getSekiwariText()}</div>` : ''}
 ${groupName ? `<div style="text-align:center;font-size:12px;color:#555;font-weight:600;margin-bottom:2px;">${groupName}</div>` : ''}
 <h1>✈️ ${title}</h1>
 <div class="info-box">
@@ -4988,6 +4995,7 @@ function printCardItinerary() {
   .foot { text-align:center; font-size:9px; color:#aaa; margin-top:8px; }
   @media print { body { margin:5px; } @page { margin:8mm; size:A4 ${dayCount > 3 ? 'landscape' : 'portrait'}; } }
 </style></head><body>
+${getSekiwariText() ? `<div style="border:2px solid #2e86de;border-radius:8px;background:#fff3cd;padding:8px 14px;margin-bottom:8px;text-align:center;font-size:15px;font-weight:800;color:#1a1a2e;">🪑 세키와리(좌석배치) : ${getSekiwariText()}</div>` : ''}
 <h1>✈️ ${mainTitle}</h1>
 <div class="sub">${subParts}</div>
 <div class="days">${daysHtml}</div>
