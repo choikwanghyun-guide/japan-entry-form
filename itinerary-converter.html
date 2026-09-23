@@ -250,6 +250,14 @@
     font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap;
   }
   .day-copy-btn:hover { background: rgba(79,142,247,0.3); }
+  /* 일차 위/아래 이동 버튼 */
+  .day-move-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 6px; padding: 3px 9px; font-size: 12px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .day-move-btn:hover:not(:disabled) { background: rgba(79,142,247,0.25); }
+  .day-move-btn:disabled { opacity: 0.3; cursor: default; }
   .day-header .day-ai-btn {
     margin-left: auto; background: rgba(79,142,247,0.2); border: 1px solid rgba(79,142,247,0.4);
     color: var(--accent); border-radius: 6px; padding: 4px 12px; font-size: 13px;
@@ -1169,7 +1177,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1909</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1920</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1677,8 +1685,8 @@ function loadFromArchive(id) {
   if (!item) return;
   if (parsedData && !confirm('지금 화면의 일정표가 사라지고 저장된 일정표로 바뀝니다. 계속할까요?')) return;
   parsedData = JSON.parse(JSON.stringify(item.data));
-  editingItineraryId = id;
-  applyParsedData();
+  applyParsedData();          // 내부에서 editingItineraryId=null 로 초기화됨
+  editingItineraryId = id;    // 보관함 열기는 그 뒤에 이 항목 id로 지정 (재저장 시 이 항목만 갱신)
   showSyncStatus(`📂 "${item.title}" 불러왔어요. 수정 후 다시 저장하면 업데이트됩니다.`, 'success');
   document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -3705,6 +3713,11 @@ function cleanupParsedSymbols() {
 function applyParsedData() {
   if (!parsedData) return;
 
+  // ⚠️ 새로 불러온/변환한 일정은 기본적으로 "새 일정"으로 간주 → editingItineraryId 초기화.
+  //    (보관함 열기(loadFromArchive)만 이 함수 호출 뒤에 해당 항목 id를 다시 지정한다.)
+  //    이게 없으면: A일정 편집 중 파일/JSON/확정서로 B를 불러오면, 저장 시 B가 A 자리에 덮어써져 A가 사라짐.
+  editingItineraryId = null;
+
   // 저장 파일에서 불러온 경우(_savedAt 표시 있음)는 사용자가 편집한 상태 그대로 두고,
   // 새로 변환된 경우에만 줄 맨 앞 장식 기호(▶ ◆ ● ★ 등)를 자동으로 떼어냄
   if (!parsedData._savedAt) cleanupParsedSymbols();
@@ -3787,6 +3800,8 @@ function renderPreview() {
           onchange="updateDayDate(${di}, this.value)" title="날짜 (직접 변경)">
         <span class="day-dow">${dowStr ? '(' + dowStr.split('(')[1] : ''}</span>
         ${day.dateManual ? `<button class="day-date-reset" onclick="resetDayDate(${di})" title="출발일 기준 자동날짜로 되돌리기">↺자동</button>` : ''}
+        <button class="day-move-btn" onclick="moveDay(${di},-1)" ${di===0?'disabled':''} title="이 날을 하루 앞으로 이동">▲</button>
+        <button class="day-move-btn" onclick="moveDay(${di},1)" ${di===parsedData.days.length-1?'disabled':''} title="이 날을 하루 뒤로 이동">▼</button>
         <button class="day-copy-btn" onclick="duplicateDay(${di})" title="이 날 일정을 통째로 복사해 맨 뒤에 추가">📋 이 날 복사</button>
       </div>
       <table class="sched-table">
@@ -4361,6 +4376,19 @@ function resetDayDate(di) {
   if (!parsedData || !parsedData.days[di]) return;
   delete parsedData.days[di].dateManual;
   renderPreview();
+}
+
+// ── 일차(하루)를 위/아래로 이동 (복사한 날을 원하는 위치로) ──
+function moveDay(di, dir) {
+  if (!parsedData || !parsedData.days) return;
+  const days = parsedData.days;
+  const ni = di + dir;
+  if (ni < 0 || ni >= days.length) return;
+  [days[di], days[ni]] = [days[ni], days[di]];   // 두 날 위치 교환
+  // 일차 번호는 위치 순서대로 다시 매김 (1,2,3…). 날짜는 renderPreview가 위치 기준으로 재계산(수동날짜는 유지).
+  days.forEach((d, i) => { d.dayNo = i + 1; });
+  renderPreview();
+  document.getElementById(`day-${ni}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ── 이 날(일차) 통째로 복사해 맨 뒤에 추가 ──
