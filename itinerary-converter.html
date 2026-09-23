@@ -540,6 +540,13 @@
     transition: all 0.15s; text-align: center;
   }
   .add-row-btn:hover { background: rgba(79,142,247,0.13); color: var(--accent); }
+  /* 일정 하루(일차) 추가 버튼 */
+  .add-day-btn {
+    background: rgba(62,207,142,0.15); border: 1px solid rgba(62,207,142,0.45);
+    color: var(--accent2); font-size: 14px; font-weight: 700; padding: 10px 22px;
+    border-radius: 10px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .add-day-btn:hover { background: rgba(62,207,142,0.28); border-color: var(--accent2); }
 
   /* AI 추정 뱃지 */
   .ai-badge { font-size: 9px; color: var(--accent2); opacity: 0.7; }
@@ -1136,7 +1143,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1744</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1855</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3774,6 +3781,11 @@ function renderPreview() {
     </div>`;
   });
 
+  // 맨 아래: 일정 하루(일차) 추가 버튼
+  html += `<div style="text-align:center;margin-top:10px;">
+    <button class="add-day-btn" onclick="addDay()">＋ 일정 하루 추가</button>
+  </div>`;
+
   container.innerHTML = html;
   initColResize();
   autoResizeAllTextareas();
@@ -4295,6 +4307,24 @@ function newBlankItinerary() {
   applyParsedData();
   showSyncStatus('🆕 빈 일정표를 만들었어요. 내용을 채운 뒤 저장하세요.', 'success');
   document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 일정 하루(일차) 추가 ──
+function addDay() {
+  if (!parsedData || !parsedData.days) return;
+  const dayNo = parsedData.days.length + 1;
+  const items = [];
+  for (let r = 0; r < 4; r++) {
+    items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'', place:'', desc:'', note:'', note2:'', type:'other' });
+  }
+  parsedData.days.push({ dayNo, items });
+  // 박수도 같이 갱신 (일수-1)
+  parsedData.nights = parsedData.days.length - 1;
+  const nightsEl = document.getElementById('infoNights');
+  if (nightsEl) nightsEl.value = parsedData.nights;
+  renderPreview();
+  // 새로 생긴 날짜로 스크롤
+  document.getElementById(`day-${parsedData.days.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── 행 추가 ──
