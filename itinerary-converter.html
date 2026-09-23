@@ -224,6 +224,32 @@
     padding: 12px 14px; font-size: 15px; font-weight: 700; color: var(--accent);
     display: flex; align-items: center; justify-content: center; gap: 8px;
   }
+  /* 일차 번호 · 날짜 직접 수정 입력칸 */
+  .day-no-input {
+    width: 46px; text-align: center; font-size: 15px; font-weight: 700;
+    color: var(--accent); background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(79,142,247,0.4); border-radius: 6px; padding: 3px 4px;
+    font-family: inherit;
+  }
+  .day-date-input {
+    font-size: 14px; font-weight: 700; color: var(--accent);
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(79,142,247,0.4);
+    border-radius: 6px; padding: 3px 6px; font-family: inherit; color-scheme: dark;
+  }
+  .day-dow { color: var(--accent); }
+  .day-date-reset {
+    background: rgba(243,156,18,0.15); border: 1px solid rgba(243,156,18,0.45);
+    color: #f39c12; border-radius: 6px; padding: 3px 8px; font-size: 11px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .day-date-reset:hover { background: rgba(243,156,18,0.3); }
+  /* 이 날 복사 버튼 */
+  .day-copy-btn {
+    background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.45);
+    color: var(--accent); border-radius: 6px; padding: 3px 10px; font-size: 12px;
+    font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .day-copy-btn:hover { background: rgba(79,142,247,0.3); }
   .day-header .day-ai-btn {
     margin-left: auto; background: rgba(79,142,247,0.2); border: 1px solid rgba(79,142,247,0.4);
     color: var(--accent); border-radius: 6px; padding: 4px 12px; font-size: 13px;
@@ -1143,7 +1169,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1855</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1905</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3724,7 +3750,8 @@ function renderPreview() {
 
   const startDate = document.getElementById('infoStartDate').value || parsedData.startDate;
   parsedData.days.forEach((day, idx) => {
-    day.date = calcDate(startDate, idx);
+    // 사용자가 직접 고친 날짜(dateManual)는 유지, 아니면 출발일 기준 자동 계산
+    if (!day.dateManual) day.date = calcDate(startDate, idx);
   });
 
   const groupName = document.getElementById('infoGroupName').value || '';
@@ -3751,11 +3778,16 @@ function renderPreview() {
     </div>`;
   }
   parsedData.days.forEach((day, di) => {
-    const dateStr = day.date ? formatDateKo(day.date) : '';
+    const dowStr = day.date ? formatDateKo(day.date) : '';
     html += `<div class="day-block" id="day-${di}">
       <div class="day-header">
-        📅 ${day.dayNo}일차 ${dateStr}
-
+        📅 <input type="number" class="day-no-input" min="1" max="30" value="${day.dayNo || di+1}"
+          onchange="updateDayNo(${di}, this.value)" title="일차 번호">일차
+        <input type="date" class="day-date-input" value="${day.date || ''}"
+          onchange="updateDayDate(${di}, this.value)" title="날짜 (직접 변경)">
+        <span class="day-dow">${dowStr ? '(' + dowStr.split('(')[1] : ''}</span>
+        ${day.dateManual ? `<button class="day-date-reset" onclick="resetDayDate(${di})" title="출발일 기준 자동날짜로 되돌리기">↺자동</button>` : ''}
+        <button class="day-copy-btn" onclick="duplicateDay(${di})" title="이 날 일정을 통째로 복사해 맨 뒤에 추가">📋 이 날 복사</button>
       </div>
       <table class="sched-table">
         <thead>
@@ -4307,6 +4339,44 @@ function newBlankItinerary() {
   applyParsedData();
   showSyncStatus('🆕 빈 일정표를 만들었어요. 내용을 채운 뒤 저장하세요.', 'success');
   document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 일차 번호 직접 변경 ──
+function updateDayNo(di, val) {
+  const n = parseInt(val, 10);
+  if (parsedData && parsedData.days[di] && n >= 1) parsedData.days[di].dayNo = n;
+  // 번호는 표시값이라 재렌더 불필요 (입력칸 값 그대로 유지)
+}
+
+// ── 날짜 직접 변경 (수동 지정 → 출발일 바뀌어도 유지) ──
+function updateDayDate(di, val) {
+  if (!parsedData || !parsedData.days[di]) return;
+  if (val) { parsedData.days[di].date = val; parsedData.days[di].dateManual = true; }
+  else { delete parsedData.days[di].dateManual; }   // 비우면 자동으로 복귀
+  renderPreview();   // 요일 표시 갱신
+}
+
+// ── 수동 날짜를 출발일 기준 자동날짜로 되돌리기 ──
+function resetDayDate(di) {
+  if (!parsedData || !parsedData.days[di]) return;
+  delete parsedData.days[di].dateManual;
+  renderPreview();
+}
+
+// ── 이 날(일차) 통째로 복사해 맨 뒤에 추가 ──
+function duplicateDay(di) {
+  if (!parsedData || !parsedData.days[di]) return;
+  const copy = JSON.parse(JSON.stringify(parsedData.days[di]));   // 행·내용 전부 복사
+  copy.dayNo = parsedData.days.length + 1;
+  delete copy.dateManual;                                          // 맨 뒤 위치 기준 자동 날짜
+  copy.date = '';
+  parsedData.days.push(copy);
+  parsedData.nights = parsedData.days.length - 1;
+  const nightsEl = document.getElementById('infoNights');
+  if (nightsEl) nightsEl.value = parsedData.nights;
+  renderPreview();
+  document.getElementById(`day-${parsedData.days.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showSyncStatus(`📋 ${di + 1}일차를 복사해 맨 뒤(${parsedData.days.length}일차)에 추가했어요.`, 'success');
 }
 
 // ── 일정 하루(일차) 추가 ──
