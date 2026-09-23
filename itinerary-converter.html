@@ -1169,7 +1169,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1905</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1909</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4869,22 +4869,17 @@ function downloadExcel() {
 
   const wsData = [];
 
-  // 시트 제목
-  wsData.push([null, null, title]);
-  wsData.push([]);
-
-  // 공통 정보 한 줄로 합치기: "단체명 : XXX / 여행지역 : YYY / ..."
+  // 상단 1행: 공통 정보를 한 줄로 (단체명·여행지역·출발일·항공편·차량·인원·세키와리)
   const infoParts = [];
   if (groupName)          infoParts.push(`단체명 : ${groupName}`);
   if (title)              infoParts.push(`여행지역 : ${title}`);
+  if (startDate)          infoParts.push(`출발일 : ${startDate}`);
   if (flight1 || flight2) infoParts.push(`출·도착 항공편 : ${[flight1, flight2].filter(Boolean).join(' → ')}`);
+  if (transport)          infoParts.push(`차량 : ${transport}`);
   if (pax)                infoParts.push(`인원 : ${pax}`);
   if (sekiwari)           infoParts.push(`세키와리 : ${sekiwari}`);
-  if (infoParts.length) {
-    wsData.push([null, infoParts.join(' / ')]);
-  }
-  wsData.push([]);
-  wsData.push([]);
+  wsData.push([infoParts.join(' / ')]);   // 맨 위 1행
+  wsData.push([]);                         // 빈 줄
 
   parsedData.days.forEach((day, dayIdx) => {
     const dateStr = day.date ? formatDateKo(day.date) : `${dayIdx+1}일차`;
