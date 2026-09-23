@@ -1177,7 +1177,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1924</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1935</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -1588,11 +1588,16 @@ function saveItineraryToArchive(silent) {
   if (!parsedData) { showSyncStatus('저장할 일정표가 없어요. 먼저 확정서를 변환해주세요.', 'error'); return; }
   if (!googleUser) { alert('먼저 위에서 구글 로그인을 해주세요.'); return; }
 
-  // 화면 입력값 반영
-  const titleEl = document.getElementById('infoTitle');
-  if (titleEl) parsedData.region = titleEl.value.trim();
-  const groupEl = document.getElementById('infoGroupName');
-  if (groupEl) parsedData.groupName = groupEl.value.trim();
+  // 화면 입력값을 모두 parsedData에 반영 (손으로 고친 공통정보가 저장 안 되던 문제 수정)
+  const _g = (id) => document.getElementById(id);
+  if (_g('infoTitle'))           parsedData.region = _g('infoTitle').value.trim();
+  if (_g('infoGroupName'))       parsedData.groupName = _g('infoGroupName').value.trim();
+  if (_g('infoStartDate'))       parsedData.startDate = _g('infoStartDate').value.trim();
+  if (_g('infoNights'))          parsedData.nights = parseInt(_g('infoNights').value, 10) || parsedData.nights || (parsedData.days.length - 1);
+  if (_g('infoDepartureFlight')) parsedData.departureFlight = _g('infoDepartureFlight').value.trim();
+  if (_g('infoReturnFlight'))    parsedData.returnFlight = _g('infoReturnFlight').value.trim();
+  if (_g('infoTransport'))       parsedData.transport = _g('infoTransport').value.trim();
+  if (_g('infoPax'))             parsedData.pax = _g('infoPax').value.trim();
   parsedData.sekiwari = sekiwariList.slice();   // 세키와리 좌석배치도 함께 저장
 
   // 임시 키(_로 시작) 제외하고 복사
