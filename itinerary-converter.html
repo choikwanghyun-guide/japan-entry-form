@@ -104,6 +104,14 @@
     align-items: center;
     gap: 8px;
   }
+  /* 새로 만들기 버튼 — 편집 내용 비우고 빈 일정표로 시작 */
+  .new-itin-btn {
+    margin-left: auto; background: rgba(62,207,142,0.15);
+    border: 1px solid rgba(62,207,142,0.45); color: var(--accent2);
+    border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit; white-space: nowrap; transition: all 0.15s;
+  }
+  .new-itin-btn:hover { background: rgba(62,207,142,0.28); border-color: var(--accent2); }
   .step-badge {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     color: white;
@@ -924,7 +932,9 @@
   .imp-fill:hover { filter:brightness(1.05); }
 </style>
 <div class="card">
-  <div class="card-title"><div class="step-badge">1</div> 확정서/일정표로 내용 채우기</div>
+  <div class="card-title"><div class="step-badge">1</div> 확정서/일정표로 내용 채우기
+    <button type="button" class="new-itin-btn" onclick="newBlankItinerary()">＋ 새로 만들기</button>
+  </div>
 
   <p class="imp-desc">확정서 엑셀,워드 파일을 로딩하면 자동으로 내용이 채워짐. <b>이미지·한글·PDF</b>는 코드가 못 읽으니, 아래 명령어를 복사해 AI(챗GPT·재미나이·클로드)에 확정서를 첨부하고 받은 <b>JSON</b>을 붙여넣기.</p>
 
@@ -1126,7 +1136,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0910_1136</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_1744</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4253,6 +4263,38 @@ function refreshLinkChips(ta) {
   if (old) old.remove();
   const html = linkChipsHtml(ta.value);
   if (html) ta.insertAdjacentHTML('afterend', html);
+}
+
+// ── 새로 만들기 (빈 일정표로 시작) ──
+function newBlankItinerary() {
+  // 편집 중이던 내용이 있으면 확인 (실수로 날리지 않게)
+  if (parsedData && parsedData.days && parsedData.days.length) {
+    if (!confirm('지금 화면의 일정표를 비우고 새로 시작할까요?\n(저장 안 한 내용은 사라져요)')) return;
+  }
+  let n = prompt('며칠 일정인가요? (일수)', '3');
+  if (n === null) return;                       // 취소
+  n = parseInt(n, 10);
+  if (!n || n < 1) n = 1;
+  if (n > 14) n = 14;
+
+  // n일치 빈 일정표 생성 (각 날짜에 빈 행 4개)
+  const days = [];
+  for (let d = 1; d <= n; d++) {
+    const items = [];
+    for (let r = 0; r < 4; r++) {
+      items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'', place:'', desc:'', note:'', note2:'', type:'other' });
+    }
+    days.push({ dayNo: d, items });
+  }
+  parsedData = {
+    title:'', region:'', startDate:'', endDate:'', nights: n - 1,
+    departureFlight:'', returnFlight:'', transport:'전용버스', pax:'', groupName:'',
+    sekiwari: [], days, format:'blank'
+  };
+  editingItineraryId = null;                     // 저장 시 새 항목으로 저장되게
+  applyParsedData();
+  showSyncStatus('🆕 빈 일정표를 만들었어요. 내용을 채운 뒤 저장하세요.', 'success');
+  document.getElementById('infoCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── 행 추가 ──
