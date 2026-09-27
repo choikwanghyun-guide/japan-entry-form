@@ -838,7 +838,7 @@ function detectColumns(rowCells) {
   if (!isHeader) return { isHeader: false, colMap: {} };
   const colMap = {};
   row.forEach((cell, idx) => {
-          const c = String(cell).replace(/[*※]/g, '').trim();  // 필수표시 별표 등은 무시
+          const c = String(cell).replace(/[*※]/g, '').replace(/[(（][^)）]*[)）]/g, '').trim();  // 별표·괄호주석(성/이름) 등 무시
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
           if (/^영문이름$/.test(c) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
           // '영문성'(성)이 이미 잡힌 명부의 '영문명'/'영문 명'은 통합명이 아니라 이름(given)
@@ -2510,7 +2510,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0905_0610</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0927_1250</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
