@@ -1401,6 +1401,14 @@ function parseBirth(raw) {
     }
   }
 
+  // 연도 먼저 + 구분자(년월일 · 年月日 · / · . 등): 2009年6月4日, 1975년 7월 2일, 2009/6/4 (한자리 월·일 포함)
+  const _ymd = raw.match(/^([0-9]{4})[^0-9]+([0-9]{1,2})[^0-9]+([0-9]{1,2})/);
+  if (_ymd) {
+    const _mo = parseInt(_ymd[2], 10), _dy = parseInt(_ymd[3], 10);
+    if (_mo >= 1 && _mo <= 12 && _dy >= 1 && _dy <= 31)
+      return { year: _ymd[1], month: String(_mo).padStart(2, '0'), day: String(_dy).padStart(2, '0') };
+  }
+
   const digits = raw.replace(/[^0-9]/g, '');
 
   // ★ 핵심 수정: YYYYMMDD-숫자 형태 (예: "19670213-1") → 8자리 생년월일
@@ -2510,7 +2518,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0927_1250</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0930_2307</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
