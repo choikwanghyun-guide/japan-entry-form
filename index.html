@@ -217,6 +217,14 @@
           </div>
         </div>
         <input type="text" id="hotelName" class="form-input" placeholder="예: ホテルユニバーサルポート">
+        <div style="display:flex; align-items:center; gap:6px; margin-top:6px; max-width:340px;">
+          <span style="font-size:11px; color:var(--text3); white-space:nowrap;">호텔명 좌우 위치</span>
+          <span style="font-size:10px; color:var(--text3);">좌</span>
+          <input type="range" id="hotelPosX" min="-15" max="15" step="0.5" value="0" style="flex:1; accent-color:var(--accent); min-width:60px;" oninput="document.getElementById('hotelPosXVal').textContent = (this.value > 0 ? '+' : '') + this.value">
+          <span style="font-size:10px; color:var(--text3);">우</span>
+          <span id="hotelPosXVal" style="font-size:12px; color:var(--accent); font-weight:700; width:30px; text-align:center;">0</span>
+          <span style="font-size:10px; color:var(--text3); white-space:nowrap;">mm</span>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">✈️ 항공편명</label>
@@ -1950,6 +1958,7 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center', orient=
 
   // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4, 기본 13pt)
   const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelPosX = parseFloat((document.getElementById('hotelPosX') || {}).value || '0') || 0;  // 호텔명 좌우 위치(mm)
   const hotelSize = Math.max(6, 13 + hotelDelta);
 
   const arr = (info.arrivalDate || '').split('-');
@@ -1972,7 +1981,7 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center', orient=
     ${lf(90,  61, 12, p.birthYear)}
     ${lf(134, 24, 11, info.cityName || '')}
     ${lf(98,  24, 11, info.flightNo || '')}
-    ${lf(115, 46, hotelSize, info.hotelName || '')}
+    ${lf(115 + hotelPosX, 46, hotelSize, info.hotelName || '')}
     ${lf(115, 52, 12, info.telNo || '')}
     ${lf(90,  28, 10, arrYear)}
     ${lf(113, 28, 10, arrMonth)}
@@ -1992,7 +2001,7 @@ function buildCustomsCard(p, info, offsetX=0, offsetY=0, align='center', orient=
     ${field(90,  61, 12, p.birthYear)}
     ${field(134, 24, 11, info.cityName || '')}
     ${field(98,  24, 11, info.flightNo || '')}
-    ${field(115, 46, hotelSize, info.hotelName || '')}
+    ${field(115 + hotelPosX, 46, hotelSize, info.hotelName || '')}
     ${field(115, 52, 12, info.telNo || '')}
     ${field(90,  28, 10, arrYear)}
     ${field(113, 28, 10, arrMonth)}
@@ -2017,6 +2026,7 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0, portra
 
   // 호텔명 폰트 크기 조절 (슬라이더 -4 ~ +4)
   const hotelDelta = parseInt((document.getElementById('hotelFontDelta') || {}).value || '0', 10) || 0;
+  const hotelPosX = parseFloat((document.getElementById('hotelPosX') || {}).value || '0') || 0;  // 호텔명 좌우 위치(mm)
   const hotelLandscapeSize = Math.max(6, 12 + hotelDelta);  // 가로 기본 12pt
   const hotelPortraitSize  = Math.max(6, 14 + hotelDelta);  // 세로 기본 14pt
 
@@ -2030,7 +2040,7 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0, portra
     ${field(125, 21, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
     ${field(160, 21, 12, info.cityName || '')}
     ${field(165, 27, 12, info.flightNo || '')}
-    ${field(85, 43, hotelLandscapeSize, info.hotelName || '')}
+    ${field(85 + hotelPosX, 43, hotelLandscapeSize, info.hotelName || '')}
     ${field(165, 43, 12, info.telNo || '')}
     ${field(50,  26, 14, '✓')}
     ${field(165, 34, 14, info.stayDuration || '')}
@@ -2065,7 +2075,7 @@ function buildCard(p, info, isPortrait = false, offsetX = 0, offsetY = 0, portra
     ${pField(73, 75, 12, (p.nationality !== undefined ? p.nationality : '大韓民国'))}
     ${pField(72, 110, 12, info.cityName || '')}
     ${pField(66, 115, 12, info.flightNo || '')}
-    ${pField(51, 40, hotelPortraitSize, info.hotelName || '')}
+    ${pField(51 + hotelPosX, 40, hotelPortraitSize, info.hotelName || '')}
     ${pField(50, 105, 14, info.telNo || '')}
     ${pField(68, 6, 15, '✓')}
     ${pField(59, 115, 13, info.stayDuration || '')}
@@ -2518,7 +2528,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_0930_2307</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1010_2247</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
@@ -2571,7 +2581,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 (function () {
   var KEY = 'uiTheme_v1';
   // ── 위치 미세조정 슬라이더: 0(중앙) 기준 이동량 시각화 ──
-  var RANGE_IDS = ['hotelFontDelta', 'immOffsetY', 'immOffsetX', 'customsOffsetY', 'customsOffsetX'];
+  var RANGE_IDS = ['hotelFontDelta', 'hotelPosX', 'immOffsetY', 'immOffsetX', 'customsOffsetY', 'customsOffsetX'];
   function paintRange(el) {
     if (!el) return;
     var min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value) || 0;
