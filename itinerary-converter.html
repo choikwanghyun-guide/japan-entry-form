@@ -1174,7 +1174,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_0923_2014</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1010_2111</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -2303,6 +2303,7 @@ function parseEtravel(rows) {
   };
 
   // 상단 정보: 라벨 셀(단체명/인원/출발일)의 오른쪽 첫 값
+  let yearHint = '';   // 출발일 칸이 없는 양식용: 'Date' 등에서 연도를 뽑아 일정 안의 "10/12" 날짜에 붙임
   for (let i = 0; i < 15; i++) {
     const r = rows[i] || [];
     for (let c = 0; c < r.length; c++) {
@@ -2317,11 +2318,15 @@ function parseEtravel(rows) {
       if (/^단체명$/.test(s)) { data.title = String(next).replace(/\s+/g,' ').trim(); data.groupName = data.title; }
       else if (/^인\s*원$/.test(s)) data.pax = String(next).trim();
       else if (/^출발일$/.test(s)) data.startDate = toYMD(next);
+      else if (/^Date$/i.test(s)) { const y = toYMD(next); if (y) yearHint = y.slice(0,4); }
     }
   }
+  if (!yearHint && data.startDate) yearHint = data.startDate.slice(0,4);
 
-  // 지역명: 단체명 "[후쿠오카IN-OUT] 큐슈 관광 3일" → "큐슈"
-  if (data.title) {
+  // 지역명: 단체명이 설명형이면(예: "[후쿠오카IN-OUT] 큐슈 관광 3일") 지역 추출.
+  //   단체명이 상품코드(예: JOP630261012TWH)면 지역 칸에 넣지 않음(비워 둠).
+  const isProductCode = /^[A-Za-z0-9\-]{6,}$/.test(data.title || '');
+  if (data.title && !isProductCode) {
     const rgn = data.title.replace(/\[[^\]]*\]/g,'').replace(/관광|\d+\s*박\s*\d+\s*일|\d+\s*일|\d+\s*박/g,'').trim();
     if (rgn) data.region = rgn;
   }
@@ -2332,11 +2337,11 @@ function parseEtravel(rows) {
   for (let i = 0; i < 25; i++) {
     const r = rows[i] || [];
     const joined = r.map(v=>String(v||'')).join(' ');
-    if (/월\s*일/.test(joined) && /세\s*부\s*일\s*정/.test(joined)) {
+    if ((/월\s*일/.test(joined) || /일\s*자/.test(joined)) && /세\s*부\s*일\s*정/.test(joined)) {
       headerRow = i;
       r.forEach((v, c) => {
         const t = String(v||'').replace(/\s+/g,'');
-        if (t === '월일') ci.day = c;
+        if (t === '월일' || t === '일자') ci.day = c;
         else if (t === '지역') ci.place = c;
         else if (t === '교통편') ci.trans = c;
         else if (t === '시간') ci.time = c;
@@ -2347,6 +2352,10 @@ function parseEtravel(rows) {
     }
   }
   if (headerRow === -1) return data;
+
+  // 일정 구간에 "제N일" 마커가 있으면 마커만으로 일자를 나눔(조식 추정 보조로직 끔 → 일차 중복 방지)
+  const hasDayMarkers = rows.slice(headerRow + 1).some(r =>
+    /^제?\s*\d+\s*일/.test(String((r || [])[ci.day] || '').trim()));
 
   let currentDay = null;
   let dayCount = 0;
@@ -2378,12 +2387,21 @@ function parseEtravel(rows) {
     const markerN = dm ? parseInt(dm[1]) : 0;
     const isBreakfast = /^호텔\s*조식/.test(desc);
     if (markerN > dayCount) startDay(markerN);
-    else if (isBreakfast && dayCount > 0) startDay(dayCount + 1);
+    else if (isBreakfast && dayCount > 0 && !hasDayMarkers) startDay(dayCount + 1);
     else if (!currentDay && hasData) startDay(1);
 
     if (!currentDay) continue;
 
-    // 상단에서 출발일을 못 찾았으면 일자 열의 날짜(시리얼)로 보완
+    // 일자 셀에 "제1일 10/12(월)"처럼 월/일이 있으면 그 날짜를 사용 (출발일 칸 없는 양식 대응)
+    if (yearHint) {
+      const md = colDay.match(/(\d{1,2})\s*[\/.\-월]\s*(\d{1,2})/);
+      if (md) {
+        const ymd = `${yearHint}-${String(md[1]).padStart(2,'0')}-${String(md[2]).padStart(2,'0')}`;
+        currentDay.date = ymd;
+        if (currentDay.dayNo === 1 && !data.startDate) data.startDate = ymd;
+      }
+    }
+    // (연도 힌트도 없고) 상단 출발일도 못 찾았으면 일자 열의 날짜(시리얼)로 보완
     if (!data.startDate && !dm) {
       const ymd = toYMD(r[ci.day]);
       if (ymd && currentDay.dayNo === 1) { data.startDate = ymd; currentDay.date = ymd; }
@@ -2426,9 +2444,12 @@ function parseEtravel(rows) {
     });
   }
 
-  if (data.startDate && data.days.length) {
+  // 일차 번호를 위치 순서대로 다시 매김 (원본 확정서의 번호 오타 예: 제1·제2·제4일 → 1·2·3)
+  data.days.forEach((d, i) => { d.dayNo = i + 1; });
+
+  if (data.days.length) {
     data.nights = data.days.length - 1;
-    data.endDate = calcDate(data.startDate, data.days.length - 1);
+    if (data.startDate) data.endDate = calcDate(data.startDate, data.days.length - 1);
   }
   return data;
 }
