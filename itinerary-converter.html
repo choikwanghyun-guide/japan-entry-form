@@ -1174,7 +1174,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1010_2111</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1010_2351</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -4006,7 +4006,9 @@ function recalcTimes(di, fromIdx) {
     // ─── 도착 계산 ───
     // 첫 행은 사용자 입력값 유지, 그 외엔 [이전행 출발 + 현재행 이동시간]
     if (i > 0) {
-      const prevDepart = items[i-1].depart;
+      // 이전 행 출발시간: 직접입력(depart)이 없으면 확정서에서 읽은 time 값으로 대체
+      const prevItem = items[i-1];
+      const prevDepart = (prevItem.depart != null && prevItem.depart !== '') ? prevItem.depart : (prevItem.time || '');
       const moveDur = item.moveDur;
       const prevMin = timeToMin(prevDepart);
       const moveMin = timeToMin(moveDur);
