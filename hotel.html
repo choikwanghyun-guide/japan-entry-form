@@ -1934,7 +1934,7 @@
   </script>
 
   <footer>
-    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_1001_2305</span></p>
+    <p>Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_1011_1227</span></p>
   </footer>
 
 </div>
@@ -3567,7 +3567,7 @@ ${posts}
     wrap.appendChild(noteF.f);
     const noteHint = document.createElement('div');
     noteHint.style.cssText = 'font-size:11px; color:var(--accent-orange); display:none; text-align:left;';
-    noteHint.textContent = '⚠ 이 안내가 있으면 인쇄·이미지엔 WiFi ID/PW·QR 대신 이 안내만 나옵니다.';
+    noteHint.textContent = '⚠ 이 안내가 있으면 인쇄·이미지엔 WiFi ID/PW 글자 대신 이 안내가 나옵니다. (QR 코드는 그대로 나옵니다)';
     wrap.appendChild(noteHint);
     const qrHost = document.createElement('div');
     qrHost.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:5px; margin-top:4px;';
@@ -3636,14 +3636,18 @@ ${posts}
     if (!isWifiLabel(field.label)) return '';
     const url = wifiQRDataURL(valueStr);
     if (!url) return '';
-    return `<div style="margin-top:8px;"><img src="${url}" alt="Wi-Fi QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;"><div style="font-size:11px;color:#555;margin-top:3px;">📷 카메라로 스캔하면 Wi-Fi 연결</div></div>`;
+    return `<div><img src="${url}" alt="Wi-Fi QR" style="width:${size}px;height:${size}px;display:block;margin:0 auto;"><div style="font-size:10px;color:#555;margin-top:2px;white-space:nowrap;">📷 스캔하면 연결</div></div>`;
   }
-  // 인쇄/이미지 한 칸의 내용. WIFI에 "현장 확인 안내"가 있으면 ID/PW·QR 대신 안내문만 출력.
+  // 인쇄/이미지 한 칸의 내용. WIFI에 "현장 확인 안내"가 있으면 ID/PW 글자 대신 안내문을 쓰되 QR은 유지.
   function fieldPrintCellHtml(field, valueStr, qrSize) {
     if (isWifiLabel(field.label)) {
       const note = parseWifiNote(valueStr);
-      if (note) return escapeHtml(note).replace(/\n/g, '<br>');
-      return escapeHtml(valueStr).replace(/\n/g, '<br>') + wifiQRImgHtml(field, valueStr, qrSize);
+      // 현장 확인 안내가 있으면 ID/PW 글자 대신 안내문을 쓰되, QR 코드는 그대로 넣는다
+      const txt = escapeHtml(note ? note : valueStr).replace(/\n/g, '<br>');
+      const qr = wifiQRImgHtml(field, valueStr, qrSize);
+      if (!qr) return txt;
+      // 왼쪽 글자 + 오른쪽 QR (세로로 길어지지 않게 2단 배치)
+      return `<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="flex:1 1 auto;min-width:0;word-break:break-word;">${txt}</div><div style="flex:0 0 auto;">${qr}</div></div>`;
     }
     return escapeHtml(valueStr).replace(/\n/g, '<br>');
   }
