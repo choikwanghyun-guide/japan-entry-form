@@ -217,13 +217,16 @@
           </div>
         </div>
         <input type="text" id="hotelName" class="form-input" placeholder="예: ホテルユニバーサルポート">
-        <div style="display:flex; align-items:center; gap:6px; margin-top:6px; max-width:340px;">
-          <span style="font-size:11px; color:var(--text3); white-space:nowrap;">호텔명 좌우 위치</span>
-          <span style="font-size:10px; color:var(--text3);">좌</span>
-          <input type="range" id="hotelPosX" min="-15" max="15" step="0.5" value="0" style="flex:1; accent-color:var(--accent); min-width:60px;" oninput="document.getElementById('hotelPosXVal').textContent = (this.value > 0 ? '+' : '') + this.value">
-          <span style="font-size:10px; color:var(--text3);">우</span>
-          <span id="hotelPosXVal" style="font-size:12px; color:var(--accent); font-weight:700; width:30px; text-align:center;">0</span>
-          <span style="font-size:10px; color:var(--text3); white-space:nowrap;">mm</span>
+        <div class="hotel-fontrow" style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px;">
+          <label class="form-label" style="margin-bottom:0; visibility:hidden;" aria-hidden="true">🏨 호텔명</label>
+          <div class="hotel-fontctrl" style="display:flex; align-items:center; gap:6px; flex:1; max-width:340px;">
+            <span style="font-size:11px; color:var(--text3); white-space:nowrap;">호텔명 좌우 위치</span>
+            <span style="font-size:10px; color:var(--text3);">좌</span>
+            <input type="range" id="hotelPosX" min="-15" max="15" step="0.5" value="0" style="flex:1; accent-color:var(--accent); min-width:60px;" oninput="document.getElementById('hotelPosXVal').textContent = (this.value > 0 ? '+' : '') + this.value">
+            <span style="font-size:10px; color:var(--text3);">우</span>
+            <span id="hotelPosXVal" style="font-size:12px; color:var(--accent); font-weight:700; width:30px; text-align:center;">0</span>
+            <span style="font-size:10px; color:var(--text3); white-space:nowrap;">mm</span>
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -2528,7 +2531,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1010_2247</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1122</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
