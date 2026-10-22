@@ -826,6 +826,8 @@ function detectColumns(rowCells) {
         jpMap.korName = idx;                                         // 한글 이름
         if (jpMap.fullName === undefined && nextBlank) jpMap.fullName = idx + 1; // 병합 우측 = 로마자 이름
       }
+      // 명시적 영문/로마자 이름 칸(英文·英語·英名·ローマ字·アルファベット) → 통합 영문명
+      if (jpMap.fullName === undefined && /英文|英語|英名|ローマ字|アルファベット/.test(c)) jpMap.fullName = idx;
       if (jpMap.gender === undefined && /性別/.test(c)) jpMap.gender = idx;
       if (jpMap.birth === undefined && /生年月日|生年/.test(c)) jpMap.birth = idx;
       if (jpMap.passport === undefined && /パスポート|旅券/.test(c)) {
@@ -850,6 +852,13 @@ function detectColumns(rowCells) {
   const colMap = {};
   row.forEach((cell, idx) => {
           const c = String(cell).replace(/[*※]/g, '').replace(/[(（][^)）]*[)）]/g, '').trim();  // 별표·괄호주석(성/이름) 등 무시
+          // '여행자명(영문)','성명(한글)'처럼 괄호 안 영문/한글 구분으로 이름 칸을 나눈 명부:
+          // 위에서 괄호를 지우면 '(영문)'/'(한글)' 구분이 사라지므로, 원본 cell로 먼저 판별한다.
+          var _pn = String(cell);
+          if (colMap.fullName === undefined && colMap.lastName === undefined
+              && /[(（]\s*(영문|영어|english|eng|로마자|romaji)\s*[)）]/i.test(_pn) && /(명|이름|성명|name)/i.test(_pn)) colMap.fullName = idx;
+          if (colMap.korName === undefined
+              && /[(（]\s*(한글|한국어|국문|korean|kor)\s*[)）]/i.test(_pn) && /(명|이름|성명|name)/i.test(_pn)) colMap.korName = idx;
           if (/^영문성$/.test(c) || (/영문성명/.test(c) && colMap.lastName === undefined)) colMap.lastName = idx;
           if (/^영문이름$/.test(c) || /^영문\s*이름$/.test(c)) colMap.firstName = idx;
           // '영문성'(성)이 이미 잡힌 명부의 '영문명'/'영문 명'은 통합명이 아니라 이름(given)
@@ -858,8 +867,9 @@ function detectColumns(rowCells) {
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
           if (/^영문\s*이름$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
-          // 한글이름
-          if (/한글이름|한글성명|한글명|성 *명/.test(c) && !/영문/.test(c)) colMap.korName = idx;
+          // 한글이름 (단, 괄호로 '(영문)' 표시된 칸은 영문명이므로 제외)
+          if (/한글이름|한글성명|한글명|성 *명/.test(c) && !/영문/.test(c)
+              && !/[(（]\s*(영문|영어|english|eng|로마자|romaji)\s*[)）]/i.test(_pn)) colMap.korName = idx;
           if ((/^이름$/.test(c) || /^한글$/.test(c)) && colMap.korName === undefined) colMap.korName = idx;
           // 영문명 (이름 헤더가 영문인 경우)
           if (/^영문명$/.test(c) && colMap.fullName === undefined && colMap.lastName === undefined) colMap.fullName = idx;
@@ -2540,7 +2550,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1151</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1211</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
