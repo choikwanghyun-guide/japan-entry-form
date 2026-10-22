@@ -1006,6 +1006,13 @@ function parsePassengers(wb) {
         if (_lIdx < 0 && /^성$/.test(_hc)) _lIdx = hi;
         else if (_fIdx < 0 && /^이름$/.test(_hc)) _fIdx = hi;
       }
+      // '성' 바로 오른쪽 칸이 '이름'이면, 그 칸이 이미 한글이름으로 잡혔어도 짝으로 본다.
+      // ('성/이름'이 여러 번 중복되거나 '붙여넣는곳' 보조칸이 섞인 명부에서, 엉뚱한 빈 칸을 집어
+      //  판단하지 않고 실제 데이터가 든 바로 옆 칸의 값(한글/영문)을 보도록)
+      if (_lIdx >= 0 && _lIdx + 1 < _hrow.length) {
+        const _nx = String(_hrow[_lIdx + 1] || '').replace(/[*※]/g, '').trim();
+        if (/^이름$/.test(_nx)) _fIdx = _lIdx + 1;
+      }
       const _chk = _fIdx >= 0 ? _fIdx : _lIdx;
       if (_chk >= 0) {
         let _rm = 0, _ko = 0;
@@ -1018,6 +1025,8 @@ function parsePassengers(wb) {
         if (_rm > 0 && _ko === 0) {
           if (_lIdx >= 0) colMap.lastName = _lIdx;
           if (_fIdx >= 0) colMap.firstName = _fIdx;
+          // 옆칸 '이름'이 한글이름(korName)으로 잡혀 있었다면, 영문명으로 승격했으니 해제
+          if (colMap.korName === _fIdx || colMap.korName === _lIdx) delete colMap.korName;
         }
       }
     }
@@ -2531,7 +2540,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1122</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1151</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
