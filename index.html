@@ -344,6 +344,25 @@
       </button>
     </div>
 
+    <!-- 명단 없이 공통정보만 인쇄 -->
+    <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
+      <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:10px;">📋 명단 없이 공통정보만 인쇄 <span style="font-size:11px; color:var(--text3); font-weight:400;">(이름·생년월일은 빈칸 — 손님이 직접 작성)</span></div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <label style="font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px;">국적
+          <input type="text" id="commonNat" value="大韓民国" placeholder="예: 大韓民国" style="width:130px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:13px; font-family:inherit;">
+        </label>
+        <label style="font-size:12px; color:var(--text2); display:flex; align-items:center; gap:6px;">장수
+          <input type="number" id="commonQty" value="1" min="1" max="200" style="width:72px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:13px; font-family:inherit;">
+          <span style="font-size:12px; color:var(--text3);">장</span>
+        </label>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button type="button" onclick="setMode('immigration', true)" style="flex:1; min-width:130px; background:var(--accent); color:white; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">🛂 입국 공통만 인쇄</button>
+        <button type="button" onclick="setMode('customs', true)" style="flex:1; min-width:130px; background:var(--warning); color:white; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">🛃 세관 공통만 인쇄</button>
+      </div>
+      <div style="font-size:11px; color:var(--text3); margin-top:8px;">※ 가로/세로 방향은 아래 '용지 방향' 설정을 그대로 따릅니다.</div>
+    </div>
+
     <!-- 서명 핑크 형광 표시 옵션 -->
     <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
       <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
@@ -1685,7 +1704,7 @@ window.addEventListener('afterprint', function() {
   document.body.classList.remove('imm-portrait');
 });
 
-function setMode(mode) {
+function setMode(mode, commonOnly) {
   currentMode = mode;
   const modeMap = { immigration:'btnImmigration', customs:'btnCustoms' };
   Object.entries(modeMap).forEach(([m, id]) => {
@@ -1709,9 +1728,19 @@ function setMode(mode) {
     passport:'', gender:'', nationality:'',
     no:'', expiryWarning: false
   };
-  const _selList = getSelectedPassengers();
-  if (passengers.length > 0 && !_selList.length) { alert('인쇄할 사람을 한 명 이상 선택해주세요!'); return; }
-  const list = passengers.length > 0 ? _selList : [emptyPassenger];
+  let list;
+  if (commonOnly) {
+    // 명단 없이 공통정보만: 국적·장수 입력칸 반영해 빈 양식 N장 (이름·생년월일은 빈칸)
+    const _qty = Math.max(1, Math.min(200, parseInt((document.getElementById('commonQty') || {}).value, 10) || 1));
+    const _nat = (((document.getElementById('commonNat') || {}).value) || '').trim() || '大韓民国';
+    const _base = Object.assign({}, emptyPassenger, { nationality: _nat, occupation: '' });
+    list = [];
+    for (let _i = 0; _i < _qty; _i++) list.push(_base);
+  } else {
+    const _selList = getSelectedPassengers();
+    if (passengers.length > 0 && !_selList.length) { alert('인쇄할 사람을 한 명 이상 선택해주세요!'); return; }
+    list = passengers.length > 0 ? _selList : [emptyPassenger];
+  }
 
   if (mode === 'customs') {
     const offsetY = parseFloat(document.getElementById('customsOffsetY').value) || 0;
@@ -2550,7 +2579,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1022_1211</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1102_1502</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
