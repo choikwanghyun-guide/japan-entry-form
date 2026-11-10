@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2142 (KST) 샌딩백 조편성 웹앱 — 첫 버전 (GitHub Pages 업로드) -->
+<!-- rev_2026_1110_2155 (KST) 루밍리스트 엑셀 첨부 → 같은 방끼리 자동 조편성, 하단 리비전 표시 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dcdad4; --accent:#1f5fbf; --warn:#c0392b; }
   * { box-sizing: border-box; }
@@ -34,15 +35,32 @@
   .lbl.empty { background:#fafafa; }
   .dl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .dl input { font-size:16px; padding:8px; border:1px solid var(--line); border-radius:6px; }
+  .file-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .file-row select { font-size:16px; padding:8px; border:1px solid var(--line); border-radius:6px; }
+  .ok { color:#1e7b34; font-weight:600; margin-top:8px; white-space:pre-line; }
+  footer { text-align:center; color:var(--muted); font-size:12px; padding:4px 0 24px; }
 </style>
 </head>
 <body>
 <main>
   <h1>🧳 샌딩백 조편성</h1>
 
-  <!-- 1. 붙여넣기 입력 -->
+  <!-- 1. 루밍리스트 엑셀 첨부 -->
   <section class="card">
-    <h2>① 명단 붙여넣기</h2>
+    <h2>① 루밍리스트 엑셀 올리기</h2>
+    <div class="file-row">
+      <input type="file" id="roomFile" accept=".xlsx,.xls">
+      <label hidden>시트 <select id="roomSheet"></select></label>
+    </div>
+    <label style="display:block;margin-top:8px;font-size:14px"><input type="checkbox" id="skipStaff" checked> TC·TG(인솔자·가이드) 빼기</label>
+    <p class="hint">'성명' 칸과 'ROOM(객실)' 칸을 찾아서 같은 방끼리 1조로 묶어요. 싱글(SGL)은 1명이 1조.
+      한글이름만 씁니다(영문·DR 등은 빠짐). 파일은 어디에도 올라가지 않고 이 화면 안에서만 읽어요.</p>
+    <div id="roomMsg"></div>
+  </section>
+
+  <!-- 2. 붙여넣기 입력 (엑셀이 없을 때) -->
+  <section class="card">
+    <h2>② 또는 명단 붙여넣기</h2>
     <textarea id="paste" placeholder="한 줄에 한 방(조)씩&#10;김영수 이태진&#10;김진국,이도한&#10;조경희님외2인"></textarea>
     <p class="hint">한 줄 = 1조. <b>이름1 이름2</b> 또는 <b>이름1,이름2</b>. 줄 맨 앞에 "3조"처럼 적으면 그 조 이름을 그대로 씁니다.<br>
       "○○님외2인" 같은 자유 문구도 그대로 들어갑니다. 객실번호(예: 1203호)는 자동으로 빼고 객실칸에 넣어요.</p>
@@ -54,7 +72,7 @@
 
   <!-- 2. 표로 확인/수정 -->
   <section class="card">
-    <h2>② 조 확인 · 수정</h2>
+    <h2>③ 조 확인 · 수정</h2>
     <table>
       <thead><tr><th class="col-group">조</th><th>이름1</th><th>이름2</th><th class="col-room">객실</th><th class="col-del"></th></tr></thead>
       <tbody id="tbody"></tbody>
@@ -68,7 +86,7 @@
 
   <!-- 3. 미리보기 + 다운로드 -->
   <section class="card">
-    <h2>③ 라벨 미리보기 (A열 → B열 순서)</h2>
+    <h2>④ 라벨 미리보기 (A열 → B열 순서)</h2>
     <div class="preview" id="preview"></div>
     <div id="msg" class="msg"></div>
     <div class="dl" style="margin-top:12px">
@@ -76,6 +94,7 @@
       <button class="primary" id="btnDownload">엑셀 내려받기</button>
     </div>
   </section>
+  <footer>rev_2026_1110_2155</footer>
 </main>
 
 <script>
@@ -210,6 +229,91 @@ async function buildXlsx(groups) {
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
+
+// ===== 루밍리스트 엑셀 읽기 =====
+let roomWb = null;
+const norm = v => String(v ?? '').replace(/[\s ]/g, '');
+const STAFF_RE = /^(TC|TG|TL|가이드|인솔자?)\s*[\/:)]/i;   // "TC/배상운" 같은 인솔자·가이드
+const setRoomMsg = (text, ok) => {
+  const m = document.getElementById('roomMsg');
+  m.className = ok ? 'ok' : 'msg'; m.textContent = text;
+};
+
+// 시트 하나에서 같은 방끼리 묶기
+function parseRoomSheet(ws, skipStaff) {
+  if (!ws || !ws['!ref']) return { error: '빈 시트예요.' };
+  const R = XLSX.utils.decode_range(ws['!ref']);
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
+  const at = (r, c) => rows[r - R.s.r]?.[c - R.s.c];          // 실제 행/열 번호로 읽기
+
+  // 1) 머리글 줄 찾기: '성명' 칸과 'ROOM' 칸이 같이 있는 줄
+  let hr = -1, nameC = -1, roomC = -1;
+  for (let r = R.s.r; r <= Math.min(R.e.r, R.s.r + 20) && hr < 0; r++) {
+    for (let c = R.s.c; c <= R.e.c; c++) {
+      const h = norm(at(r, c));
+      if (nameC < 0 && /^(성명|이름|한글명|한글이름|고객명|성함)$/.test(h)) nameC = c;
+      if (roomC < 0 && /^(room|rm|roomno\.?|객실|객실번호|방|방번호|룸|호실)$/i.test(h)) roomC = c;
+    }
+    if (nameC >= 0 && roomC >= 0) hr = r; else { nameC = -1; roomC = -1; }
+  }
+  if (hr < 0) return { error: "이 시트에서 '성명'과 'ROOM(객실)' 머리글을 못 찾았어요. 다른 시트를 골라보세요." };
+
+  // 2) 병합된 객실칸 → 병합 범위 전체에 같은 방 번호
+  const roomOf = {};
+  for (const g of ws['!merges'] || []) {
+    if (g.s.c > roomC || g.e.c < roomC) continue;
+    for (let r = g.s.r; r <= g.e.r; r++) roomOf[r] = String(at(g.s.r, roomC) ?? '').trim();
+  }
+
+  // 3) 한 줄씩 읽기
+  const groups = [], byRoom = new Map(), skipped = [];
+  let lastRoom = '', people = 0;
+  for (let r = hr + 1; r <= R.e.r; r++) {
+    const raw = String(at(r, nameC) ?? '').trim();
+    if (!norm(raw)) { lastRoom = ''; continue; }                 // 빈 줄 = 방 구분 끊기
+    let room = roomOf[r] ?? String(at(r, roomC) ?? '').trim();
+    if (!norm(room)) room = lastRoom;                             // 병합 안 된 빈 칸 = 윗사람과 같은 방
+    lastRoom = room;
+    if (skipStaff && STAFF_RE.test(raw)) { skipped.push(raw); continue; }
+    const kor = (norm(raw).match(/[가-힣]{2,}/) || [''])[0];     // 첫 한글이름 (허 옥 → 허옥)
+    if (!kor) { skipped.push(raw); continue; }
+    people++;
+    const single = !norm(room) || /sgl|single|싱글|1인/i.test(room);
+    const key = norm(room).toUpperCase();
+    if (!single && byRoom.has(key)) { byRoom.get(key).names.push(kor); continue; }
+    const g = { room, names: [kor] };
+    groups.push(g);
+    if (!single) byRoom.set(key, g);
+  }
+  return { groups, skipped, people };
+}
+
+function loadRoomSheet() {
+  if (!roomWb) return;
+  const i = +document.getElementById('roomSheet').value || 0;
+  const name = roomWb.SheetNames[i];
+  const res = parseRoomSheet(roomWb.Sheets[name], document.getElementById('skipStaff').checked);
+  if (res.error) { setRoomMsg(res.error); return; }
+  if (!res.groups.length) { setRoomMsg('이 시트에서 한글이름을 찾지 못했어요.'); return; }
+  tbody.innerHTML = '';
+  res.groups.forEach(g => addRow({ n1: g.names[0], n2: g.names.slice(1).join(','), room: g.room }));
+  render();
+  let t = `"${name}" 시트: ${res.people}명 → ${res.groups.length}조로 묶었어요.`;
+  if (res.skipped.length) t += `\n빠진 사람: ${res.skipped.join(', ')}`;
+  setRoomMsg(t, true);
+}
+
+document.getElementById('roomFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { roomWb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); }
+  catch (err) { roomWb = null; setRoomMsg('엑셀 파일을 읽지 못했어요.'); return; }
+  const sel = document.getElementById('roomSheet');
+  sel.innerHTML = roomWb.SheetNames.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
+  sel.parentElement.hidden = roomWb.SheetNames.length < 2;
+  loadRoomSheet();
+};
+document.getElementById('roomSheet').onchange = loadRoomSheet;
+document.getElementById('skipStaff').onchange = loadRoomSheet;
 
 // ---- 버튼들 ----
 document.getElementById('btnApply').onclick = () => {
