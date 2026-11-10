@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2259 (KST) 루밍 양식 확대: 방 칸 여러 개(RM 1·2·3) 선택, 글자 없는 병합 방, 반복 방이름 양식에서 빈 방칸 안 붙이기, PDF 루밍 읽기 -->
+<!-- rev_2026_1110_2303 (KST) 규칙에 없는 명부: 표의 굵은 선 기준으로 묶기 → 그것도 없으면 이름마다 1장 (PDF는 이름마다) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -181,7 +181,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1110_2259</footer>
+  <footer>rev_2026_1110_2303</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -512,9 +512,9 @@ function parsePdfItems(items) {
   const cx = it => it.x + it.w / 2, cy = it => it.y - it.h / 2;
   const hName = items.find(it => NAME_RE.test(norm(it.s)));
   const hRoom = items.find(it => ROOM_RE.test(norm(it.s)));
-  if (!hName || !hRoom) return { error: "이 페이지에서 '한글명(성명)'과 '룸번호(ROOM)' 머리글을 못 찾았어요." };
-  const nX = cx(hName), rX = cx(hRoom), top = Math.max(cy(hName), cy(hRoom));
-  const tol = Math.max(20, Math.abs(nX - rX) / 2);
+  if (!hName) return { error: "이 페이지에서 '한글명(성명)' 머리글을 못 찾았어요." };
+  const nX = cx(hName), rX = hRoom ? cx(hRoom) : null, top = hRoom ? Math.max(cy(hName), cy(hRoom)) : cy(hName);
+  const tol = hRoom ? Math.max(20, Math.abs(nX - rX) / 2) : 40;
   const stops = items.filter(it => it.s.includes('▶') && cy(it) > top).map(cy);   // 표 아래 안내문 시작
   const stopY = stops.length ? Math.min(...stops) : Infinity;
   const body = items.filter(it => cy(it) > top + 2 && cy(it) < stopY);
@@ -528,6 +528,9 @@ function parsePdfItems(items) {
   for (let i = 1; i < names.length; i++) if (names[i].y - names[i - 1].y > rowH * 2.5) { names = names.slice(0, i); break; }   // 표 끝
   if (!names.length) return { error: '이 페이지에서 한글이름을 찾지 못했어요.' };
   const lastY = names[names.length - 1].y;
+  if (!hRoom)   // 방 칸이 없으면 → 이름마다 1장 (끌어서 직접 묶기)
+    return { rooms: names.map(n => ({ room: '', resv: '', names: [n.name] })), skipped: [], people: names.length,
+             hasResv: false, roomCols: [], roomPick: 0, how: 'name' };
 
   // 방 칸 글자(TWN·SGL…) = 합쳐진 칸의 가운데에 있음
   const labels = body.filter(it => Math.abs(cx(it) - rX) < tol && norm(it.s) && cy(it) < lastY + rowH)
@@ -599,13 +602,103 @@ function regroup(mode) {
   autoGroup(mode);
 }
 
+// ===== 규칙(성명·ROOM 머리글)으로 못 읽을 때: 표의 굵은 선 기준 → 그것도 없으면 이름마다 1장 =====
+let roomBuf = null;   // 올린 엑셀 원본 (테두리 읽기용)
+const THICK = /^(medium|thick|double|mediumDashed|mediumDashDot|mediumDashDotDot|slantDashDot)$/;
+
+// 엑셀 파일 속 XML에서 칸별 위·아래 테두리가 굵은지 읽기. sheetIdx = 몇 번째 시트
+async function readBorders(buf, sheetIdx) {
+  const zip = await JSZip.loadAsync(buf);
+  const wb = await zip.file('xl/workbook.xml').async('string');
+  const rels = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+  const rid = [...wb.matchAll(/<sheet [^>]*r:id="([^"]+)"/g)][sheetIdx][1];
+  const t = rels.match(new RegExp(`<Relationship [^>]*Id="${rid}"[^>]*Target="([^"]+)"`))
+         || rels.match(new RegExp(`<Relationship [^>]*Target="([^"]+)"[^>]*Id="${rid}"`));
+  const sheet = await zip.file('xl/' + t[1].replace(/^\/?xl\//, '')).async('string');
+  const st = await zip.file('xl/styles.xml').async('string');
+  const borders = [...(st.match(/<borders[\s\S]*?<\/borders>/) || [''])[0].matchAll(/<border\b[^>]*?(?:\/>|>[\s\S]*?<\/border>)/g)].map(m => ({
+    top: THICK.test((m[0].match(/<top[^>]*style="(\w+)"/) || [])[1] || ''),
+    bottom: THICK.test((m[0].match(/<bottom[^>]*style="(\w+)"/) || [])[1] || '') }));
+  const xfs = [...(st.match(/<cellXfs[\s\S]*?<\/cellXfs>/) || [''])[0].matchAll(/<xf\b([^>]*?)(?:\/>|>[\s\S]*?<\/xf>)/g)]
+                .map(m => +((m[1].match(/borderId="(\d+)"/) || [])[1] || 0));
+  const cells = {};
+  for (const m of sheet.matchAll(/<c\b([^>]*?)\/?>/g)) {          // 속성 순서가 달라도 읽히게
+    const ref = (m[1].match(/\br="([A-Z]+\d+)"/) || [])[1]; if (!ref) continue;
+    const sIdx = +((m[1].match(/\bs="(\d+)"/) || [])[1] || 0);
+    cells[ref] = borders[xfs[sIdx]] || { top: false, bottom: false };
+  }
+  return addr => cells[addr] || { top: false, bottom: false };
+}
+
+async function parseFallback(ws, sheetIdx) {
+  if (!ws || !ws['!ref']) return { error: '빈 시트예요.' };
+  const R = XLSX.utils.decode_range(ws['!ref']);
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
+  const at = (r, c) => rows[r - R.s.r]?.[c - R.s.c];
+  // 머리글·제목 단어는 이름으로 안 봄
+  const NOT_NAME = /^(고객|고객명|명단|명부|성명|이름|한글|한글명|성함|인원|비고|연락처|번호|여권|여권번호|객실|방|룸|가이드|기사|합계|소계|총|계|남|여|성별|생년월일|주민번호)$/;
+  const korOf = v => { const k = (norm(v).match(/[가-힣]{2,}/) || [''])[0]; return NOT_NAME.test(norm(v)) ? '' : k; };
+
+  // 이름 칸: '성명' 같은 머리글이 있으면 그 칸, 없으면 한글이름(2~4자)이 가장 많은 칸
+  let nameC = -1, start = R.s.r;
+  for (let r = R.s.r; r <= Math.min(R.e.r, R.s.r + 30) && nameC < 0; r++)
+    for (let c = R.s.c; c <= R.e.c; c++) if (NAME_RE.test(norm(at(r, c)))) { nameC = c; start = r + 1; break; }
+  if (nameC < 0) {
+    let best = 0;
+    for (let c = R.s.c; c <= R.e.c; c++) {
+      let n = 0;
+      for (let r = R.s.r; r <= R.e.r; r++) if (/^[가-힣]{2,4}$/.test(norm(at(r, c))) && korOf(at(r, c))) n++;
+      if (n > best) { best = n; nameC = c; }
+    }
+    if (nameC < 0) return { error: '이 시트에서 한글이름 칸을 찾지 못했어요.' };
+    for (let r = R.s.r; r <= R.e.r; r++) if (/^[가-힣]{2,4}$/.test(norm(at(r, nameC))) && korOf(at(r, nameC))) { start = r; break; }
+  }
+
+  // 사람 목록 (행 번호와 함께)
+  const ppl = [], skipped = [];
+  for (let r = start; r <= R.e.r; r++) {
+    const raw = String(at(r, nameC) ?? '').trim();
+    if (!norm(raw)) continue;
+    if (NOT_NAME.test(norm(raw))) continue;
+    const kor = korOf(raw);
+    if (kor) ppl.push({ r, kor }); else skipped.push(raw);
+  }
+  if (!ppl.length) return { error: '이 시트에서 한글이름을 찾지 못했어요.' };
+
+  // 굵은 선 읽기 (.xls 옛 형식이면 못 읽음 → 이름마다)
+  let B = null;
+  try { B = await readBorders(roomBuf, sheetIdx); } catch (e) {}
+  const addr = (r, c) => XLSX.utils.encode_cell({ r, c });
+  const thickAt = (r1, r2, cols) => cols.some(c => B(addr(r1, c)).bottom || B(addr(r2, c)).top);   // r1과 r2 사이 선이 굵은지
+  const split = cols => {
+    const out = []; let cur = null, any = false;
+    ppl.forEach((p, k) => {
+      const prev = ppl[k - 1];
+      const brk = !prev || p.r !== prev.r + 1 || (B && thickAt(prev.r, p.r, cols));   // 빈 줄도 경계
+      if (prev && p.r === prev.r + 1 && B && thickAt(prev.r, p.r, cols)) any = true;
+      if (brk) { cur = { room: '', resv: '', names: [] }; out.push(cur); }
+      cur.names.push(p.kor);
+    });
+    return { out, any };
+  };
+  let res = B ? split([nameC]) : null;                             // 이름 칸의 선 먼저
+  if (B && !res.any) {                                             // 이름 칸에 굵은 선이 없으면 줄 전체에서
+    const all = []; for (let c = R.s.c; c <= R.e.c; c++) all.push(c);
+    res = split(all);
+  }
+  if (res && res.any) return { rooms: res.out, skipped, people: ppl.length, hasResv: false, roomCols: [], roomPick: 0, how: 'border' };
+  return { rooms: ppl.map(p => ({ room: '', resv: '', names: [p.kor] })), skipped, people: ppl.length,
+           hasResv: false, roomCols: [], roomPick: 0, how: 'name' };
+}
+
 let pdfPages = null;   // PDF면 페이지별 글자 목록
-function loadRoomSheet() {
+async function loadRoomSheet() {
   if (!roomWb && !pdfPages) return;
   const i = +$('roomSheet').value || 0;
   const pick = +$('roomColSel').value || 0;
   const name = pdfPages ? `${i + 1}페이지` : `"${roomWb.SheetNames[i]}" 시트`;
-  const res = pdfPages ? parsePdfItems(pdfPages[i]) : parseRoomSheet(roomWb.Sheets[roomWb.SheetNames[i]], pick);
+  let res = pdfPages ? parsePdfItems(pdfPages[i]) : parseRoomSheet(roomWb.Sheets[roomWb.SheetNames[i]], pick);
+  if (res.error && !pdfPages) res = await parseFallback(roomWb.Sheets[roomWb.SheetNames[i]], i);   // 규칙에 없으면 굵은 선 → 이름
   // 방 칸이 여러 개(RM 1·2·3 = 밤마다 다른 배정)면 고르는 상자 보이기
   const cs = $('roomColSel');
   if (!res.error && res.roomCols.length > 1) {
@@ -617,7 +710,9 @@ function loadRoomSheet() {
   rooms = res.rooms;
   autoGroup(res.hasResv ? 'resv' : 'room');
   let t = `${name}: ${res.people}명 → 라벨 카드 ${rooms.length}장. ` +
-          (res.hasResv ? '예약번호마다 1조로 묶어놨어요.' : '방마다 1조로 묶어놨어요.') + ' 끌어서 바꾸세요.';
+          (res.how === 'border' ? '방 칸이 없어서 표의 굵은 선 기준으로 묶었어요.'
+           : res.how === 'name' ? '방 칸도 굵은 선도 없어서 이름마다 1장씩 만들었어요.'
+           : res.hasResv ? '예약번호마다 1조로 묶어놨어요.' : '방마다 1조로 묶어놨어요.') + ' 끌어서 바꾸세요.';
   if (res.roomCols.length > 1) t += `\n방 칸이 ${res.roomCols.length}개예요(밤마다 다른 배정). 지금은 "${res.roomCols[res.roomPick]}" 기준.`;
   if (res.skipped.length) t += `\n빠진 줄(한글이름 없음): ${res.skipped.join(', ')}`;
   setRoomMsg(t, true);
@@ -630,7 +725,7 @@ $('roomFile').onchange = async e => {
   try {
     const buf = await f.arrayBuffer();
     if (isPdf) pdfPages = await readPdfPages(buf);
-    else roomWb = XLSX.read(buf, { type: 'array' });
+    else { roomWb = XLSX.read(buf, { type: 'array' }); roomBuf = buf; }
   } catch (err) { setRoomMsg(isPdf ? 'PDF를 읽지 못했어요. (글자를 고를 수 있는 PDF여야 해요. 사진·스캔본은 안 돼요)' : '엑셀 파일을 읽지 못했어요.'); return; }
   const list = isPdf ? pdfPages.map((_, k) => `${k + 1}페이지`) : roomWb.SheetNames;
   $('sheetWord').textContent = isPdf ? '페이지' : '시트';
