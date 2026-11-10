@@ -31,6 +31,8 @@
     --c-calendar-2: #ef4444;
     --c-wifi-1: #fdb52a;
     --c-wifi-2: #f39b12;
+    --c-sendingbag-1: #84cc16;
+    --c-sendingbag-2: #22c55e;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -126,6 +128,7 @@
   .tool-card.c-schedule   { --c1: var(--c-schedule-1);   --c2: var(--c-schedule-2); }
   .tool-card.c-calendar   { --c1: var(--c-calendar-1);   --c2: var(--c-calendar-2); }
   .tool-card.c-wifi       { --c1: var(--c-wifi-1);       --c2: var(--c-wifi-2); }
+  .tool-card.c-sendingbag { --c1: var(--c-sendingbag-1); --c2: var(--c-sendingbag-2); }
 
   .tool-icon {
     width: 56px;
@@ -347,10 +350,24 @@
       <div class="tool-desc">와이파이 이름·비밀번호로 QR 카드를 만들어 손님께 보여줘요</div>
       <div class="tool-arrow">열기 <span class="arrow">→</span></div>
     </a>
+    <a class="tool-card c-sendingbag" href="sendingbag.html">
+      <div class="tool-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- 가방 손잡이 + 몸통 + 라벨 -->
+          <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" stroke="currentColor" stroke-width="1.8" fill="none"></path>
+          <rect x="4" y="7" width="16" height="13" rx="2" stroke="currentColor" stroke-width="1.8" fill="none"></rect>
+          <rect x="8" y="11" width="8" height="5" rx="0.8" stroke="currentColor" stroke-width="1.4" fill="none"></rect>
+          <line x1="10" y1="13.5" x2="14" y2="13.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></line>
+        </svg>
+      </div>
+      <div class="tool-title">샌딩백 조편성</div>
+      <div class="tool-desc">루밍리스트 엑셀을 올리면 같은 방끼리 조를 묶어 샌딩백 라벨 엑셀로</div>
+      <div class="tool-arrow">열기 <span class="arrow">→</span></div>
+    </a>
   </div>
 
   <div class="footer">
-    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_0809_1923</span>
+    Created by Choi KwangHyun · © 2026 · <span class="rev">rev_2026_1110_2155</span>
   </div>
 </div>
 
