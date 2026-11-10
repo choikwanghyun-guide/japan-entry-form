@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2228 (KST) 칸별 글자 크기 조절(− +), 미리보기에서 조 줄까지 칸 전체 편집 -->
+<!-- rev_2026_1110_2232 (KST) 바로 인쇄 버튼 (엑셀과 같은 A4 여백·칸 크기·2열×7줄) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -73,6 +73,20 @@
   .font-row button { padding:6px 12px; }
   .dl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
   footer { text-align:center; color:var(--muted); font-size:12px; padding:4px 0 24px; }
+
+  /* ---- 바로 인쇄: 엑셀 양식과 같은 A4 여백·칸 크기 (열 276pt × 행 105pt, 2열 × 7줄) ---- */
+  #printArea { display:none; }
+  @media print {
+    @page { size: A4 portrait; margin: 15mm 6mm 4mm 6mm; }   /* 엑셀 여백: 위 0.59" · 좌우 0.24" · 아래 0.16" */
+    html, body { background:#fff !important; margin:0; padding:0; }
+    main { display:none !important; }
+    #printArea { display:block; }
+    .ppage { display:grid; grid-template-columns: 276pt 276pt; grid-template-rows: repeat(7, 105pt); grid-auto-flow: column;
+             break-after: page; page-break-after: always; }
+    .ppage:last-child { break-after: auto; page-break-after: auto; }
+    .pcell { display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
+             white-space:pre-wrap; line-height:1.2; font-family:'Binggrae', system-ui, sans-serif; color:#000; }
+  }
 </style>
 </head>
 <body>
@@ -136,10 +150,14 @@
     <div class="dl">
       <label>날짜 <input type="date" id="date"></label>
       <button class="primary" id="btnDownload">엑셀 내려받기</button>
+      <button class="primary" id="btnPrint">🖨 바로 인쇄</button>
     </div>
+    <p class="hint">바로 인쇄: 인쇄 창에서 <b>용지 A4 · 배율 100%(기본) · 머리글/바닥글 끄기</b>로 해주세요. 처음엔 한 장 시험 인쇄로 라벨 칸 위치를 확인하세요.</p>
   </section>
-  <footer>rev_2026_1110_2228</footer>
+  <footer>rev_2026_1110_2232</footer>
 </main>
+<!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
+<div id="printArea"></div>
 
 <script>
 // ===== 원본 템플릿(샌딩백_템플릿.xlsx)을 base64로 내장 =====
@@ -310,7 +328,7 @@ function render() {
   }
   pv.querySelectorAll('.lbl').forEach(markOverflow);
   $('msg').textContent = labels.length > PER_PAGE ? `라벨 ${labels.length}장 → ${pages}페이지로 나눠 들어가요.` : '';
-  $('btnDownload').disabled = !labels.length;
+  $('btnDownload').disabled = $('btnPrint').disabled = !labels.length;
 }
 function markOverflow(d) { d.classList.toggle('over', d.scrollHeight > d.clientHeight + 1 || d.scrollWidth > d.clientWidth + 1); }
 
@@ -580,6 +598,33 @@ $('btnDownload').onclick = async () => {
   a.download = `샌딩백_${$('date').value || 'date'}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+
+// ===== 바로 인쇄: 미리보기와 같은 내용을 A4 페이지(2열 × 7줄)로 만들어 인쇄 =====
+$('btnPrint').onclick = async () => {
+  const labels = getLabels();
+  if (!labels.length) return;
+  const f = fontOpt();
+  const area = $('printArea'); area.innerHTML = '';
+  for (let p = 0; p < Math.ceil(labels.length / PER_PAGE); p++) {
+    const page = document.createElement('div'); page.className = 'ppage';
+    for (let i = 0; i < PER_PAGE; i++) {
+      const L = labels[p * PER_PAGE + i];
+      const c = document.createElement('div'); c.className = 'pcell';
+      if (L) {
+        c.textContent = L.full;
+        c.style.fontSize = (L.fs || f.size) + 'pt';
+        c.style.fontWeight = f.bold ? 700 : 400;
+      }
+      page.appendChild(c);
+    }
+    area.appendChild(page);
+  }
+  try { await document.fonts.load(`${f.bold ? 700 : 400} 20px Binggrae`, '가'); await document.fonts.ready; } catch (e) {}
+  const old = document.title;
+  document.title = `샌딩백_${$('date').value || ''}`;   // PDF로 저장할 때 파일 이름
+  window.print();
+  document.title = old;
 };
 
 // 시작: 오늘 날짜(한국시간)
