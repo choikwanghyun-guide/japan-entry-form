@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2211 (KST) 드래그 보드: 방 카드를 끌어서 조 편성, 예약번호/방 기준 자동묶기, 16장 넘으면 다음 페이지 -->
+<!-- rev_2026_1110_2217 (KST) 드래그 보드: 방 카드를 끌어서 조 편성, 예약번호/방 기준 자동묶기, 16장 넘으면 다음 페이지 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -89,7 +89,8 @@
       <button id="toPool">전부 대기로</button>
     </div>
     <p class="hint">· <b>카드(라벨 1장)</b>를 끌어서 원하는 조에 넣으세요. 같은 조 카드는 모두 같은 "N조"로 찍혀요.<br>
-      · <b>이름</b>을 끌면 다른 카드로 옮겨져요(한 라벨에 3~4명도 가능). 이름을 두 번 누르면 수정·삭제.<br>
+      · <b>이름</b>을 다른 카드 안에 놓으면 한 라벨로 합쳐져요(3~4명도 가능). <b>카드 바깥 빈 곳</b>에 놓으면 혼자 라벨로 빠져요.<br>
+      · 이름을 두 번 누르면 수정·삭제.<br>
       · ⠿ 를 잡고 끌면 조 순서가 바뀌어요. 폰에선 살짝 길게 눌렀다 끌어주세요.</p>
     <div class="lane pool" style="margin-top:10px">
       <div class="lane-head"><b>대기</b><span class="info" id="poolInfo"></span></div>
@@ -110,7 +111,7 @@
       <button class="primary" id="btnDownload">엑셀 내려받기</button>
     </div>
   </section>
-  <footer>rev_2026_1110_2211</footer>
+  <footer>rev_2026_1110_2217</footer>
 </main>
 
 <script>
@@ -125,9 +126,10 @@ const norm = v => String(v ?? '').replace(/[\s ]/g, '');
 const dragOpt = { animation: 150, delay: 150, delayOnTouchOnly: true, ghostClass: 'sortable-ghost' };
 
 // ===== 보드 부품 만들기 =====
-function makeChip(name) {
+function makeChip(name, meta) {
   const s = document.createElement('span');
   s.className = 'chip'; s.textContent = name;
+  s.dataset.meta = meta || '';   // 원래 방 정보 (혼자 빠질 때 카드에 다시 표시)
   s.ondblclick = () => {
     const v = prompt('이름 수정 (비우면 삭제)', s.textContent);
     if (v === null) return;
@@ -145,7 +147,7 @@ function makeCard(names, meta) {
   c.className = 'lcard';
   c.innerHTML = '<div class="chips"></div><div class="meta"></div><button class="x" title="라벨 삭제">✕</button>';
   const chips = c.querySelector('.chips');
-  names.forEach(n => chips.appendChild(makeChip(n)));
+  names.forEach(n => chips.appendChild(makeChip(n, meta)));
   c.querySelector('.meta').textContent = meta || '';
   c.querySelector('.x').onclick = () => { c.remove(); render(); };
   new Sortable(chips, { ...dragOpt, group: 'people',
@@ -158,8 +160,13 @@ function makeCard(names, meta) {
 }
 
 function makeCardList(el) {
-  new Sortable(el, { ...dragOpt, group: 'cards', draggable: '.lcard',
-    filter: '.chip, .x', preventOnFilter: false, onEnd: render });
+  new Sortable(el, { ...dragOpt, group: { name: 'cards', put: ['cards', 'people'] }, draggable: '.lcard',
+    filter: '.chip, .x', preventOnFilter: false, onEnd: render,
+    onAdd: e => { // 이름을 카드 밖(조의 빈 곳)에 놓으면 → 혼자 라벨 카드로
+      if (!e.item.classList.contains('chip')) return;
+      e.item.replaceWith(makeCard([e.item.textContent.trim()], e.item.dataset.meta));
+      render();
+    } });
 }
 
 // 조 = 카드 여러 장
