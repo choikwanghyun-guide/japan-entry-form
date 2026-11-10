@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2239 (KST) 줄 높이를 엑셀과 같게(빙그레체 1.343배), 바로 인쇄 칸 맞추기(mm), 오른쪽 열 3mm 오른쪽으로 -->
+<!-- rev_2026_1110_2244 (KST) 줄 높이를 엑셀과 같게(빙그레체 1.343배), 바로 인쇄 칸 맞추기(mm), 오른쪽 열 3mm 오른쪽으로, 인쇄 여백 5mm(프린터 축소 방지), 칸 테두리 인쇄 옵션 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -80,15 +80,16 @@
   .pset label { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:14px; }
   .pset input { width:76px; font-size:16px; padding:6px; border:1px solid var(--line); border-radius:6px; text-align:right; }
   @media print {
-    @page { size: A4 portrait; margin: 0; }
+    @page { size: A4 portrait; margin: 5mm; }   /* 여백 0이면 프린터가 페이지를 줄여 인쇄함 → 5mm 두고 안쪽에서 위치 맞춤 */
     html, body { background:#fff !important; margin:0; padding:0; }
     main { display:none !important; }
     #printArea { display:block; }
-    .ppage { box-sizing:border-box; width:210mm; height:296mm; overflow:hidden;
-             padding: var(--top) 0 0 var(--left);
+    .ppage { box-sizing:border-box; width:200mm; height:286mm; overflow:hidden;
+             padding: max(0mm, calc(var(--top) - 5mm)) 0 0 max(0mm, calc(var(--left) - 5mm));
              display:grid; grid-template-columns: repeat(2, var(--cw)); grid-template-rows: repeat(7, var(--ch));
              column-gap: var(--gx); row-gap: var(--gy); grid-auto-flow: column;
              break-after: page; page-break-after: always; }
+    .ppage.border .pcell { outline: 0.2mm solid #888; outline-offset: -0.1mm; }   /* 위치 확인용 칸 테두리 */
     .ppage:last-child { break-after: auto; page-break-after: auto; }
     .pcell { display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
              white-space:pre-wrap; line-height:1.343; font-family:'Binggrae', system-ui, sans-serif; color:#000; }
@@ -171,10 +172,11 @@
       </div>
       <p class="hint">· 아래 줄로 갈수록 글자가 <b>위로</b> 올라가면 → <b>칸 높이</b>를 키우세요 (흔한 14칸 라벨지는 38.1). 내려가면 줄이세요.<br>
         · 전체가 위/아래로 같이 밀리면 → <b>위 여백</b>, 좌우로 밀리면 → <b>왼쪽 여백</b>. 값은 이 기기에 기억돼요. (바로 인쇄에만 적용, 엑셀 파일은 그대로)</p>
+      <label style="display:block;margin-top:8px;font-size:14px"><input type="checkbox" id="pBorder"> 칸 테두리도 인쇄 (라벨지와 위치 비교용)</label>
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1110_2239</footer>
+  <footer>rev_2026_1110_2244</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -647,7 +649,7 @@ $('btnPrint').onclick = async () => {
   [['--top', s.pTop], ['--left', s.pLeft], ['--ch', s.pCh], ['--cw', s.pCw], ['--gy', s.pGy], ['--gx', s.pGx]]
     .forEach(([k, v]) => area.style.setProperty(k, v + 'mm'));
   for (let p = 0; p < Math.ceil(labels.length / PER_PAGE); p++) {
-    const page = document.createElement('div'); page.className = 'ppage';
+    const page = document.createElement('div'); page.className = 'ppage' + ($('pBorder').checked ? ' border' : '');
     for (let i = 0; i < PER_PAGE; i++) {
       const L = labels[p * PER_PAGE + i];
       const c = document.createElement('div'); c.className = 'pcell';
