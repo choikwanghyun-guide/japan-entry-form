@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2246 (KST) 줄 높이를 엑셀과 같게(빙그레체 1.343배), 바로 인쇄 칸 맞추기(mm), 오른쪽 열 3mm 오른쪽으로, 인쇄 칸 높이 기본 37.68mm (L3100 실측 보정: 6줄 +3.2mm, 7줄 +3.8mm) -->
+<!-- rev_2026_1110_2251 (KST) 네임택(한 명씩) 추가: 미리보기 전환, 엑셀에 샌딩백·네임택 두 시트 같이 채움, 바로 인쇄는 보고 있는 것 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -68,6 +68,8 @@
   .fsctl button { padding:2px 7px; font-size:13px; border-radius:5px; }
   .fsctl span { min-width:20px; text-align:center; color:var(--muted); }
   .lbl.own-fs .fsctl span { color:var(--accent); font-weight:700; }
+  .mode-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .mode-tabs button.on { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
   .font-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
   .font-row input[type=number] { width:70px; font-size:16px; padding:6px; border:1px solid var(--line); border-radius:6px; text-align:center; }
   .font-row button { padding:6px 12px; }
@@ -144,20 +146,22 @@
 
   <!-- 3. 미리보기 + 다운로드 -->
   <section class="box">
-    <h2>③ 라벨 미리보기 (A열 → B열 순서)</h2>
+    <h2>③ 미리보기 (A열 → B열 순서)</h2>
+    <div class="mode-tabs"><button id="modeBag" class="on">🧳 샌딩백 라벨 (조별)</button><button id="modeTag">🏷 네임택 (한 명씩)</button></div>
     <div class="font-row">
       글자 크기 <button id="fsDown">−</button><input type="number" id="fontSize" min="15" max="80" value="35"><button id="fsUp">+</button> pt
       <label style="margin-left:8px"><input type="checkbox" id="fontBold" checked> 굵게</label>
     </div>
     <p class="hint" style="margin:0 0 8px">· 글씨체: 빙그레체. 미리보기 글자 크기는 실제 엑셀과 같은 비율이에요. 빨간 테두리 = 칸을 넘침.<br>
-      · <b>칸을 눌러 조 줄까지 바로 고칠 수 있어요.</b> (예: "1조 정은숙" 처럼 이름을 조 옆으로) Enter로 줄바꿈. 다 지우면 자동 글자로 돌아가요.<br>
+      · <b>칸을 눌러 글자를 바로 고칠 수 있어요.</b> (샌딩백은 조 줄까지: "1조 정은숙" 처럼) Enter로 줄바꿈. 다 지우면 자동 글자로 돌아가요.<br>
+      · 네임택은 보드의 사람을 조 순서대로 한 명씩 넣어요. 엑셀 내려받기는 '샌딩백'·'네임택' 시트를 한 파일에 같이 채워요.<br>
       · 칸 오른쪽 위 <b>− 35 +</b> 로 <b>그 칸만</b> 글자 크기를 바꿀 수 있어요(3명 라벨이 넘칠 때). 파란 숫자 = 따로 정한 크기.</p>
     <div id="preview"></div>
     <div id="msg" class="msg"></div>
     <div class="dl">
       <label>날짜 <input type="date" id="date"></label>
       <button class="primary" id="btnDownload">엑셀 내려받기</button>
-      <button class="primary" id="btnPrint">🖨 바로 인쇄</button>
+      <button class="primary" id="btnPrint">🖨 바로 인쇄 (보고 있는 것)</button>
     </div>
     <p class="hint">바로 인쇄: 인쇄 창에서 <b>용지 A4 · 배율 100%(기본) · 머리글/바닥글 끄기</b>로 해주세요. 처음엔 한 장 시험 인쇄로 라벨 칸 위치를 확인하세요.</p>
     <details style="margin-top:10px">
@@ -176,7 +180,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1110_2246</footer>
+  <footer>rev_2026_1110_2251</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -287,12 +291,35 @@ function getLabels() {
         card.dataset.no = no;
       }
       const fs = card.dataset.fs ? +card.dataset.fs : null;   // 이 칸만 따로 정한 글자 크기
-      out.push({ no, full: edited ? card.dataset.label : no + '\n' + autoText(names), card, edited, fs });
+      out.push({ no, full: edited ? card.dataset.label : no + '\n' + autoText(names), card, holder: card, edited, fs });
     });
   });
   return out;
 }
 const getGroups = () => getLabels().map(L => L.full);   // 엑셀에 들어갈 글자
+
+// 네임택 목록: 보드의 사람 한 명 = 한 칸 (조 순서대로). 고친 글자·크기는 이름(chip)에 저장
+function getTags() {
+  const out = []; let n = 0;
+  [...board.querySelectorAll('.lane')].forEach(l => {
+    const chips = [...l.querySelectorAll('.lcard .chip')].filter(c => c.textContent.trim());
+    if (!chips.length) return;
+    n++;
+    chips.forEach(ch => {
+      const sig = ch.textContent.trim();
+      const edited = ch.dataset.tLabel !== undefined && ch.dataset.tSig === sig && ch.dataset.tLabel.trim() !== '';
+      if (!edited) { delete ch.dataset.tLabel; delete ch.dataset.tSig; }
+      out.push({ no: n + '조', full: edited ? ch.dataset.tLabel : sig, holder: ch, edited, fs: ch.dataset.tFs ? +ch.dataset.tFs : null });
+    });
+  });
+  return out;
+}
+
+// ===== 미리보기 모드: 'bag' 샌딩백 라벨(조별) / 'tag' 네임택(한 명씩) =====
+let mode = 'bag';
+const KEY = { bag: { label: 'label', sig: 'sig', fs: 'fs' }, tag: { label: 'tLabel', sig: 'tSig', fs: 'tFs' } };
+const itemsFor = m => m === 'bag' ? getLabels() : getTags();
+const sigOf = (m, holder) => m === 'bag' ? cardNames(holder).join('|') : holder.textContent.trim();
 
 // ===== 화면 새로 그리기 =====
 function render() {
@@ -307,7 +334,7 @@ function render() {
   });
   $('poolInfo').textContent = `카드 ${pool.querySelectorAll('.lcard').length}장 (라벨로 안 나감)`;
 
-  const labels = getLabels();
+  const labels = itemsFor(mode), K = KEY[mode];
   const pages = Math.max(1, Math.ceil(labels.length / PER_PAGE));
   const pv = $('preview'); pv.innerHTML = '';
   applyFont();
@@ -328,7 +355,7 @@ function render() {
         ctl.innerHTML = `<button title="이 칸 글자 작게">−</button><span title="이 칸 글자 크기(pt)">${size}</span><button title="이 칸 글자 크게">+</button>`;
         const setFs = v => {
           v = Math.min(80, Math.max(10, v));
-          if (v === fontOpt().size) delete L.card.dataset.fs; else L.card.dataset.fs = v;
+          if (v === fontOpt().size) delete L.holder.dataset[K.fs]; else L.holder.dataset[K.fs] = v;
           render();
         };
         ctl.children[0].onclick = () => setFs(size - 1);
@@ -336,10 +363,10 @@ function render() {
         d.appendChild(ctl);
         const nm = d.querySelector('.names');
         nm.textContent = L.full;
-        nm.oninput = () => {            // 고친 글자(칸 전체)를 카드에 저장
-          L.card.dataset.label = nm.innerText.replace(/\n+$/, '');
-          L.card.dataset.sig = cardNames(L.card).join('|');
-          L.card.dataset.no = L.no;
+        nm.oninput = () => {            // 고친 글자(칸 전체)를 카드(네임택은 이름)에 저장
+          L.holder.dataset[K.label] = nm.innerText.replace(/\n+$/, '');
+          L.holder.dataset[K.sig] = sigOf(mode, L.holder);
+          if (mode === 'bag') L.holder.dataset.no = L.no;
           d.classList.add('edited'); markOverflow(d);
         };
         nm.onblur = () => { if (!nm.innerText.trim()) render(); };   // 다 지웠으면 자동 글자로
@@ -349,7 +376,7 @@ function render() {
     pv.appendChild(grid);
   }
   pv.querySelectorAll('.lbl').forEach(markOverflow);
-  $('msg').textContent = labels.length > PER_PAGE ? `라벨 ${labels.length}장 → ${pages}페이지로 나눠 들어가요.` : '';
+  $('msg').textContent = labels.length > PER_PAGE ? `${mode === 'bag' ? '라벨' : '네임택'} ${labels.length}장 → ${pages}페이지로 나눠 들어가요.` : '';
   $('btnDownload').disabled = $('btnPrint').disabled = !labels.length;
 }
 function markOverflow(d) { d.classList.toggle('over', d.scrollHeight > d.clientHeight + 1 || d.scrollWidth > d.clientWidth + 1); }
@@ -359,19 +386,35 @@ function fontOpt() {
   const size = Math.min(80, Math.max(15, Math.round(+$('fontSize').value || 35)));
   return { size, bold: $('fontBold').checked };
 }
+// 모드별 글자 설정 (샌딩백 35pt, 네임택 36pt = 원래 양식 크기)
+const fonts = { bag: { size: 35, bold: true }, tag: { size: 36, bold: true } };
+const fontOptFor = m => m === mode ? fontOpt() : fonts[m];
 function applyFont() {
   const f = fontOpt();
+  fonts[mode] = f;
   $('preview').style.setProperty('--fs', f.size);
   $('preview').style.fontWeight = f.bold ? 700 : 400;
-  try { localStorage.setItem('sendingbagFont', JSON.stringify(f)); } catch (e) {}
+  try { localStorage.setItem('sendingbagFonts', JSON.stringify(fonts)); } catch (e) {}
 }
+function setMode(m) {
+  if (m === mode) return;
+  applyFont();                       // 지금 모드 설정 저장
+  mode = m;
+  $('fontSize').value = fonts[m].size; $('fontBold').checked = fonts[m].bold;
+  $('modeBag').classList.toggle('on', m === 'bag'); $('modeTag').classList.toggle('on', m === 'tag');
+  render();
+}
+$('modeBag').onclick = () => setMode('bag');
+$('modeTag').onclick = () => setMode('tag');
 $('fsDown').onclick = () => { $('fontSize').value = fontOpt().size - 1; render(); };
 $('fsUp').onclick = () => { $('fontSize').value = fontOpt().size + 1; render(); };
 $('fontSize').onchange = render;
 $('fontBold').onchange = render;
 try {
-  const f = JSON.parse(localStorage.getItem('sendingbagFont') || 'null');
-  if (f) { $('fontSize').value = f.size; $('fontBold').checked = f.bold; }
+  const all = JSON.parse(localStorage.getItem('sendingbagFonts') || 'null');
+  const old = JSON.parse(localStorage.getItem('sendingbagFont') || 'null');   // 예전 버전(샌딩백만) 값
+  if (all) Object.assign(fonts, all); else if (old) fonts.bag = old;
+  $('fontSize').value = fonts.bag.size; $('fontBold').checked = fonts.bag.bold;
 } catch (e) {}
 document.fonts && document.fonts.ready.then(() => document.querySelectorAll('.lbl').forEach(markOverflow));
 
@@ -532,89 +575,104 @@ $('btnClear').onclick = () => {
 };
 
 // ===== 엑셀 만들기: 템플릿을 열어 '샌딩백' 시트 글자만 교체 =====
-async function buildXlsx(groups, font = { size: 35, bold: true }, sizes = []) {   // sizes[i] = i번째 라벨만 다른 크기
+// sheets = [{ name:'샌딩백', texts:[...], sizes:[...], font:{size,bold} }, { name:'네임택', ... }]
+async function buildXlsx(sheets) {
   const zip = await JSZip.loadAsync(TEMPLATE_B64, { base64: true });
 
-  // '샌딩백' 시트 파일 찾기
+  // 시트 이름 → 파일 경로
   const wb = await zip.file('xl/workbook.xml').async('string');
   const rels = await zip.file('xl/_rels/workbook.xml.rels').async('string');
-  const rid = wb.match(/<sheet [^>]*name="샌딩백"[^>]*r:id="([^"]+)"/)[1];
-  const target = rels.match(new RegExp(`<Relationship [^>]*Id="${rid}"[^>]*Target="([^"]+)"`))
-             || rels.match(new RegExp(`<Relationship [^>]*Target="([^"]+)"[^>]*Id="${rid}"`));
-  const sheetPath = 'xl/' + target[1].replace(/^\/?xl\//, '');
+  const pathOf = name => {
+    const rid = wb.match(new RegExp(`<sheet [^>]*name="${name}"[^>]*r:id="([^"]+)"`))[1];
+    const t = rels.match(new RegExp(`<Relationship [^>]*Id="${rid}"[^>]*Target="([^"]+)"`))
+           || rels.match(new RegExp(`<Relationship [^>]*Target="([^"]+)"[^>]*Id="${rid}"`));
+    return 'xl/' + t[1].replace(/^\/?xl\//, '');
+  };
+  sheets.forEach(sh => sh.path = pathOf(sh.name));
+  const targets = new Set(sheets.map(sh => sh.path));
 
-  // 다른 시트가 쓰는 공유문자열 번호는 그대로 둠
+  // 채우지 않는 시트(택시 등)가 쓰는 공유문자열은 그대로 둠
   const used = new Set(); let usedRefs = 0;
   for (const f of Object.keys(zip.files)) {
-    if (!/^xl\/worksheets\/[^/]+\.xml$/.test(f) || f === sheetPath) continue;
+    if (!/^xl\/worksheets\/[^/]+\.xml$/.test(f) || targets.has(f)) continue;
     const x = await zip.file(f).async('string');
     for (const m of x.matchAll(/<c [^>]*t="s"[^>]*>\s*<v>(\d+)<\/v>/g)) { used.add(+m[1]); usedRefs++; }
   }
 
-  // sharedStrings: 샌딩백 시트 전용이던 옛 이름은 비우고, 새 라벨 글자를 뒤에 추가
+  // sharedStrings: 지난 팀 이름은 비우고, 새 글자를 뒤에 추가
   let sst = await zip.file('xl/sharedStrings.xml').async('string');
   let idx = 0;
   sst = sst.replace(/<si>[\s\S]*?<\/si>/g, m => (used.has(idx++) ? m : '<si><t></t></si>'));
-  const base = idx;
-  const add = groups.map(g => `<si><t xml:space="preserve">${esc(g)}</t></si>`).join('');
+  let add = '', total = 0;
+  sheets.forEach(sh => {
+    sh.base = idx + total;
+    add += sh.texts.map(g => `<si><t xml:space="preserve">${esc(g)}</t></si>`).join('');
+    total += sh.texts.length;
+  });
   sst = sst.replace('</sst>', add + '</sst>')
-           .replace(/count="\d+"/, `count="${usedRefs + groups.length}"`)
-           .replace(/uniqueCount="\d+"/, `uniqueCount="${base + groups.length}"`);
+           .replace(/count="\d+"/, `count="${usedRefs + total}"`)
+           .replace(/uniqueCount="\d+"/, `uniqueCount="${idx + total}"`);
   zip.file('xl/sharedStrings.xml', sst);
 
-  // 서식: 템플릿 9번(가운데·줄바꿈)과 같고 글꼴만 빙그레체 + 크기별로 새로 추가
+  // 서식: 가운데·줄바꿈 + 빙그레체. (굵게, 크기) 조합마다 하나씩 추가
   let st = await zip.file('xl/styles.xml').async('string');
   const fontCnt = +st.match(/<fonts count="(\d+)"/)[1];
   const xfCnt = +st.match(/<cellXfs count="(\d+)"/)[1];
-  const sizeList = [...new Set([font.size, ...sizes.filter(Boolean)])];   // 쓰는 크기 종류
-  const styleOf = {};                                                      // 크기 → 서식 번호
-  st = st.replace(/<fonts count="\d+"/, `<fonts count="${fontCnt + sizeList.length}"`)
-         .replace('</fonts>', sizeList.map(sz =>
-           `<font>${font.bold ? '<b/>' : ''}<sz val="${sz}"/><color theme="1"/><name val="빙그레체"/><family val="3"/><charset val="129"/></font>`).join('') + '</fonts>')
-         .replace(/<cellXfs count="\d+"/, `<cellXfs count="${xfCnt + sizeList.length}"`)
-         .replace('</cellXfs>', sizeList.map((sz, j) => { styleOf[sz] = xfCnt + j;
+  const keyOf = (bold, sz) => (bold ? 'b' : 'n') + sz;
+  const combos = new Map();
+  sheets.forEach(sh => [sh.font.size, ...sh.sizes.filter(Boolean)].forEach(sz => combos.set(keyOf(sh.font.bold, sz), { bold: sh.font.bold, sz })));
+  const list = [...combos.values()], styleOf = {};
+  st = st.replace(/<fonts count="\d+"/, `<fonts count="${fontCnt + list.length}"`)
+         .replace('</fonts>', list.map(c =>
+           `<font>${c.bold ? '<b/>' : ''}<sz val="${c.sz}"/><color theme="1"/><name val="빙그레체"/><family val="3"/><charset val="129"/></font>`).join('') + '</fonts>')
+         .replace(/<cellXfs count="\d+"/, `<cellXfs count="${xfCnt + list.length}"`)
+         .replace('</cellXfs>', list.map((c, j) => { styleOf[keyOf(c.bold, c.sz)] = xfCnt + j;
            return `<xf numFmtId="0" fontId="${fontCnt + j}" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`; }).join('') + '</cellXfs>');
   zip.file('xl/styles.xml', st);
-  const S = styleOf[font.size];   // 기본 서식 번호
 
-  // 시트: 페이지마다 7행. 각 페이지 A열 7칸 → B열 7칸
-  let sh = await zip.file(sheetPath).async('string');
-  const cell = (col, r, i) => groups[i] !== undefined
-      ? `<c r="${col}${r}" s="${styleOf[sizes[i] || font.size]}" t="s"><v>${base + i}</v></c>`
-      : `<c r="${col}${r}" s="${S}"/>`;
-  const pages = Math.max(1, Math.ceil(groups.length / PER_PAGE));
-  const nRows = pages * ROWS;
-  let extra = '';
-  for (let r = 1; r <= Math.max(nRows, 8); r++) {   // 템플릿 8행(옛 내용)도 비우기 위해 최소 8행까지
-    const p = Math.floor((r - 1) / ROWS), k = (r - 1) % ROWS;
-    const attrs = `r="${r}" spans="1:2" ht="105" customHeight="1" x14ac:dyDescent="0.3"`;
-    const row = r <= nRows
-      ? `<row ${attrs}>` + cell('A', r, p * PER_PAGE + k) + cell('B', r, p * PER_PAGE + ROWS + k) + '</row>'
-      : `<row ${attrs}/>`;
-    const re = new RegExp(`<row r="${r}"[^>]*?(?:/>|>[\\s\\S]*?</row>)`);
-    if (re.test(sh)) sh = sh.replace(re, row); else extra += row;   // 템플릿에 없는 행은 뒤에 추가
+  // 시트마다: 페이지당 7행, A열 7칸 → B열 7칸
+  for (const S of sheets) {
+    let sh = await zip.file(S.path).async('string');
+    const def = styleOf[keyOf(S.font.bold, S.font.size)];
+    const cell = (col, r, i) => S.texts[i] !== undefined
+        ? `<c r="${col}${r}" s="${styleOf[keyOf(S.font.bold, S.sizes[i] || S.font.size)]}" t="s"><v>${S.base + i}</v></c>`
+        : `<c r="${col}${r}" s="${def}"/>`;
+    const pages = Math.max(1, Math.ceil(S.texts.length / PER_PAGE));
+    const nRows = pages * ROWS;
+    let extra = '';
+    for (let r = 1; r <= Math.max(nRows, 8); r++) {   // 템플릿 8행(옛 내용)도 비우기 위해 최소 8행까지
+      const p = Math.floor((r - 1) / ROWS), k = (r - 1) % ROWS;
+      const attrs = `r="${r}" spans="1:2" ht="105" customHeight="1" x14ac:dyDescent="0.3"`;
+      const row = r <= nRows
+        ? `<row ${attrs}>` + cell('A', r, p * PER_PAGE + k) + cell('B', r, p * PER_PAGE + ROWS + k) + '</row>'
+        : `<row ${attrs}/>`;
+      const re = new RegExp(`<row r="${r}"[^>]*?(?:/>|>[\\s\\S]*?</row>)`);
+      if (re.test(sh)) sh = sh.replace(re, row); else extra += row;   // 템플릿에 없는 행은 뒤에 추가
+    }
+    sh = sh.replace('</sheetData>', extra + '</sheetData>');
+    // 2페이지 이상이면 7줄마다 페이지 나누기
+    sh = sh.replace(/<rowBreaks[\s\S]*?<\/rowBreaks>/, '');
+    if (pages > 1) {
+      let brk = '';
+      for (let p = 1; p < pages; p++) brk += `<brk id="${p * ROWS}" max="16383" man="1"/>`;
+      sh = sh.replace(/(<pageSetup[^>]*\/>)/, `$1<rowBreaks count="${pages - 1}" manualBreakCount="${pages - 1}">${brk}</rowBreaks>`);
+    }
+    const lastRow = Math.max(nRows, ...[...sh.matchAll(/<row r="(\d+)"/g)].map(m => +m[1]));
+    sh = sh.replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="A1:B${lastRow}"/>`);
+    zip.file(S.path, sh);
   }
-  sh = sh.replace('</sheetData>', extra + '</sheetData>');
-  // 2페이지 이상이면 7줄마다 페이지 나누기
-  if (pages > 1) {
-    let brk = '';
-    for (let p = 1; p < pages; p++) brk += `<brk id="${p * ROWS}" max="16383" man="1"/>`;
-    sh = sh.replace(/<rowBreaks[\s\S]*?<\/rowBreaks>/, '')
-           .replace(/(<pageSetup[^>]*\/>)/, `$1<rowBreaks count="${pages - 1}" manualBreakCount="${pages - 1}">${brk}</rowBreaks>`);
-  }
-  const lastRow = Math.max(nRows, ...[...sh.matchAll(/<row r="(\d+)"/g)].map(m => +m[1]));
-  sh = sh.replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="A1:B${lastRow}"/>`);
-  zip.file(sheetPath, sh);
 
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 $('btnDownload').onclick = async () => {
-  const labels = getLabels();
-  if (!labels.length) return;
-  const groups = labels.map(L => L.full);
-  const blob = await buildXlsx(groups, fontOpt(), labels.map(L => L.fs));
+  const bag = getLabels(), tag = getTags();
+  if (!bag.length) return;
+  const blob = await buildXlsx([
+    { name: '샌딩백', texts: bag.map(L => L.full), sizes: bag.map(L => L.fs), font: fontOptFor('bag') },
+    { name: '네임택', texts: tag.map(L => L.full), sizes: tag.map(L => L.fs), font: fontOptFor('tag') },
+  ]);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `샌딩백_${$('date').value || 'date'}.xlsx`;
@@ -642,7 +700,7 @@ loadPrintSet();
 
 // ===== 바로 인쇄: 미리보기와 같은 내용을 A4 페이지(2열 × 7줄)로 만들어 인쇄 =====
 $('btnPrint').onclick = async () => {
-  const labels = getLabels();
+  const labels = itemsFor(mode);
   if (!labels.length) return;
   const f = fontOpt();
   const area = $('printArea'); area.innerHTML = '';
@@ -665,7 +723,7 @@ $('btnPrint').onclick = async () => {
   }
   try { await document.fonts.load(`${f.bold ? 700 : 400} 20px Binggrae`, '가'); await document.fonts.ready; } catch (e) {}
   const old = document.title;
-  document.title = `샌딩백_${$('date').value || ''}`;   // PDF로 저장할 때 파일 이름
+  document.title = `${mode === 'bag' ? '샌딩백' : '네임택'}_${$('date').value || ''}`;   // PDF로 저장할 때 파일 이름
   window.print();
   document.title = old;
 };
