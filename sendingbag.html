@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2232 (KST) 바로 인쇄 버튼 (엑셀과 같은 A4 여백·칸 크기·2열×7줄) -->
+<!-- rev_2026_1110_2239 (KST) 줄 높이를 엑셀과 같게(빙그레체 1.343배), 바로 인쇄 칸 맞추기(mm), 오른쪽 열 3mm 오른쪽으로 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -53,7 +53,7 @@
   .page-title { font-size:13px; color:var(--muted); margin:10px 0 4px; }
   .preview { display:grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(7, auto); border:1px solid #999; }
   .lbl { aspect-ratio: 276 / 105; border:1px dashed #bbb; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
-         container-type: inline-size; overflow:hidden; font-family:'Binggrae', system-ui, sans-serif; line-height:1.2; }
+         container-type: inline-size; overflow:hidden; font-family:'Binggrae', system-ui, sans-serif; line-height:1.343; }   /* 엑셀과 같은 줄 높이 (빙그레체 글꼴값 1.343배) */
   .lbl > div { font-size: calc(var(--fs, 35) * 100cqw / 276); white-space:pre-wrap; }
   .lbl .names { outline:none; border-radius:4px; min-width:2em; cursor:text; }
   .lbl .names:focus { background:#fff7cc; }
@@ -74,18 +74,24 @@
   .dl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
   footer { text-align:center; color:var(--muted); font-size:12px; padding:4px 0 24px; }
 
-  /* ---- 바로 인쇄: 엑셀 양식과 같은 A4 여백·칸 크기 (열 276pt × 행 105pt, 2열 × 7줄) ---- */
+  /* ---- 바로 인쇄: A4 한 장에 2열 × 7줄. 여백·칸 크기·간격은 '인쇄 칸 맞추기'(mm) 값 사용 ---- */
   #printArea { display:none; }
+  .pset { display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px; margin-top:8px; }
+  .pset label { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:14px; }
+  .pset input { width:76px; font-size:16px; padding:6px; border:1px solid var(--line); border-radius:6px; text-align:right; }
   @media print {
-    @page { size: A4 portrait; margin: 15mm 6mm 4mm 6mm; }   /* 엑셀 여백: 위 0.59" · 좌우 0.24" · 아래 0.16" */
+    @page { size: A4 portrait; margin: 0; }
     html, body { background:#fff !important; margin:0; padding:0; }
     main { display:none !important; }
     #printArea { display:block; }
-    .ppage { display:grid; grid-template-columns: 276pt 276pt; grid-template-rows: repeat(7, 105pt); grid-auto-flow: column;
+    .ppage { box-sizing:border-box; width:210mm; height:296mm; overflow:hidden;
+             padding: var(--top) 0 0 var(--left);
+             display:grid; grid-template-columns: repeat(2, var(--cw)); grid-template-rows: repeat(7, var(--ch));
+             column-gap: var(--gx); row-gap: var(--gy); grid-auto-flow: column;
              break-after: page; page-break-after: always; }
     .ppage:last-child { break-after: auto; page-break-after: auto; }
     .pcell { display:flex; align-items:center; justify-content:center; text-align:center; overflow:hidden;
-             white-space:pre-wrap; line-height:1.2; font-family:'Binggrae', system-ui, sans-serif; color:#000; }
+             white-space:pre-wrap; line-height:1.343; font-family:'Binggrae', system-ui, sans-serif; color:#000; }
   }
 </style>
 </head>
@@ -153,8 +159,22 @@
       <button class="primary" id="btnPrint">🖨 바로 인쇄</button>
     </div>
     <p class="hint">바로 인쇄: 인쇄 창에서 <b>용지 A4 · 배율 100%(기본) · 머리글/바닥글 끄기</b>로 해주세요. 처음엔 한 장 시험 인쇄로 라벨 칸 위치를 확인하세요.</p>
+    <details style="margin-top:10px">
+      <summary>인쇄 칸 맞추기 (라벨지에 맞게, mm)</summary>
+      <div class="pset">
+        <label>위 여백 <input type="number" step="0.01" id="pTop"></label>
+        <label>왼쪽 여백 <input type="number" step="0.01" id="pLeft"></label>
+        <label>칸 높이 <input type="number" step="0.01" id="pCh"></label>
+        <label>칸 너비 <input type="number" step="0.01" id="pCw"></label>
+        <label>줄 사이 간격 <input type="number" step="0.01" id="pGy"></label>
+        <label>열 사이 간격 <input type="number" step="0.01" id="pGx"></label>
+      </div>
+      <p class="hint">· 아래 줄로 갈수록 글자가 <b>위로</b> 올라가면 → <b>칸 높이</b>를 키우세요 (흔한 14칸 라벨지는 38.1). 내려가면 줄이세요.<br>
+        · 전체가 위/아래로 같이 밀리면 → <b>위 여백</b>, 좌우로 밀리면 → <b>왼쪽 여백</b>. 값은 이 기기에 기억돼요. (바로 인쇄에만 적용, 엑셀 파일은 그대로)</p>
+      <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
+    </details>
   </section>
-  <footer>rev_2026_1110_2232</footer>
+  <footer>rev_2026_1110_2239</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -600,12 +620,32 @@ $('btnDownload').onclick = async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 };
 
+// ===== 인쇄 칸 맞추기 (mm). 기본값 = 엑셀 양식 (위 15 · 왼쪽 6 · 칸 105pt=37.04 × 276pt=97.37) =====
+const PRINT_DEFAULT = { pTop: 15, pLeft: 6, pCh: 37.04, pCw: 97.37, pGy: 0, pGx: 3 };   // 열 사이 3mm: 오른쪽 열을 3mm 오른쪽으로 (광현님 프린터 기준)
+function loadPrintSet() {
+  let v = {};
+  try { v = JSON.parse(localStorage.getItem('sendingbagPrint') || '{}'); } catch (e) {}
+  for (const k in PRINT_DEFAULT) $(k).value = v[k] ?? PRINT_DEFAULT[k];
+}
+function printSet() {
+  const v = {};
+  for (const k in PRINT_DEFAULT) { const n = parseFloat($(k).value); v[k] = isFinite(n) ? n : PRINT_DEFAULT[k]; }
+  try { localStorage.setItem('sendingbagPrint', JSON.stringify(v)); } catch (e) {}
+  return v;
+}
+Object.keys(PRINT_DEFAULT).forEach(k => $(k).onchange = printSet);
+$('pReset').onclick = () => { for (const k in PRINT_DEFAULT) $(k).value = PRINT_DEFAULT[k]; printSet(); };
+loadPrintSet();
+
 // ===== 바로 인쇄: 미리보기와 같은 내용을 A4 페이지(2열 × 7줄)로 만들어 인쇄 =====
 $('btnPrint').onclick = async () => {
   const labels = getLabels();
   if (!labels.length) return;
   const f = fontOpt();
   const area = $('printArea'); area.innerHTML = '';
+  const s = printSet();
+  [['--top', s.pTop], ['--left', s.pLeft], ['--ch', s.pCh], ['--cw', s.pCw], ['--gy', s.pGy], ['--gx', s.pGx]]
+    .forEach(([k, v]) => area.style.setProperty(k, v + 'mm'));
   for (let p = 0; p < Math.ceil(labels.length / PER_PAGE); p++) {
     const page = document.createElement('div'); page.className = 'ppage';
     for (let i = 0; i < PER_PAGE; i++) {
