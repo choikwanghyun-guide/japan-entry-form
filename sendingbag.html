@@ -4,40 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1110_2155 (KST) 루밍리스트 엑셀 첨부 → 같은 방끼리 자동 조편성, 하단 리비전 표시 -->
+<!-- rev_2026_1110_2211 (KST) 드래그 보드: 방 카드를 끌어서 조 편성, 예약번호/방 기준 자동묶기, 16장 넘으면 다음 페이지 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <style>
-  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dcdad4; --accent:#1f5fbf; --warn:#c0392b; }
+  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dcdad4; --accent:#1f5fbf; --warn:#c0392b; --chip:#e8f0fe; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, "맑은 고딕", sans-serif; font-size:16px; }
-  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 22px; margin: 4px 0 16px; }
   h2 { font-size: 17px; margin: 0 0 10px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .box { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
   .hint { color:var(--muted); font-size:13px; margin: 6px 0 0; line-height:1.5; }
-  textarea { width:100%; min-height:130px; font-size:16px; padding:10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
-  button { font-size:15px; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  textarea { width:100%; min-height:110px; font-size:16px; padding:10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; }
+  button { font-size:15px; padding:9px 13px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
   button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
   button:disabled { opacity:.45; cursor:not-allowed; }
-  .row-btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  table { width:100%; border-collapse:collapse; }
-  th { font-size:13px; color:var(--muted); font-weight:500; text-align:left; padding:4px; }
-  td { padding:3px; }
-  td input { width:100%; font-size:16px; padding:8px 6px; border:1px solid var(--line); border-radius:6px; min-width:0; }
-  td.del button { padding:8px 10px; color:var(--warn); }
-  .col-group { width:17%; } .col-room { width:17%; } .col-del { width:44px; }
-  .msg { color:var(--warn); font-weight:600; margin-top:8px; }
-  /* 라벨 미리보기: 엑셀 칸 모양(열 너비 45.6 : 행 높이 105pt ≈ 2.4 : 1) */
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .file-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .file-row select, .dl input { font-size:16px; padding:8px; border:1px solid var(--line); border-radius:6px; }
+  .msg { color:var(--warn); font-weight:600; margin-top:8px; white-space:pre-line; }
+  .ok { color:#1e7b34; font-weight:600; margin-top:8px; white-space:pre-line; }
+  details summary { cursor:pointer; font-weight:600; }
+
+  /* ---- 조 편성 보드 ---- */
+  .lane { border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:10px; background:#fbfbfa; }
+  .lane.pool { border-style:dashed; background:#fff8e6; }
+  .lane-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .lane-head .handle { cursor:grab; color:var(--muted); font-size:18px; padding:0 4px; user-select:none; }
+  .lane-head b { font-size:17px; }
+  .lane-head .info { color:var(--muted); font-size:13px; flex:1; }
+  .lane-head button { padding:4px 9px; font-size:13px; }
+  .cards { display:flex; flex-wrap:wrap; gap:8px; min-height:58px; padding:4px; border-radius:8px; }
+  .lcard { position:relative; background:#fff; border:1px solid #c9c6bd; border-radius:9px; padding:6px 24px 5px 6px; min-width:120px; cursor:grab; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .lcard .chips { display:flex; flex-wrap:wrap; gap:4px; min-height:30px; min-width:90px; }
+  .chip { background:var(--chip); border-radius:14px; padding:4px 10px; font-weight:600; cursor:grab; user-select:none; }
+  .lcard .meta { font-size:11px; color:var(--muted); margin-top:3px; }
+  .lcard .x { position:absolute; top:2px; right:2px; border:none; background:none; color:#aaa; padding:2px 5px; font-size:13px; }
+  .lcard.empty { border-style:dashed; }
+  .sortable-ghost { opacity:.35; }
+
+  /* ---- 라벨 미리보기: 엑셀 칸 모양 (A열 → B열) ---- */
+  .page-title { font-size:13px; color:var(--muted); margin:10px 0 4px; }
   .preview { display:grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(8, auto); border:1px solid #999; }
   .lbl { aspect-ratio: 2.4 / 1; border:1px dashed #bbb; display:flex; align-items:center; justify-content:center; text-align:center;
-         white-space:pre-line; font-weight:900; line-height:1.25; font-size: clamp(11px, 3.6vw, 24px); padding:4px; overflow:hidden; }
+         white-space:pre-line; font-weight:900; line-height:1.25; font-size: clamp(11px, 3.4vw, 24px); padding:4px; overflow:hidden; }
   .lbl.empty { background:#fafafa; }
-  .dl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .dl input { font-size:16px; padding:8px; border:1px solid var(--line); border-radius:6px; }
-  .file-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .file-row select { font-size:16px; padding:8px; border:1px solid var(--line); border-radius:6px; }
-  .ok { color:#1e7b34; font-weight:600; margin-top:8px; white-space:pre-line; }
+  .dl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
   footer { text-align:center; color:var(--muted); font-size:12px; padding:4px 0 24px; }
 </style>
 </head>
@@ -46,145 +60,333 @@
   <h1>🧳 샌딩백 조편성</h1>
 
   <!-- 1. 루밍리스트 엑셀 첨부 -->
-  <section class="card">
+  <section class="box">
     <h2>① 루밍리스트 엑셀 올리기</h2>
     <div class="file-row">
       <input type="file" id="roomFile" accept=".xlsx,.xls">
       <label hidden>시트 <select id="roomSheet"></select></label>
     </div>
-    <label style="display:block;margin-top:8px;font-size:14px"><input type="checkbox" id="skipStaff" checked> TC·TG(인솔자·가이드) 빼기</label>
-    <p class="hint">'성명' 칸과 'ROOM(객실)' 칸을 찾아서 같은 방끼리 1조로 묶어요. 싱글(SGL)은 1명이 1조.
-      한글이름만 씁니다(영문·DR 등은 빠짐). 파일은 어디에도 올라가지 않고 이 화면 안에서만 읽어요.</p>
+    <p class="hint">'성명'·'ROOM' 칸(있으면 '예약번호' 칸도)을 찾아 <b>방마다 라벨 카드</b>를 만들어요. 한글이름만 씁니다(DR 등 한글 없는 줄은 빠짐).
+      파일은 어디에도 올라가지 않고 이 화면 안에서만 읽어요.</p>
     <div id="roomMsg"></div>
+    <details style="margin-top:12px">
+      <summary>엑셀 없이 직접 붙여넣기</summary>
+      <textarea id="paste" style="margin-top:8px" placeholder="한 줄 = 라벨 1장&#10;김영수 이태진&#10;1조 김진국,이도한&#10;조경희님외2인"></textarea>
+      <p class="hint">한 줄에 라벨 1장. 줄 앞에 "1조"처럼 적으면 같은 조로 모여요(안 적으면 줄마다 새 조).</p>
+      <div class="btns">
+        <button id="btnApply">보드에 넣기</button>
+        <button id="btnSample">예시 넣어보기</button>
+      </div>
+    </details>
   </section>
 
-  <!-- 2. 붙여넣기 입력 (엑셀이 없을 때) -->
-  <section class="card">
-    <h2>② 또는 명단 붙여넣기</h2>
-    <textarea id="paste" placeholder="한 줄에 한 방(조)씩&#10;김영수 이태진&#10;김진국,이도한&#10;조경희님외2인"></textarea>
-    <p class="hint">한 줄 = 1조. <b>이름1 이름2</b> 또는 <b>이름1,이름2</b>. 줄 맨 앞에 "3조"처럼 적으면 그 조 이름을 그대로 씁니다.<br>
-      "○○님외2인" 같은 자유 문구도 그대로 들어갑니다. 객실번호(예: 1203호)는 자동으로 빼고 객실칸에 넣어요.</p>
-    <div class="row-btns">
-      <button class="primary" id="btnApply">아래 표로 넣기</button>
-      <button id="btnSample">예시 넣어보기</button>
+  <!-- 2. 조 편성 보드 -->
+  <section class="box">
+    <h2>② 조 편성 (끌어서 옮기기)</h2>
+    <div class="btns" style="margin-top:0">
+      <button id="byResv">예약번호마다 1조</button>
+      <button id="byRoom">방마다 1조</button>
+      <button id="toPool">전부 대기로</button>
     </div>
-  </section>
-
-  <!-- 2. 표로 확인/수정 -->
-  <section class="card">
-    <h2>③ 조 확인 · 수정</h2>
-    <table>
-      <thead><tr><th class="col-group">조</th><th>이름1</th><th>이름2</th><th class="col-room">객실</th><th class="col-del"></th></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-    <div class="row-btns">
-      <button id="btnAdd">+ 조 추가</button>
-      <button id="btnClear">전체 지우기</button>
+    <p class="hint">· <b>카드(라벨 1장)</b>를 끌어서 원하는 조에 넣으세요. 같은 조 카드는 모두 같은 "N조"로 찍혀요.<br>
+      · <b>이름</b>을 끌면 다른 카드로 옮겨져요(한 라벨에 3~4명도 가능). 이름을 두 번 누르면 수정·삭제.<br>
+      · ⠿ 를 잡고 끌면 조 순서가 바뀌어요. 폰에선 살짝 길게 눌렀다 끌어주세요.</p>
+    <div class="lane pool" style="margin-top:10px">
+      <div class="lane-head"><b>대기</b><span class="info" id="poolInfo"></span></div>
+      <div class="cards" id="pool"></div>
     </div>
-    <p class="hint">이름2를 비우면 이름1 칸 내용만 들어갑니다. 끝에 "님"이 없으면 자동으로 붙어요. 객실은 라벨에 안 나갑니다.</p>
+    <div id="board"></div>
+    <div class="btns"><button id="btnAddLane">+ 조 추가</button><button id="btnClear">전체 지우기</button></div>
+    <p class="hint">대기에 있는 카드는 라벨로 안 나가요.</p>
   </section>
 
   <!-- 3. 미리보기 + 다운로드 -->
-  <section class="card">
-    <h2>④ 라벨 미리보기 (A열 → B열 순서)</h2>
-    <div class="preview" id="preview"></div>
+  <section class="box">
+    <h2>③ 라벨 미리보기 (A열 → B열 순서)</h2>
+    <div id="preview"></div>
     <div id="msg" class="msg"></div>
-    <div class="dl" style="margin-top:12px">
+    <div class="dl">
       <label>날짜 <input type="date" id="date"></label>
       <button class="primary" id="btnDownload">엑셀 내려받기</button>
     </div>
   </section>
-  <footer>rev_2026_1110_2155</footer>
+  <footer>rev_2026_1110_2211</footer>
 </main>
 
 <script>
 // ===== 원본 템플릿(샌딩백_템플릿.xlsx)을 base64로 내장 =====
 const TEMPLATE_B64 = "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";
-const MAX_CELLS = 16; // A1~A8, B1~B8
+const PER_PAGE = 16; // 한 페이지 = A1~A8, B1~B8
 
-const tbody = document.getElementById('tbody');
+const $ = id => document.getElementById(id);
+const board = $('board'), pool = $('pool');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const norm = v => String(v ?? '').replace(/[\s ]/g, '');
+const dragOpt = { animation: 150, delay: 150, delayOnTouchOnly: true, ghostClass: 'sortable-ghost' };
 
-// ---- 표 한 줄 추가 ----
-function addRow(d = {}) {
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input class="g" placeholder="자동"></td>
-    <td><input class="n1"></td>
-    <td><input class="n2"></td>
-    <td><input class="room" placeholder="선택"></td>
-    <td class="del"><button title="삭제">✕</button></td>`;
-  tr.querySelector('.g').value = d.group || '';
-  tr.querySelector('.n1').value = d.n1 || '';
-  tr.querySelector('.n2').value = d.n2 || '';
-  tr.querySelector('.room').value = d.room || '';
-  tr.querySelector('.del button').onclick = () => { tr.remove(); render(); };
-  tr.querySelectorAll('input').forEach(i => i.addEventListener('input', render));
-  tbody.appendChild(tr);
+// ===== 보드 부품 만들기 =====
+function makeChip(name) {
+  const s = document.createElement('span');
+  s.className = 'chip'; s.textContent = name;
+  s.ondblclick = () => {
+    const v = prompt('이름 수정 (비우면 삭제)', s.textContent);
+    if (v === null) return;
+    const card = s.closest('.lcard');
+    if (v.trim()) s.textContent = v.trim(); else s.remove();
+    if (card && !card.querySelector('.chip')) card.remove();
+    render();
+  };
+  return s;
 }
 
-// ---- 붙여넣기 한 줄 해석 ----
-function parseLine(line) {
-  let s = line.trim();
-  if (!s) return null;
-  let group = '';
-  const gm = s.match(/^(\d+\s*조)\s*[:.)\-]?\s*/);         // 맨 앞 "3조"
-  if (gm) { group = gm[1].replace(/\s/g, ''); s = s.slice(gm[0].length); }
-  let room = '';
-  const rm = s.match(/(?:^|[\s,])(\d{2,5}\s*호?)\s*$/);    // 맨 끝 객실번호
-  if (rm) { room = rm[1].trim(); s = s.slice(0, rm.index).trim(); }
-  const rm2 = s.match(/^(\d{2,5}\s*호)[\s,]+/);           // 맨 앞 "1203호"
-  if (!room && rm2) { room = rm2[1].trim(); s = s.slice(rm2[0].length); }
-  s = s.replace(/[,\s]+$/, '');
-  let n1 = s, n2 = '';
-  if (s.includes(',')) { const p = s.split(','); n1 = p[0].trim(); n2 = p.slice(1).join(',').trim(); }
-  else { const p = s.split(/\s+/); if (p.length === 2) { n1 = p[0]; n2 = p[1]; } }
-  return { group, n1, n2, room };
+// 카드 = 라벨 1장 (보통 방 하나)
+function makeCard(names, meta) {
+  const c = document.createElement('div');
+  c.className = 'lcard';
+  c.innerHTML = '<div class="chips"></div><div class="meta"></div><button class="x" title="라벨 삭제">✕</button>';
+  const chips = c.querySelector('.chips');
+  names.forEach(n => chips.appendChild(makeChip(n)));
+  c.querySelector('.meta').textContent = meta || '';
+  c.querySelector('.x').onclick = () => { c.remove(); render(); };
+  new Sortable(chips, { ...dragOpt, group: 'people',
+    onEnd: e => { // 이름이 다 빠진 카드는 지움
+      const from = e.from.closest('.lcard');
+      if (from && from !== e.to.closest('.lcard') && !from.querySelector('.chip')) from.remove();
+      render();
+    } });
+  return c;
 }
 
-// ---- 표 → 조 목록 ----
+function makeCardList(el) {
+  new Sortable(el, { ...dragOpt, group: 'cards', draggable: '.lcard',
+    filter: '.chip, .x', preventOnFilter: false, onEnd: render });
+}
+
+// 조 = 카드 여러 장
+function makeLane() {
+  const l = document.createElement('div');
+  l.className = 'lane';
+  l.innerHTML = `<div class="lane-head"><span class="handle" title="끌어서 조 순서 바꾸기">⠿</span><b class="title"></b>
+    <span class="info"></span><button class="add">+ 빈 라벨</button><button class="del" title="조 삭제">✕</button></div>
+    <div class="cards"></div>`;
+  const cards = l.querySelector('.cards');
+  makeCardList(cards);
+  l.querySelector('.add').onclick = () => { cards.appendChild(makeCard([], '')); render(); };
+  l.querySelector('.del').onclick = () => { // 조를 지우면 카드는 대기로
+    [...cards.children].forEach(c => pool.appendChild(c)); l.remove(); render();
+  };
+  board.appendChild(l);
+  return l;
+}
+
+makeCardList(pool);
+new Sortable(board, { ...dragOpt, handle: '.handle', draggable: '.lane', onEnd: render });
+
+// ===== 라벨 목록 (보드 → 엑셀에 들어갈 글자) =====
+function cardNames(card) { return [...card.querySelectorAll('.chip')].map(c => c.textContent.trim()).filter(Boolean); }
 function getGroups() {
-  const out = [];
-  [...tbody.rows].forEach(tr => {
-    const n1 = tr.querySelector('.n1').value.trim();
-    const n2 = tr.querySelector('.n2').value.trim();
-    if (!n1 && !n2) return;
-    let names = [n1, n2].filter(Boolean).join(',');
-    if (!names.includes('님')) names += '님';
-    const g = tr.querySelector('.g').value.trim() || ((out.length + 1) + '조');
-    out.push(g + '\n' + names);
+  const out = []; let n = 0;
+  [...board.querySelectorAll('.lane')].forEach(l => {
+    const cards = [...l.querySelectorAll('.lcard')].map(cardNames).filter(a => a.length);
+    if (!cards.length) return;
+    n++;
+    cards.forEach(names => {
+      let t = names.join(',');
+      if (!t.includes('님')) t += '님';
+      out.push(n + '조\n' + t);
+    });
   });
   return out;
 }
 
-// ---- 미리보기 ----
+// ===== 화면 새로 그리기 =====
 function render() {
-  // 비어 있는 조 칸에 자동 번호 표시
-  let k = 0;
-  [...tbody.rows].forEach(tr => {
-    const has = tr.querySelector('.n1').value.trim() || tr.querySelector('.n2').value.trim();
-    if (has) k++;
-    tr.querySelector('.g').placeholder = has ? k + '조' : '자동';
+  let n = 0;
+  [...board.querySelectorAll('.lane')].forEach(l => {
+    const cards = [...l.querySelectorAll('.lcard')];
+    cards.forEach(c => c.classList.toggle('empty', !c.querySelector('.chip')));
+    const full = cards.filter(c => c.querySelector('.chip'));
+    const people = l.querySelectorAll('.chip').length;
+    l.querySelector('.title').textContent = full.length ? (++n) + '조' : '(빈 조)';
+    l.querySelector('.info').textContent = `라벨 ${full.length}장 · ${people}명`;
   });
+  $('poolInfo').textContent = `카드 ${pool.querySelectorAll('.lcard').length}장 (라벨로 안 나감)`;
+
   const groups = getGroups();
-  const pv = document.getElementById('preview');
-  pv.innerHTML = '';
-  for (let i = 0; i < MAX_CELLS; i++) {
-    const d = document.createElement('div');
-    d.className = 'lbl' + (groups[i] ? '' : ' empty');
-    d.textContent = groups[i] || '';
-    pv.appendChild(d);
+  const pages = Math.max(1, Math.ceil(groups.length / PER_PAGE));
+  const pv = $('preview'); pv.innerHTML = '';
+  for (let p = 0; p < pages; p++) {
+    if (pages > 1) { const t = document.createElement('div'); t.className = 'page-title'; t.textContent = `${p + 1}페이지`; pv.appendChild(t); }
+    const grid = document.createElement('div'); grid.className = 'preview';
+    for (let i = 0; i < PER_PAGE; i++) {
+      const g = groups[p * PER_PAGE + i];
+      const d = document.createElement('div');
+      d.className = 'lbl' + (g ? '' : ' empty'); d.textContent = g || '';
+      grid.appendChild(d);
+    }
+    pv.appendChild(grid);
   }
-  const msg = document.getElementById('msg');
-  const btn = document.getElementById('btnDownload');
-  if (groups.length > MAX_CELLS) { msg.textContent = `조가 ${groups.length}개예요. 양식은 최대 ${MAX_CELLS}칸이라 ${MAX_CELLS}개 이하로 줄여주세요.`; btn.disabled = true; }
-  else if (!groups.length) { msg.textContent = ''; btn.disabled = true; }
-  else { msg.textContent = ''; btn.disabled = false; }
+  $('msg').textContent = groups.length > PER_PAGE ? `라벨 ${groups.length}장 → ${pages}페이지로 나눠 들어가요.` : '';
+  $('btnDownload').disabled = !groups.length;
 }
 
-// ---- XML 특수문자 처리 ----
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// ===== 루밍리스트 엑셀 읽기 =====
+let roomWb = null, rooms = [];   // rooms = [{room, resv, names}]
+const setRoomMsg = (text, ok) => { const m = $('roomMsg'); m.className = ok ? 'ok' : 'msg'; m.textContent = text; };
 
-// ---- 엑셀 만들기: 템플릿을 열어 '샌딩백' 시트 글자만 교체 ----
+function parseRoomSheet(ws) {
+  if (!ws || !ws['!ref']) return { error: '빈 시트예요.' };
+  const R = XLSX.utils.decode_range(ws['!ref']);
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
+  const at = (r, c) => rows[r - R.s.r]?.[c - R.s.c];          // 실제 행/열 번호로 읽기
+
+  // 1) 머리글 줄 찾기: '성명'·'ROOM'(필수), '예약번호'(있으면)
+  let hr = -1, nameC = -1, roomC = -1, resvC = -1;
+  for (let r = R.s.r; r <= Math.min(R.e.r, R.s.r + 20) && hr < 0; r++) {
+    let n = -1, m = -1, v = -1;
+    for (let c = R.s.c; c <= R.e.c; c++) {
+      const h = norm(at(r, c));
+      if (n < 0 && /^(성명|이름|한글명|한글이름|고객명|성함)$/.test(h)) n = c;
+      if (m < 0 && /^(room|rm|roomno\.?|객실|객실번호|방|방번호|룸|호실)$/i.test(h)) m = c;
+      if (v < 0 && /^(예약번호|예약no\.?|예약|booking(no\.?)?|rsv(no\.?)?)$/i.test(h)) v = c;
+    }
+    if (n >= 0 && m >= 0) { hr = r; nameC = n; roomC = m; resvC = v; }
+  }
+  if (hr < 0) return { error: "이 시트에서 '성명'과 'ROOM(객실)' 머리글을 못 찾았어요. 다른 시트를 골라보세요." };
+
+  // 2) 병합된 칸 → 병합 범위 전체에 같은 값
+  const merged = col => {
+    const m = {}; if (col < 0) return m;
+    for (const g of ws['!merges'] || []) {
+      if (g.s.c > col || g.e.c < col) continue;
+      for (let r = g.s.r; r <= g.e.r; r++) m[r] = String(at(g.s.r, col) ?? '').trim();
+    }
+    return m;
+  };
+  const roomOf = merged(roomC), resvOf = merged(resvC);
+
+  // 3) 한 줄씩 읽어서 방 카드 만들기
+  const out = [], byRoom = new Map(), skipped = [];
+  let lastRoom = '', lastResv = '', people = 0;
+  for (let r = hr + 1; r <= R.e.r; r++) {
+    const raw = String(at(r, nameC) ?? '').trim();
+    if (!norm(raw)) { lastRoom = ''; lastResv = ''; continue; }   // 빈 줄 = 구분 끊기
+    let room = roomOf[r] ?? String(at(r, roomC) ?? '').trim();
+    if (!norm(room)) room = lastRoom;                               // 빈 칸 = 윗사람과 같은 방
+    lastRoom = room;
+    let resv = resvC < 0 ? '' : (resvOf[r] ?? String(at(r, resvC) ?? '').trim());
+    if (!norm(resv)) resv = lastResv;
+    lastResv = resv;
+    const kor = (norm(raw).match(/[가-힣]{2,}/) || [''])[0];       // 첫 한글이름 (허 옥 → 허옥, TC/배상운 → 배상운)
+    if (!kor) { skipped.push(raw); continue; }
+    people++;
+    const single = !norm(room) || /sgl|single|싱글|1인/i.test(room);
+    const key = norm(room).toUpperCase();
+    if (!single && byRoom.has(key)) { byRoom.get(key).names.push(kor); continue; }
+    const resvKey = resv.split(/\n/).map(s => s.trim()).find(Boolean) || '';  // 예약번호 첫 줄
+    const g = { room: room.replace(/\s+/g, ' ').trim(), resv: resvKey, names: [kor] };
+    out.push(g);
+    if (!single) byRoom.set(key, g);
+  }
+  return { rooms: out, skipped, people, hasResv: resvC >= 0 };
+}
+
+const metaOf = g => [g.room, g.resv].filter(Boolean).join(' · ');
+
+// 자동 묶기: 'resv' 예약번호마다 / 'room' 방마다 / 'pool' 전부 대기
+function autoGroup(mode) {
+  board.innerHTML = ''; pool.innerHTML = '';
+  const lanes = new Map();
+  rooms.forEach((g, i) => {
+    const card = makeCard(g.names, metaOf(g));
+    if (mode === 'pool') { pool.appendChild(card); return; }
+    const key = mode === 'resv' && g.resv ? 'R:' + g.resv : 'N:' + i;
+    if (!lanes.has(key)) lanes.set(key, makeLane());
+    lanes.get(key).querySelector('.cards').appendChild(card);
+  });
+  render();
+}
+function hasBoard() { return board.querySelector('.chip') || pool.querySelector('.chip'); }
+function regroup(mode) {
+  if (!rooms.length) { alert('먼저 엑셀을 올리거나 명단을 붙여넣어 주세요.'); return; }
+  if (hasBoard() && !confirm('지금 보드를 지우고 다시 묶을까요?')) return;
+  autoGroup(mode);
+}
+
+function loadRoomSheet() {
+  if (!roomWb) return;
+  const i = +$('roomSheet').value || 0;
+  const name = roomWb.SheetNames[i];
+  const res = parseRoomSheet(roomWb.Sheets[name]);
+  if (res.error) { setRoomMsg(res.error); return; }
+  if (!res.rooms.length) { setRoomMsg('이 시트에서 한글이름을 찾지 못했어요.'); return; }
+  rooms = res.rooms;
+  autoGroup(res.hasResv ? 'resv' : 'room');
+  let t = `"${name}" 시트: ${res.people}명 → 라벨 카드 ${rooms.length}장. ` +
+          (res.hasResv ? '예약번호마다 1조로 묶어놨어요.' : '방마다 1조로 묶어놨어요.') + ' 끌어서 바꾸세요.';
+  if (res.skipped.length) t += `\n빠진 줄(한글이름 없음): ${res.skipped.join(', ')}`;
+  setRoomMsg(t, true);
+}
+
+$('roomFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { roomWb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); }
+  catch (err) { roomWb = null; setRoomMsg('엑셀 파일을 읽지 못했어요.'); return; }
+  const sel = $('roomSheet');
+  sel.innerHTML = roomWb.SheetNames.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
+  sel.parentElement.hidden = roomWb.SheetNames.length < 2;
+  loadRoomSheet();
+};
+$('roomSheet').onchange = loadRoomSheet;
+
+// ===== 붙여넣기 (엑셀 없을 때) =====
+function parseLine(line) {
+  let s = line.trim();
+  if (!s) return null;
+  let group = '';
+  const gm = s.match(/^(\d+)\s*조\s*[:.)\-]?\s*/);                 // 맨 앞 "3조"
+  if (gm) { group = gm[1]; s = s.slice(gm[0].length); }
+  let room = '';
+  const rm = s.match(/(?:^|[\s,])(\d{2,5}\s*호?)\s*$/);            // 맨 끝 객실번호
+  if (rm) { room = rm[1].trim(); s = s.slice(0, rm.index).trim(); }
+  const rm2 = s.match(/^(\d{2,5}\s*호)[\s,]+/);                   // 맨 앞 "1203호"
+  if (!room && rm2) { room = rm2[1].trim(); s = s.slice(rm2[0].length); }
+  s = s.replace(/[,\s]+$/, '');
+  let names = [s];
+  if (s.includes(',')) names = s.split(',').map(x => x.trim()).filter(Boolean);
+  else { const p = s.split(/\s+/); if (p.length === 2) names = p; }
+  return { group, room, names };
+}
+$('btnApply').onclick = () => {
+  const rows = $('paste').value.split(/\r?\n/).map(parseLine).filter(Boolean);
+  if (!rows.length) return;
+  if (hasBoard() && !confirm('지금 보드를 지우고 붙여넣은 명단으로 바꿀까요?')) return;
+  rooms = rows.map(r => ({ room: r.room, resv: '', names: r.names }));
+  board.innerHTML = ''; pool.innerHTML = '';
+  const lanes = new Map();
+  rows.forEach((r, i) => {
+    const key = r.group ? 'G' + r.group : 'L' + i;
+    if (!lanes.has(key)) lanes.set(key, makeLane());
+    lanes.get(key).querySelector('.cards').appendChild(makeCard(r.names, r.room));
+  });
+  render();
+};
+$('btnSample').onclick = () => {
+  $('paste').value = ['1조 김영수 이태진','1조 김진국 이도한','2조 원성혁 이원휴','2조 곽동원 박규성','3조 박성재 정만영',
+                      '임종근 추용식','박진호 이상정','김일수 이태현','곽병욱 유정재','조경희님외2인'].join('\n');
+  $('btnApply').click();
+};
+
+$('byResv').onclick = () => regroup('resv');
+$('byRoom').onclick = () => regroup('room');
+$('toPool').onclick = () => regroup('pool');
+$('btnAddLane').onclick = () => { makeLane(); render(); };
+$('btnClear').onclick = () => {
+  if (!confirm('보드를 모두 지울까요?')) return;
+  board.innerHTML = ''; pool.innerHTML = ''; rooms = []; render();
+};
+
+// ===== 엑셀 만들기: 템플릿을 열어 '샌딩백' 시트 글자만 교체 =====
 async function buildXlsx(groups) {
   const zip = await JSZip.loadAsync(TEMPLATE_B64, { base64: true });
 
@@ -204,7 +406,7 @@ async function buildXlsx(groups) {
     for (const m of x.matchAll(/<c [^>]*t="s"[^>]*>\s*<v>(\d+)<\/v>/g)) { used.add(+m[1]); usedRefs++; }
   }
 
-  // sharedStrings: 샌딩백 시트 전용이던 옛 이름은 비우고, 새 조 이름을 뒤에 추가
+  // sharedStrings: 샌딩백 시트 전용이던 옛 이름은 비우고, 새 라벨 글자를 뒤에 추가
   let sst = await zip.file('xl/sharedStrings.xml').async('string');
   let idx = 0;
   sst = sst.replace(/<si>[\s\S]*?<\/si>/g, m => (used.has(idx++) ? m : '<si><t></t></si>'));
@@ -215,141 +417,43 @@ async function buildXlsx(groups) {
            .replace(/uniqueCount="\d+"/, `uniqueCount="${base + groups.length}"`);
   zip.file('xl/sharedStrings.xml', sst);
 
-  // 시트: 1~8행의 A·B칸을 새로 씀 (서식 9번 = 35pt, 가운데, 줄바꿈)
+  // 시트: 페이지마다 8행. 각 페이지 A열 8칸 → B열 8칸 (서식 9번 = 35pt, 가운데, 줄바꿈)
   let sh = await zip.file(sheetPath).async('string');
   const cell = (col, r, i) => groups[i] !== undefined
       ? `<c r="${col}${r}" s="9" t="s"><v>${base + i}</v></c>`
       : `<c r="${col}${r}" s="9"/>`;
-  for (let r = 1; r <= 8; r++) {
-    const re = new RegExp(`<row r="${r}"([^>]*?)(?:/>|>[\\s\\S]*?</row>)`);
-    sh = sh.replace(re, (m, attrs) => `<row r="${r}"${attrs}>${cell('A', r, r - 1)}${cell('B', r, r + 7)}</row>`);
+  const nRows = Math.max(8, Math.ceil(groups.length / PER_PAGE) * 8);
+  let extra = '';
+  for (let r = 1; r <= nRows; r++) {
+    const p = Math.floor((r - 1) / 8), k = (r - 1) % 8;
+    const row = `<row r="${r}" spans="1:2" ht="105" customHeight="1" x14ac:dyDescent="0.3">` +
+                cell('A', r, p * PER_PAGE + k) + cell('B', r, p * PER_PAGE + 8 + k) + '</row>';
+    const re = new RegExp(`<row r="${r}"[^>]*?(?:/>|>[\\s\\S]*?</row>)`);
+    if (re.test(sh)) sh = sh.replace(re, row); else extra += row;   // 템플릿에 없는 행은 뒤에 추가
   }
+  sh = sh.replace('</sheetData>', extra + '</sheetData>');
+  const lastRow = Math.max(nRows, ...[...sh.matchAll(/<row r="(\d+)"/g)].map(m => +m[1]));
+  sh = sh.replace(/<dimension ref="[^"]*"\/>/, `<dimension ref="A1:B${lastRow}"/>`);
   zip.file(sheetPath, sh);
 
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE',
     mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
-// ===== 루밍리스트 엑셀 읽기 =====
-let roomWb = null;
-const norm = v => String(v ?? '').replace(/[\s ]/g, '');
-const STAFF_RE = /^(TC|TG|TL|가이드|인솔자?)\s*[\/:)]/i;   // "TC/배상운" 같은 인솔자·가이드
-const setRoomMsg = (text, ok) => {
-  const m = document.getElementById('roomMsg');
-  m.className = ok ? 'ok' : 'msg'; m.textContent = text;
-};
-
-// 시트 하나에서 같은 방끼리 묶기
-function parseRoomSheet(ws, skipStaff) {
-  if (!ws || !ws['!ref']) return { error: '빈 시트예요.' };
-  const R = XLSX.utils.decode_range(ws['!ref']);
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, blankrows: true });
-  const at = (r, c) => rows[r - R.s.r]?.[c - R.s.c];          // 실제 행/열 번호로 읽기
-
-  // 1) 머리글 줄 찾기: '성명' 칸과 'ROOM' 칸이 같이 있는 줄
-  let hr = -1, nameC = -1, roomC = -1;
-  for (let r = R.s.r; r <= Math.min(R.e.r, R.s.r + 20) && hr < 0; r++) {
-    for (let c = R.s.c; c <= R.e.c; c++) {
-      const h = norm(at(r, c));
-      if (nameC < 0 && /^(성명|이름|한글명|한글이름|고객명|성함)$/.test(h)) nameC = c;
-      if (roomC < 0 && /^(room|rm|roomno\.?|객실|객실번호|방|방번호|룸|호실)$/i.test(h)) roomC = c;
-    }
-    if (nameC >= 0 && roomC >= 0) hr = r; else { nameC = -1; roomC = -1; }
-  }
-  if (hr < 0) return { error: "이 시트에서 '성명'과 'ROOM(객실)' 머리글을 못 찾았어요. 다른 시트를 골라보세요." };
-
-  // 2) 병합된 객실칸 → 병합 범위 전체에 같은 방 번호
-  const roomOf = {};
-  for (const g of ws['!merges'] || []) {
-    if (g.s.c > roomC || g.e.c < roomC) continue;
-    for (let r = g.s.r; r <= g.e.r; r++) roomOf[r] = String(at(g.s.r, roomC) ?? '').trim();
-  }
-
-  // 3) 한 줄씩 읽기
-  const groups = [], byRoom = new Map(), skipped = [];
-  let lastRoom = '', people = 0;
-  for (let r = hr + 1; r <= R.e.r; r++) {
-    const raw = String(at(r, nameC) ?? '').trim();
-    if (!norm(raw)) { lastRoom = ''; continue; }                 // 빈 줄 = 방 구분 끊기
-    let room = roomOf[r] ?? String(at(r, roomC) ?? '').trim();
-    if (!norm(room)) room = lastRoom;                             // 병합 안 된 빈 칸 = 윗사람과 같은 방
-    lastRoom = room;
-    if (skipStaff && STAFF_RE.test(raw)) { skipped.push(raw); continue; }
-    const kor = (norm(raw).match(/[가-힣]{2,}/) || [''])[0];     // 첫 한글이름 (허 옥 → 허옥)
-    if (!kor) { skipped.push(raw); continue; }
-    people++;
-    const single = !norm(room) || /sgl|single|싱글|1인/i.test(room);
-    const key = norm(room).toUpperCase();
-    if (!single && byRoom.has(key)) { byRoom.get(key).names.push(kor); continue; }
-    const g = { room, names: [kor] };
-    groups.push(g);
-    if (!single) byRoom.set(key, g);
-  }
-  return { groups, skipped, people };
-}
-
-function loadRoomSheet() {
-  if (!roomWb) return;
-  const i = +document.getElementById('roomSheet').value || 0;
-  const name = roomWb.SheetNames[i];
-  const res = parseRoomSheet(roomWb.Sheets[name], document.getElementById('skipStaff').checked);
-  if (res.error) { setRoomMsg(res.error); return; }
-  if (!res.groups.length) { setRoomMsg('이 시트에서 한글이름을 찾지 못했어요.'); return; }
-  tbody.innerHTML = '';
-  res.groups.forEach(g => addRow({ n1: g.names[0], n2: g.names.slice(1).join(','), room: g.room }));
-  render();
-  let t = `"${name}" 시트: ${res.people}명 → ${res.groups.length}조로 묶었어요.`;
-  if (res.skipped.length) t += `\n빠진 사람: ${res.skipped.join(', ')}`;
-  setRoomMsg(t, true);
-}
-
-document.getElementById('roomFile').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  try { roomWb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); }
-  catch (err) { roomWb = null; setRoomMsg('엑셀 파일을 읽지 못했어요.'); return; }
-  const sel = document.getElementById('roomSheet');
-  sel.innerHTML = roomWb.SheetNames.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join('');
-  sel.parentElement.hidden = roomWb.SheetNames.length < 2;
-  loadRoomSheet();
-};
-document.getElementById('roomSheet').onchange = loadRoomSheet;
-document.getElementById('skipStaff').onchange = loadRoomSheet;
-
-// ---- 버튼들 ----
-document.getElementById('btnApply').onclick = () => {
-  const rows = document.getElementById('paste').value.split(/\r?\n/).map(parseLine).filter(Boolean);
-  if (!rows.length) return;
-  tbody.innerHTML = '';
-  rows.forEach(addRow);
-  render();
-};
-document.getElementById('btnSample').onclick = () => {
-  document.getElementById('paste').value =
-    ['김영수 이태진','김진국 이도한','원성혁 이원휴','곽동원 박규성','박성재 정만영',
-     '임종근 추용식','박진호 이상정','김일수 이태현','곽병욱 유정재','이의식 안상욱'].join('\n');
-  document.getElementById('btnApply').click();
-};
-document.getElementById('btnAdd').onclick = () => { addRow(); render(); };
-document.getElementById('btnClear').onclick = () => {
-  if (!confirm('표의 내용을 모두 지울까요?')) return;
-  tbody.innerHTML = ''; for (let i = 0; i < 3; i++) addRow(); render();
-};
-document.getElementById('btnDownload').onclick = async () => {
+$('btnDownload').onclick = async () => {
   const groups = getGroups();
-  if (!groups.length || groups.length > MAX_CELLS) return;
+  if (!groups.length) return;
   const blob = await buildXlsx(groups);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `샌딩백_${document.getElementById('date').value || 'date'}.xlsx`;
+  a.download = `샌딩백_${$('date').value || 'date'}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 };
 
-// 시작: 오늘 날짜(한국시간), 빈 줄 3개
+// 시작: 오늘 날짜(한국시간)
 (() => {
-  const now = new Date(Date.now() + 9 * 3600e3);
-  document.getElementById('date').value = now.toISOString().slice(0, 10);
-  for (let i = 0; i < 3; i++) addRow();
+  $('date').value = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
   render();
 })();
 </script>
