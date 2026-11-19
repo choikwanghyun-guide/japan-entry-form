@@ -38,6 +38,7 @@
 </script>
 <!-- ===== /Google Analytics ===== -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1176,7 +1177,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1109_2056</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1119_2349</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -2015,6 +2016,7 @@ function showFormatBadge(format) {
     'lotte':     '🟥 롯데 / 부산롯데형',
     'hanastar':  '🟨 노랑풍선 / 스타재팬형',
     'hanasaku':  '🟧 하나사쿠 / 여행펀형',
+    'hans':      '📘 한스트래블 (워드)',
     'yballoon_event': '📄 노랑풍선 행사개요서 (PDF)',
     'hijapan_confirm': '📄 HI JAPAN 확정서 (PDF)',
     'url':       '🌐 웹 상품페이지',
@@ -2950,32 +2952,114 @@ function normalizeMeal(meal) {
 }
 
 
-function parseDocxConfirm(file) {
+async function parseDocxConfirm(file) {
   showAlert('uploadAlert', 'info', '⏳ 문서를 분석하는 중...');
-  const reader = new FileReader();
-  reader.onload = e => {
-    // docx는 zip → word/document.xml 추출
-    const arr = new Uint8Array(e.target.result);
-    // JSZip 없이 간단히 텍스트 추출
-    let text = '';
-    try {
-      // 바이너리에서 한글 텍스트 추출 시도
-      const str = new TextDecoder('utf-8').decode(arr);
-      const matches = str.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-      text = matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
-    } catch(e) {}
+  try {
+    const buf = await file.arrayBuffer();
+    // docx는 zip → JSZip으로 압축 해제해 word/document.xml 추출 (DEFLATE 압축이라 필수)
+    let xml = '';
+    if (typeof JSZip !== 'undefined') {
+      const zip = await JSZip.loadAsync(buf);
+      const docFile = zip.file('word/document.xml');
+      if (docFile) xml = await docFile.async('string');
+    }
 
+    // 한스(한스트래블) 표 양식: 파서가 "날짜/일정/식사" 헤더 표를 찾으면 바로 사용
+    if (xml) {
+      const hans = parseHansDocx(xml, file.name);
+      if (hans && hans.days.length) {
+        showFormatBadge('hans');
+        parsedData = hans;
+        parsedData.format = 'hans';
+        applyParsedData();
+        return;
+      }
+    }
+
+    // 그 외: 기존 방식(평문 텍스트)으로 폴백
+    const matches = (xml || '').match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
+    const text = matches.map(m => m.replace(/<[^>]+>/g, '')).join(' ');
     showFormatBadge('lotte');
     const data = parseDocxText(text);
-    if (data) {
+    if (data && data.days.length) {
       parsedData = data;
       parsedData.format = 'lotte';
       applyParsedData();
     } else {
-      showAlert('uploadAlert', 'warning', '⚠️ 문서 파싱이 완전하지 않을 수 있어요. 내용을 확인해주세요.');
+      showAlert('uploadAlert', 'error', '❌ 이 워드 문서는 아직 자동 인식이 안 돼요. 명령어(프롬프트)를 복사해 AI에 변환을 맡겨주세요.');
     }
+  } catch (err) {
+    console.error('docx 분석 오류:', err);
+    showAlert('uploadAlert', 'error', '❌ 문서를 읽는 중 문제가 발생했어요. 파일을 확인해주세요.');
+  }
+}
+
+// ── 한스(한스트래블) 워드 일정표 파서 ──
+// 표 구조: 날짜 | 장소 | 교통편 | 시간 | 일정 | 식사. 날짜행(제N일) + 숙박 하위행 + REMARKS.
+function parseHansDocx(xml, fileName) {
+  const data = { title:'한스 일정', startDate:'', endDate:'', nights:0, departureFlight:'', returnFlight:'', transport:'전용버스', pax:'', region:'', groupName:'', days:[] };
+  const dec = s => s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&apos;/g,"'");
+  const cellText = tc => {
+    let s = tc.replace(/<\/w:p>/g,'\n').replace(/<w:br\s*\/?>/g,'\n').replace(/<w:tab\s*\/?>/g,' ').replace(/<[^>]+>/g,'');
+    return dec(s).split('\n').map(x=>x.trim()).filter(Boolean).join('\n');
   };
-  reader.readAsArrayBuffer(file);
+  // 일정 표 찾기 (헤더에 날짜/일정/식사)
+  const tbls = xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g) || [];
+  let rows = null;
+  for (const tb of tbls) {
+    const rs = tb.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || [];
+    const head = rs.length ? rs[0].replace(/<[^>]+>/g,'') : '';
+    if (/날\s*짜/.test(head) && /일\s*정/.test(head) && /식\s*사/.test(head)) { rows = rs; break; }
+  }
+  if (!rows) return null;
+
+  // 파일명 "1121" → 출발일(MM/DD). 연도는 가장 가까운 미래.
+  const md = String(fileName||'').match(/(?:^|[^\d])(\d{2})(\d{2})(?:[^\d]|$)/);
+  if (md) {
+    const mm = +md[1], dd = +md[2];
+    if (mm>=1 && mm<=12 && dd>=1 && dd<=31) {
+      const now = new Date(); let y = now.getFullYear();
+      if (new Date(y, mm-1, dd) < new Date(now.getTime() - 180*86400000)) y++;
+      data.startDate = `${y}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    }
+  }
+
+  const cities = new Set();
+  let currentDay = null;
+  for (let ri = 1; ri < rows.length; ri++) {
+    const cells = (rows[ri].match(/<w:tc>[\s\S]*?<\/w:tc>/g) || []).map(cellText);
+    if (cells.length < 6) continue;   // REMARKS(1칸 병합) 등 건너뜀
+    const c0 = cells[0], c1 = cells[1], c2 = cells[2], c3 = cells[3], c4 = cells[4];
+    const dm = c0.match(/제\s*(\d+)\s*일/);
+    if (dm) {
+      currentDay = { dayNo: parseInt(dm[1]), date: calcDate(data.startDate, parseInt(dm[1])-1), items: [] };
+      data.days.push(currentDay);
+      c1.split('\n').forEach(x => { const city = x.replace(/\s/g,''); if (city && !/김해|간사이/.test(city)) cities.add(city); });
+      const flights = c2.match(/[A-Z]{2}\d{2,4}/g) || [];
+      flights.forEach(fc => { if (!data.departureFlight) data.departureFlight = fc; else data.returnFlight = fc; });
+      const times = (c3.match(/\d{1,2}:\d{2}/g) || []).slice();
+      const flightCodes = flights.slice();
+      c4.split('\n').forEach(line => {
+        const L = line.trim(); if (!L) return;
+        if (/^숙박\s*[:：]/.test(L)) return;   // 숙박은 하위행에서
+        if (/^\*?\s*[중석조]식/.test(L)) { currentDay.items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'', place:'', desc:'', meal: L.replace(/^\*/,'').trim(), type:'meal' }); return; }
+        if (/출발/.test(L) && /공\s*항/.test(L)) { currentDay.items.push({ arrive:'', depart: times.shift()||'', moveDur:'', stayDur:'', transport: flightCodes.shift()||'', place: L.replace(/\s*출발.*/,'').trim(), desc:L, meal:'', type:'flight' }); return; }
+        if (/도착/.test(L) && /공\s*항/.test(L)) { currentDay.items.push({ arrive: times.shift()||'', depart:'', moveDur:'', stayDur:'', transport:'', place: L.replace(/\s*도착.*/,'').trim(), desc:L, meal:'', type:'flight' }); return; }
+        if (/^▶/.test(L)) { currentDay.items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'전용버스', place: L.replace(/^▶/,'').replace(/\s*이동.*/,'').trim(), desc: L.replace(/^▶/,'').trim(), meal:'', type:'move' }); return; }
+        const place = L.replace(/^[-•]\s*/,'').trim();
+        currentDay.items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'', place, desc: place, meal:'', type:'tour' });
+      });
+    } else if (currentDay && /숙박\s*[:：]/.test(c4)) {
+      let hotel = c4.replace(/^숙박\s*[:：]\s*/,'').trim();
+      if (/^상\s*동$/.test(hotel.replace(/\s/g,''))) {   // "상동" = 전날과 같은 호텔
+        for (let k = data.days.length-2; k >= 0; k--) { const h = data.days[k].items.find(it => it.type==='hotel'); if (h) { hotel = h.place; break; } }
+      }
+      if (hotel) currentDay.items.push({ arrive:'', depart:'', moveDur:'', stayDur:'', transport:'', place: hotel, desc:'🏨 '+hotel, meal:'', type:'hotel' });
+    }
+  }
+  data.region = [...cities].join(', ');
+  if (data.days.length) { data.nights = data.days.length-1; if (data.startDate) data.endDate = calcDate(data.startDate, data.days.length-1); }
+  return data;
 }
 
 function parseDocxText(text) {
