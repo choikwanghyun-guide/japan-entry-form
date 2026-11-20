@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1120_2055 (KST) 3명 라벨 자동 글자: "3조 김옥숙 / 박종대,박종혁님" 2줄 (칸 안 넘침) -->
+<!-- rev_2026_1120_2144 (KST) 미리보기 빈 칸 눌러 새로 입력 → 보드 끝에 새 조로 추가 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -60,7 +60,9 @@
   .lbl .names:focus { background:#fff7cc; }
   .lbl.edited .names { text-decoration: underline dotted #e0a800; }
   .lbl.over { border:2px solid var(--warn); }
-  .lbl.empty { background:#fafafa; }
+  .lbl.empty { background:#fafafa; cursor:text; }
+  .lbl.empty .names:empty::before { content:'+ 입력'; color:#c8c8c8; font-size:14px; font-weight:400; }   /* 빈 칸 안내 */
+  .lbl.empty:not(:hover) .names:empty:not(:focus)::before { content:''; }
   .lbl { position:relative; }
   /* 칸별 글자 크기 버튼 (오른쪽 위 작게) */
   .lbl > .fsctl { position:absolute; top:2px; right:2px; font-size:11px; display:flex; align-items:center; gap:2px;
@@ -157,6 +159,7 @@
     <p class="hint" style="margin:0 0 8px">· 글씨체: 빙그레체. 미리보기 글자 크기는 실제 엑셀과 같은 비율이에요. 빨간 테두리 = 칸을 넘침.<br>
       · <b>칸을 눌러 글자를 바로 고칠 수 있어요.</b> (샌딩백은 조 줄까지: "1조 정은숙" 처럼) Enter로 줄바꿈. 다 지우면 자동 글자로 돌아가요.<br>
       · 네임택은 보드의 사람을 조 순서대로 한 명씩 넣어요. 엑셀 내려받기는 '샌딩백'·'네임택' 시트를 한 파일에 같이 채워요.<br>
+      · <b>빈 칸</b>을 누르면 새로 입력할 수 있어요(보드 맨 끝에 새 조로 추가돼요).<br>
       · 칸 오른쪽 위 <b>− 35 +</b> 로 <b>그 칸만</b> 글자 크기를 바꿀 수 있어요(3명 라벨이 넘칠 때). 파란 숫자 = 따로 정한 크기.</p>
     <div id="preview"></div>
     <div id="msg" class="msg"></div>
@@ -182,7 +185,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1120_2055</footer>
+  <footer>rev_2026_1120_2144</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -341,6 +344,23 @@ function getTags() {
   return out;
 }
 
+// 미리보기 빈 칸에 입력한 글자를 보드에 추가
+function addTyped(text) {
+  const lane = makeLane();
+  if (mode === 'tag') {                                   // 네임택: 입력한 그대로 한 사람
+    lane.querySelector('.cards').appendChild(makeCard([text.replace(/\s*\n\s*/g, ' ')], ''));
+  } else {                                                // 샌딩백: 이름은 한글 이름만 뽑아 카드로, 칸 글자는 입력한 그대로
+    const names = (text.replace(/\d+\s*조/g, ' ').match(/[가-힣]{2,}/g) || []).map(n => n.replace(/님$/, '')).filter(Boolean);
+    const card = makeCard(names.length ? names : [text.split('\n')[0]], '');
+    if (/^\s*\d+\s*조/.test(text) || text.includes('\n')) {   // 조 번호나 줄바꿈까지 직접 썼으면 그대로, 아니면 자동("N조 / 이름님")
+      card.dataset.label = text;
+      card.dataset.sig = cardNames(card).join('|');
+    }
+    lane.querySelector('.cards').appendChild(card);
+  }
+  render();
+}
+
 // ===== 미리보기 모드: 'bag' 샌딩백 라벨(조별) / 'tag' 네임택(한 명씩) =====
 let mode = 'bag';
 const KEY = { bag: { label: 'label', sig: 'sig', fs: 'fs' }, tag: { label: 'tLabel', sig: 'tSig', fs: 'tFs' } };
@@ -396,6 +416,16 @@ function render() {
           d.classList.add('edited'); markOverflow(d);
         };
         nm.onblur = () => { if (!nm.innerText.trim()) render(); };   // 다 지웠으면 자동 글자로
+      } else {
+        // 빈 칸: 눌러서 새로 입력 → 보드 맨 끝에 새 조로 추가 (엑셀·인쇄에 같이 들어감)
+        d.innerHTML = '<div class="names" contenteditable="plaintext-only" spellcheck="false"></div>';
+        const nm = d.querySelector('.names');
+        d.onclick = () => nm.focus();
+        nm.onblur = () => {
+          const text = nm.innerText.replace(/\n+$/, '').trim();
+          if (!text) return;
+          addTyped(text);
+        };
       }
       grid.appendChild(d);
     }
