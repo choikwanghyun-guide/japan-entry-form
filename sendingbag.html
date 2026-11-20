@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1120_2046 (KST) 조마다 "라벨당 인원(1·2·3·4명씩)" 선택 → 그 조 사람들을 순서대로 다시 나눔 -->
+<!-- rev_2026_1120_2051 (KST) 명부의 '조' 칸(조 번호 병합칸)대로 묶기 우선, 굵은 선 안에서도 예약번호 바뀌면 나눔 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -182,7 +182,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1120_2046</footer>
+  <footer>rev_2026_1120_2051</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -731,7 +731,28 @@ async function parseFallback(ws, sheetIdx) {
   const toRooms = groups => groups.flatMap((g, k) => chunk(g).map(ps => ({ room: '', resv: ps[0].resv, grp: 'G' + (k + 1), names: ps.map(x => x.kor) })));
   const result = (groups, how) => ({ rooms: toRooms(groups), skipped, people: ppl.length, hasResv: true, roomCols: [], roomPick: 0, how });
 
-  // 1) 굵은 선 (.xlsx·.xls 모두)
+  // 0) '조' 칸: 머리글이 조·팀·그룹이거나, 숫자가 세로로 합쳐진 칸 (광현님이 직접 조를 적은 칸)
+  const GROUP_RE = /^(조|조번호|팀|그룹|group|team)$/i;
+  const vmerges = (ws['!merges'] || []).filter(g => g.e.r > g.s.r && g.s.c === g.e.c);
+  let groupC = -1;
+  for (let c = R.s.c; c <= R.e.c && start > R.s.r; c++) if (c !== nameC && GROUP_RE.test(norm(at(start - 1, c)))) { groupC = c; break; }
+  if (groupC < 0) for (let c = R.s.c; c <= R.e.c; c++) {
+    if (c === nameC || c === resvC) continue;
+    const ms = vmerges.filter(g => g.s.c === c && ppl.some(p => p.r >= g.s.r && p.r <= g.e.r));
+    if (ms.length && ms.every(g => /^\d{1,3}$/.test(norm(at(g.s.r, c))))) { groupC = c; break; }
+  }
+  if (groupC >= 0) {
+    const grpOf = r => { const g = vmerges.find(m => m.s.c === groupC && r >= m.s.r && r <= m.e.r); return norm(at(g ? g.s.r : r, groupC)); };
+    const groups = []; let cur = null, last = null;
+    ppl.forEach((p, k) => {
+      const v = grpOf(p.r);
+      if (!cur || !v || v !== last) { cur = []; groups.push(cur); }   // 조 번호가 바뀌거나 비어 있으면 새 조
+      cur.push(p); last = v;
+    });
+    return result(groups, 'group');
+  }
+
+  // 1) 굵은 선 (.xlsx·.xls 모두). 가는 선이어도 예약번호가 바뀌면 나눔
   let B = null;
   try { B = await readBorders(roomBuf, sheetIdx); } catch (e) {}
   const addr = (r, c) => XLSX.utils.encode_cell({ r, c });
@@ -742,7 +763,9 @@ async function parseFallback(ws, sheetIdx) {
       const prev = ppl[k - 1];
       const thick = prev && p.r === prev.r + 1 && thickAt(prev.r, p.r, cols);
       if (thick) any = true;
-      if (!prev || p.r !== prev.r + 1 || thick) { cur = []; out.push(cur); }   // 빈 줄도 경계
+      const rv = x => norm(x.resv).toUpperCase();
+      const resvChange = prev && rv(p) && rv(prev) && rv(p) !== rv(prev);      // 예약번호가 바뀜
+      if (!prev || p.r !== prev.r + 1 || thick || resvChange) { cur = []; out.push(cur); }   // 빈 줄도 경계
       cur.push(p);
     });
     return { out, any };
@@ -788,7 +811,8 @@ async function loadRoomSheet() {
   rooms = res.rooms;
   autoGroup(res.hasResv ? 'resv' : 'room');
   let t = `${name}: ${res.people}명 → 라벨 카드 ${rooms.length}장. ` +
-          (res.how === 'border' ? '방 칸이 없어서 표의 굵은 선 기준으로 묶었어요(묶음 = 조, 4명 이상은 2명씩 라벨).'
+          (res.how === 'group' ? "엑셀의 '조' 칸대로 묶었어요(4명 이상은 2명씩 라벨)."
+           : res.how === 'border' ? '방 칸이 없어서 표의 굵은 선(+예약번호가 바뀌는 곳) 기준으로 묶었어요(4명 이상은 2명씩 라벨).'
            : res.how === 'resv' ? '방 칸이 없어서 예약번호(코드)마다 1조로 묶었어요(4명 이상은 2명씩 라벨).'
            : res.how === 'name' ? '방 칸도 굵은 선도 없어서 이름마다 1장씩 만들었어요.'
            : res.hasResv ? '예약번호마다 1조로 묶어놨어요.' : '방마다 1조로 묶어놨어요.') + ' 끌어서 바꾸세요.';
