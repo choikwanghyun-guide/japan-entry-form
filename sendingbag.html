@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1120_2051 (KST) 명부의 '조' 칸(조 번호 병합칸)대로 묶기 우선, 굵은 선 안에서도 예약번호 바뀌면 나눔 -->
+<!-- rev_2026_1120_2052 (KST) 방 칸 없을 때 묶는 순서: 조 칸 → 예약번호 → 굵은 선 → 이름마다 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -182,7 +182,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1120_2051</footer>
+  <footer>rev_2026_1120_2052</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -752,7 +752,18 @@ async function parseFallback(ws, sheetIdx) {
     return result(groups, 'group');
   }
 
-  // 1) 굵은 선 (.xlsx·.xls 모두). 가는 선이어도 예약번호가 바뀌면 나눔
+  // 1) 예약번호(예약코드) 칸이 있으면 같은 번호끼리 (번호 없는 사람은 혼자)
+  if (resvC >= 0) {
+    const groups = [], byKey = new Map();
+    ppl.forEach(p => {
+      const key = norm(p.resv).toUpperCase();
+      if (key && byKey.has(key)) { byKey.get(key).push(p); return; }
+      const g = [p]; groups.push(g); if (key) byKey.set(key, g);
+    });
+    return result(groups, 'resv');
+  }
+
+  // 2) 예약번호 칸도 없으면 표의 굵은 선 (.xlsx·.xls 모두)
   let B = null;
   try { B = await readBorders(roomBuf, sheetIdx); } catch (e) {}
   const addr = (r, c) => XLSX.utils.encode_cell({ r, c });
@@ -774,17 +785,6 @@ async function parseFallback(ws, sheetIdx) {
     let res = split([nameC]);                                      // 이름 칸의 선 먼저
     if (!res.any) { const all = []; for (let c = R.s.c; c <= R.e.c; c++) all.push(c); res = split(all); }   // 없으면 줄 전체
     if (res.any) return result(res.out, 'border');
-  }
-
-  // 2) 굵은 선이 없으면 예약번호(예약코드)가 같은 사람끼리
-  if (resvC >= 0) {
-    const groups = [], byKey = new Map();
-    ppl.forEach(p => {
-      const key = norm(p.resv).toUpperCase();
-      if (key && byKey.has(key)) { byKey.get(key).push(p); return; }
-      const g = [p]; groups.push(g); if (key) byKey.set(key, g);
-    });
-    return result(groups, 'resv');
   }
 
   // 3) 그것도 없으면 이름마다 1장
@@ -812,7 +812,7 @@ async function loadRoomSheet() {
   autoGroup(res.hasResv ? 'resv' : 'room');
   let t = `${name}: ${res.people}명 → 라벨 카드 ${rooms.length}장. ` +
           (res.how === 'group' ? "엑셀의 '조' 칸대로 묶었어요(4명 이상은 2명씩 라벨)."
-           : res.how === 'border' ? '방 칸이 없어서 표의 굵은 선(+예약번호가 바뀌는 곳) 기준으로 묶었어요(4명 이상은 2명씩 라벨).'
+           : res.how === 'border' ? '방 칸이 없어서 표의 굵은 선 기준으로 묶었어요(4명 이상은 2명씩 라벨).'
            : res.how === 'resv' ? '방 칸이 없어서 예약번호(코드)마다 1조로 묶었어요(4명 이상은 2명씩 라벨).'
            : res.how === 'name' ? '방 칸도 굵은 선도 없어서 이름마다 1장씩 만들었어요.'
            : res.hasResv ? '예약번호마다 1조로 묶어놨어요.' : '방마다 1조로 묶어놨어요.') + ' 끌어서 바꾸세요.';
