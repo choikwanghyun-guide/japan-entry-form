@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1120_2043 (KST) .xls 굵은 선 읽기, 예약코드 인식, 방 칸 없을 때 굵은 선 → 예약코드 → 이름 순, 묶음=조·4명 이상 2명씩 라벨 -->
+<!-- rev_2026_1120_2046 (KST) 조마다 "라벨당 인원(1·2·3·4명씩)" 선택 → 그 조 사람들을 순서대로 다시 나눔 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -36,6 +36,7 @@
   .lane-head b { font-size:17px; }
   .lane-head .info { color:var(--muted); font-size:13px; flex:1; }
   .lane-head button { padding:4px 9px; font-size:13px; }
+  .lane-head select.per { font-size:13px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; background:#fff; }
   .cards { display:flex; flex-wrap:wrap; gap:8px; min-height:58px; padding:4px; border-radius:8px; }
   .lcard { position:relative; background:#fff; border:1px solid #c9c6bd; border-radius:9px; padding:6px 24px 5px 6px; min-width:120px; cursor:grab; box-shadow:0 1px 2px rgba(0,0,0,.06); }
   .lcard .chips { display:flex; flex-wrap:wrap; gap:4px; min-height:30px; min-width:90px; }
@@ -181,7 +182,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1120_2043</footer>
+  <footer>rev_2026_1120_2046</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -247,11 +248,27 @@ function makeLane() {
   const l = document.createElement('div');
   l.className = 'lane';
   l.innerHTML = `<div class="lane-head"><span class="handle" title="끌어서 조 순서 바꾸기">⠿</span><b class="title"></b>
-    <span class="info"></span><button class="add">+ 빈 라벨</button><button class="del" title="조 삭제">✕</button></div>
+    <span class="info"></span>
+    <select class="per" title="이 조 사람들을 라벨 한 장에 몇 명씩 넣을지"><option value="">라벨당 인원</option><option value="1">1명씩</option><option value="2">2명씩</option><option value="3">3명씩</option><option value="4">4명씩</option></select>
+    <button class="add">+ 빈 라벨</button><button class="del" title="조 삭제">✕</button></div>
     <div class="cards"></div>`;
   const cards = l.querySelector('.cards');
   makeCardList(cards);
   l.querySelector('.add').onclick = () => { cards.appendChild(makeCard([], '')); render(); };
+  // 라벨당 인원: 이 조 사람들을 순서대로 N명씩 다시 나눠 라벨 카드 만들기 (남는 사람은 마지막 장)
+  l.querySelector('.per').onchange = e => {
+    const n = +e.target.value; if (!n) return;
+    const chips = [...cards.querySelectorAll('.chip')].map(c => ({ name: c.textContent.trim(), meta: c.dataset.meta || '' })).filter(c => c.name);
+    cards.innerHTML = '';
+    for (let i = 0; i < chips.length; i += n) {
+      const part = chips.slice(i, i + n);
+      const metas = [...new Set(part.map(c => c.meta).filter(Boolean))];
+      const card = makeCard(part.map(c => c.name), metas.join(' / '));
+      card.querySelectorAll('.chip').forEach((ch, k) => ch.dataset.meta = part[k].meta);   // 사람마다 원래 방 정보 유지
+      cards.appendChild(card);
+    }
+    render();
+  };
   l.querySelector('.del').onclick = () => { // 조를 지우면 카드는 대기로
     [...cards.children].forEach(c => pool.appendChild(c)); l.remove(); render();
   };
