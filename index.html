@@ -323,7 +323,7 @@
     </div>
     <div class="scroll-table">
       <table class="passengers-table">
-        <thead><tr><th style="width:34px;"><input type="checkbox" id="selAllChk" checked onchange="toggleSelAll(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></th><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>국적</th><th>직업</th><th>여권 만료</th></tr></thead>
+        <thead><tr><th style="width:34px;"><input type="checkbox" id="selAllChk" checked onchange="toggleSelAll(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></th><th>번호</th><th>성</th><th>이름</th><th>생년월일</th><th>나이(만)</th><th>국적</th><th>직업</th><th>여권 만료</th></tr></thead>
         <tbody id="passengersBody"></tbody>
       </table>
     </div>
@@ -331,6 +331,7 @@
       <span style="font-size:13px; color:var(--text2); margin-right:auto;">인쇄 대상 <b id="selCount" style="color:var(--accent);">0</b> / <span id="selTotal">0</span>명 선택됨</span>
       <button type="button" onclick="toggleSelAll(true)" style="font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer;">전체 선택</button>
       <button type="button" onclick="toggleSelAll(false)" style="font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text); cursor:pointer;">전체 해제</button>
+      <button type="button" onclick="deselectMinors()" title="만 19세 미만을 인쇄 대상에서 제외합니다 (세관신고서용)" style="font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid var(--warning); background:var(--warning); color:#fff; font-weight:600; cursor:pointer;">🧒 미성년자 체크 해제</button>
     </div>
     <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
       <button class="btn-print topbtn" id="btnImmigration" onclick="setMode('immigration')" style="margin-top:0; flex:1;">
@@ -1877,11 +1878,17 @@ function renderPreview() {
     if (expWarn) {
       tr.style.cssText = 'background:rgba(247,79,79,0.13); outline:1.5px solid rgba(247,79,79,0.55); outline-offset:-1px;';
     }
+    // 나이(만) 셀 — 미성년자(만 19세 미만)는 빨강으로 눈에 띄게
+    const _age = calcAge(p);
+    const _ageCell = (_age == null)
+      ? '<td style="text-align:center;color:var(--text2);">-</td>'
+      : `<td style="text-align:center;${_age < 19 ? 'color:#f74f4f;font-weight:700;' : ''}">${_age}세${_age < 19 ? ' 🧒' : ''}</td>`;
     tr.innerHTML = `
       <td><input type="checkbox" class="rowSel" checked onchange="updateSelCount()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></td><td>${p.no}</td>
       <td style="color:var(--accent);font-weight:600">${p.lastName}</td>
       <td style="color:var(--accent)">${p.firstName}</td>
       <td>${p.birthYear}-${p.birthMonth}-${p.birthDay}</td>
+      ${_ageCell}
       <td>${renderNationalityCell(p)}</td>
       <td>${renderOccupationCell(p)}</td>
       ${expWarn ? `<td><span style="
@@ -2176,6 +2183,27 @@ function updateSelCount() {
   const tEl = document.getElementById('selTotal'); if (tEl) tEl.textContent = boxes.length;
   const allChk = document.getElementById('selAllChk'); if (allChk) allChk.checked = (n === boxes.length && boxes.length > 0);
   const bar = document.getElementById('selBar'); if (bar) bar.style.display = boxes.length ? 'flex' : 'none';
+}
+// 만 나이 계산 (생년월일 없으면 null). 통계 계산과 동일한 방식
+function calcAge(p) {
+  if (!p || !p.birthYear || !p.birthMonth || !p.birthDay) return null;
+  const t = new Date();
+  let age = t.getFullYear() - parseInt(p.birthYear);
+  const md = t.getMonth() - (parseInt(p.birthMonth) - 1);
+  if (md < 0 || (md === 0 && t.getDate() < parseInt(p.birthDay))) age--;
+  return age;
+}
+// 미성년자(만 19세 미만) 일괄 체크 해제 — 세관신고서 인쇄 대상에서 제외용
+function deselectMinors() {
+  const boxes = document.querySelectorAll('#passengersBody input.rowSel');
+  let cnt = 0;
+  boxes.forEach((b, i) => {
+    const a = calcAge(passengers[i]);
+    if (a != null && a < 19 && b.checked) { b.checked = false; cnt++; }
+  });
+  updateSelCount();
+  if (cnt === 0) alert('미성년자(만 19세 미만)가 없어요.');
+  else alert('미성년자(만 19세 미만) ' + cnt + '명을 체크 해제했어요.\n세관신고서 인쇄 대상에서 제외됩니다.');
 }
 function printCards(type) {
   const info = {
@@ -2580,7 +2608,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1109_0949</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1120_2247</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
