@@ -345,6 +345,17 @@
       </button>
     </div>
 
+    <!-- 서명 핑크 형광 표시 옵션 -->
+    <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+        <input type="checkbox" id="pinkSignature" style="width:18px; height:18px; cursor:pointer; accent-color:#ff80b3;">
+        <span style="font-size:13px; color:#ff80b3; font-weight:600;">
+          "서명" 핑크 형광색 표시
+          <span style="font-size:11px; color:var(--text3); font-weight:400; display:block; margin-top:2px;">컬러 잉크젯/레이저 프린터에서만 사용하세요 (흑백 인쇄 시 회색으로 나옴)</span>
+        </span>
+      </label>
+    </div>
+
     <!-- 명단 없이 공통정보만 인쇄 -->
     <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
       <div style="font-size:13px; color:var(--text2); font-weight:600; margin-bottom:10px;">📋 명단 없이 공통정보만 인쇄</div>
@@ -361,17 +372,6 @@
         <button type="button" onclick="setMode('immigration', true)" style="flex:1; min-width:130px; background:var(--accent); color:white; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">🛂 입국신고서 공통사항 인쇄</button>
         <button type="button" onclick="setMode('customs', true)" style="flex:1; min-width:130px; background:var(--warning); color:white; border:none; border-radius:8px; padding:11px; font-size:14px; font-weight:600; cursor:pointer; font-family:inherit;">🛃 세관신고서 공통사항 인쇄</button>
       </div>
-    </div>
-
-    <!-- 서명 핑크 형광 표시 옵션 -->
-    <div style="margin-top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px;">
-      <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-        <input type="checkbox" id="pinkSignature" style="width:18px; height:18px; cursor:pointer; accent-color:#ff80b3;">
-        <span style="font-size:13px; color:#ff80b3; font-weight:600;">
-          "서명" 핑크 형광색 표시
-          <span style="font-size:11px; color:var(--text3); font-weight:400; display:block; margin-top:2px;">컬러 잉크젯/레이저 프린터에서만 사용하세요 (흑백 인쇄 시 회색으로 나옴)</span>
-        </span>
-      </label>
     </div>
 
     <!-- 입국신고서 용지 방향 선택 -->
@@ -2613,7 +2613,7 @@ else document.addEventListener('DOMContentLoaded', () => { cleanInvalidOffsets()
 </script>
 
 <div style="text-align:center; padding:20px; margin-top:12px; color:var(--text3); font-size:12px; font-family:'Noto Sans KR', sans-serif; letter-spacing:0.5px;" class="no-print">
-  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1120_2326</span>
+  Created by Choi KwangHyun &nbsp;·&nbsp; © 2026 &nbsp;·&nbsp; <span id="revStamp" style="color:var(--accent); font-family:monospace;">rev_2026_1120_2331</span>
 </div>
 
 <!-- ===== GA4 이벤트 추적 (기존 로직 비침투 방식) ===== -->
