@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>샌딩백 조편성</title>
-<!-- rev_2026_1120_2052 (KST) 방 칸 없을 때 묶는 순서: 조 칸 → 예약번호 → 굵은 선 → 이름마다 -->
+<!-- rev_2026_1120_2055 (KST) 3명 라벨 자동 글자: "3조 김옥숙 / 박종대,박종혁님" 2줄 (칸 안 넘침) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
@@ -182,7 +182,7 @@
       <div class="btns"><button id="pReset">엑셀 양식 값으로 되돌리기</button></div>
     </details>
   </section>
-  <footer>rev_2026_1120_2052</footer>
+  <footer>rev_2026_1120_2055</footer>
 </main>
 <!-- 인쇄할 때만 보이는 영역 (화면에선 숨김) -->
 <div id="printArea"></div>
@@ -291,6 +291,14 @@ function autoText(names) {
   return t;
 }
 
+// 칸 전체 자동 글자. 3명이면 첫 사람을 조 옆에 붙여 2줄 (예: 3조 김옥숙 / 박종대,박종혁님) — 3줄이면 칸이 넘침
+function autoFull(no, names) {
+  if (names.length !== 3) return no + '\n' + autoText(names);
+  let t = `${no} ${names[0]}\n${names[1]},${names[2]}`;
+  if (!names.join('').includes('님')) t += '님';
+  return t;
+}
+
 // 라벨 목록: [{no:'1조', full:'칸 전체 글자', card, edited, fs}]
 // 미리보기에서 고친 글자(조 줄 포함 칸 전체)는 카드에 저장. 카드 속 이름이 바뀌면 버리고 자동으로.
 // 조 순서가 바뀌면 고친 글자 맨 앞의 옛 "N조"만 새 번호로 바꿔줌.
@@ -309,7 +317,7 @@ function getLabels() {
         card.dataset.no = no;
       }
       const fs = card.dataset.fs ? +card.dataset.fs : null;   // 이 칸만 따로 정한 글자 크기
-      out.push({ no, full: edited ? card.dataset.label : no + '\n' + autoText(names), card, holder: card, edited, fs });
+      out.push({ no, full: edited ? card.dataset.label : autoFull(no, names), card, holder: card, edited, fs });
     });
   });
   return out;
