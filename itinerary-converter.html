@@ -1177,7 +1177,7 @@
   <div id="weatherResult" class="weather-result"></div>
 </div>
 
-<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1119_2349</span></div>
+<div class="footer">Created by Choi KwangHyun · © 2026 · <span style="color:var(--accent);font-family:monospace;">rev_2026_1125_1143</span></div>
 
 <script>
 // ── 전역 상태 ──
@@ -3013,14 +3013,37 @@ function parseHansDocx(xml, fileName) {
   }
   if (!rows) return null;
 
-  // 파일명 "1121" → 출발일(MM/DD). 연도는 가장 가까운 미래.
-  const md = String(fileName||'').match(/(?:^|[^\d])(\d{2})(\d{2})(?:[^\d]|$)/);
-  if (md) {
-    const mm = +md[1], dd = +md[2];
-    if (mm>=1 && mm<=12 && dd>=1 && dd<=31) {
-      const now = new Date(); let y = now.getFullYear();
-      if (new Date(y, mm-1, dd) < new Date(now.getTime() - 180*86400000)) y++;
-      data.startDate = `${y}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+  // 정보 표(단체명/인원/버스) 읽기 — 이 양식엔 일정표 위에 2열짜리 정보 표가 있는 경우가 있음
+  for (const tb of tbls) {
+    const rs = tb.match(/<w:tr[ >][\s\S]*?<\/w:tr>/g) || [];
+    for (const r of rs) {
+      const cs = (r.match(/<w:tc>[\s\S]*?<\/w:tc>/g) || []).map(cellText);
+      if (cs.length < 2) continue;
+      const label = cs[0].replace(/\s/g,''), val = cs[1];
+      if (/^단체명/.test(label) && !data.groupName) data.groupName = val.replace(/[\[\]]/g,'').split(/\n|피켓명/)[0].trim();
+      else if (/^인원/.test(label) && !data.pax) {
+        const pm = val.match(/\d+\s*명/); if (pm) data.pax = pm[0].replace(/\s/g,'');
+        const tm = val.match(/\d+\s*인승\s*(소형|중형|대형)?\s*버스|(소형|중형|대형)\s*버스|전용\s*버스|전용\s*차량/); if (tm) data.transport = tm[0].replace(/\s+/g,' ').trim();
+      }
+    }
+  }
+
+  // 출발일: ① 상품코드 YYMMDD(예: JOQ640·261126·TWQ → 2026-11-26) ② 없으면 파일명 MMDD
+  const codeDate = code => {
+    const m = String(code||'').match(/[A-Z]{2,3}\d{2,3}(\d{2})(\d{2})(\d{2})[A-Z]{2,3}/);
+    if (m) { const y = 2000 + (+m[1]), mo = +m[2], dd = +m[3]; if (mo>=1 && mo<=12 && dd>=1 && dd<=31) return `${y}-${String(mo).padStart(2,'0')}-${String(dd).padStart(2,'0')}`; }
+    return '';
+  };
+  data.startDate = codeDate(data.groupName);
+  if (!data.startDate) {
+    const md = String(fileName||'').match(/(?:^|[^\d])(\d{2})(\d{2})(?:[^\d]|$)/);
+    if (md) {
+      const mm = +md[1], dd = +md[2];
+      if (mm>=1 && mm<=12 && dd>=1 && dd<=31) {
+        const now = new Date(); let y = now.getFullYear();
+        if (new Date(y, mm-1, dd) < new Date(now.getTime() - 180*86400000)) y++;
+        data.startDate = `${y}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+      }
     }
   }
 
@@ -3034,7 +3057,7 @@ function parseHansDocx(xml, fileName) {
     if (dm) {
       currentDay = { dayNo: parseInt(dm[1]), date: calcDate(data.startDate, parseInt(dm[1])-1), items: [] };
       data.days.push(currentDay);
-      c1.split('\n').forEach(x => { const city = x.replace(/\s/g,''); if (city && !/김해|간사이/.test(city)) cities.add(city); });
+      c1.split('\n').forEach(x => { const city = x.replace(/\s/g,''); if (city && !/김해|간사이|대구|인천|서울|부산/.test(city)) cities.add(city); });
       const flights = c2.match(/[A-Z]{2}\d{2,4}/g) || [];
       flights.forEach(fc => { if (!data.departureFlight) data.departureFlight = fc; else data.returnFlight = fc; });
       const times = (c3.match(/\d{1,2}:\d{2}/g) || []).slice();
